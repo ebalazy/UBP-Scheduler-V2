@@ -13,7 +13,8 @@ const DEFAULTS = {
         skuColumn: 'Commodity'
     },
     dashboardLayout: {
-        col1: ['chart', 'kpis'],
+        top: ['kpis'],
+        col1: ['chart', 'dropzone'],
         col2: ['inputs', 'demand']
     }
 };
@@ -53,7 +54,10 @@ export function SettingsProvider({ children }) {
     const [dashboardLayout, setDashboardLayout] = useState(() => {
         try {
             const saved = localStorage.getItem('dashboardLayout');
-            return saved ? JSON.parse(saved) : DEFAULTS.dashboardLayout;
+            const parsed = saved ? JSON.parse(saved) : DEFAULTS.dashboardLayout;
+            // Migration: If old structure (no 'top'), reset to default
+            if (!parsed.top) return DEFAULTS.dashboardLayout;
+            return parsed;
         } catch (e) {
             return DEFAULTS.dashboardLayout;
         }

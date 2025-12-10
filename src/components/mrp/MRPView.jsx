@@ -46,6 +46,15 @@ export default function MRPView({ state, setters, results }) {
     // --- Component Definitions based on ID ---
     const renderWidget = (id) => {
         switch (id) {
+            case 'dropzone':
+                return (
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                        <CsvDropZone
+                            onUpdateInventory={setters.setYardInventory}
+                            currentSku={state.selectedSize}
+                        />
+                    </div>
+                );
             case 'chart':
                 return (
                     <div className="p-4 h-full">
@@ -58,29 +67,29 @@ export default function MRPView({ state, setters, results }) {
                 );
             case 'kpis':
                 return (
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-                        <div className="bg-gray-800 text-white p-6 rounded-lg shadow-inner flex flex-col justify-between">
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-center">
+                        <div className="bg-gray-800 text-white p-6 rounded-lg shadow-inner flex flex-col justify-between h-32">
                             <div>
                                 <p className="text-gray-400 text-xs uppercase font-bold">Projected End-of-Week</p>
-                                <p className={`text-3xl font-mono font-bold mt-1 ${netInventory < safetyTarget ? 'text-red-400' : 'text-green-400'}`}>
+                                <p className={`text-4xl font-mono font-bold mt-2 ${netInventory < safetyTarget ? 'text-red-400' : 'text-green-400'}`}>
                                     {fmt(netInventory)}
                                 </p>
-                                <p className="text-xs text-gray-400 mt-0.5">Bottles Net</p>
+                                <p className="text-xs text-gray-400 mt-1">Bottles Net</p>
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col justify-between">
+                        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col justify-between h-32">
                             <div>
                                 <p className="text-gray-500 text-xs uppercase font-bold">Safety Target</p>
-                                <p className="text-3xl font-mono font-bold mt-1 text-gray-700">{fmt(safetyTarget)}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">Bottles ({state.selectedSize})</p>
+                                <p className="text-4xl font-mono font-bold mt-2 text-gray-700">{fmt(safetyTarget)}</p>
+                                <p className="text-xs text-gray-400 mt-1">Bottles ({state.selectedSize})</p>
                             </div>
                         </div>
 
-                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between ${trucksToOrder > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${trucksToOrder > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                             <div>
                                 <p className={`${trucksToOrder > 0 ? 'text-red-600' : 'text-green-600'} text-xs uppercase font-bold`}>Action</p>
-                                <div className="text-3xl font-extrabold mt-1">
+                                <div className="text-4xl font-extrabold mt-2">
                                     {trucksToOrder > 0 ? (
                                         <span className="text-red-600">{trucksToOrder} TRUCKS</span>
                                     ) : (
@@ -234,7 +243,8 @@ export default function MRPView({ state, setters, results }) {
 
         // Find which column the items belong to
         const findContainer = (id) => {
-            if (id === 'col1' || id === 'col2') return id;
+            if (id === 'top' || id === 'col1' || id === 'col2') return id;
+            if (dashboardLayout.top?.includes(id)) return 'top';
             if (dashboardLayout.col1.includes(id)) return 'col1';
             if (dashboardLayout.col2.includes(id)) return 'col2';
             return null;
@@ -247,6 +257,7 @@ export default function MRPView({ state, setters, results }) {
 
         // Clone layout to mutate
         const newLayout = {
+            top: [...(dashboardLayout.top || [])],
             col1: [...dashboardLayout.col1],
             col2: [...dashboardLayout.col2]
         };
@@ -266,7 +277,7 @@ export default function MRPView({ state, setters, results }) {
             newLayout[activeContainer] = newLayout[activeContainer].filter(id => id !== active.id);
             // Add to new
             // If dropping directly over a container (empty space), append to end
-            if (over.id === 'col1' || over.id === 'col2') {
+            if (over.id === 'top' || over.id === 'col1' || over.id === 'col2') {
                 newLayout[overContainer].push(active.id);
             } else {
                 // Dropping over another item, insert before it
@@ -281,21 +292,31 @@ export default function MRPView({ state, setters, results }) {
 
     return (
         <div className="space-y-6">
-            {/* Top Zone: Integration Check & Drop Status */}
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-                <CsvDropZone
-                    onUpdateInventory={setters.setYardInventory}
-                    currentSku={state.selectedSize}
-                />
-            </div>
-
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
             >
+                {/* Full Width Top Zone */}
+                {dashboardLayout.top && (
+                    <div className="w-full">
+                        <DroppableColumn id="top" className="min-h-[100px]">
+                            <SortableContext
+                                items={dashboardLayout.top}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                {dashboardLayout.top.map(id => (
+                                    <SortableWidget key={id} id={id}>
+                                        {renderWidget(id)}
+                                    </SortableWidget>
+                                ))}
+                            </SortableContext>
+                        </DroppableColumn>
+                    </div>
+                )}
+
+
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                    {/* Zone A (Col 1) */}
                     {/* Zone A (Col 1) */}
                     <div className="xl:col-span-2">
                         <DroppableColumn id="col1">
@@ -312,7 +333,6 @@ export default function MRPView({ state, setters, results }) {
                         </DroppableColumn>
                     </div>
 
-                    {/* Zone B (Col 2) */}
                     {/* Zone B (Col 2) */}
                     <div>
                         <DroppableColumn id="col2">
