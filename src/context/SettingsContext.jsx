@@ -13,9 +13,9 @@ const DEFAULTS = {
         skuColumn: 'Commodity'
     },
     dashboardLayout: {
-        top: ['kpis'],
-        col1: ['chart', 'dropzone'],
-        col2: ['inputs', 'demand']
+        top: ['kpis', 'demand'],
+        col1: ['chart'],
+        col2: ['inputs', 'dropzone']
     }
 };
 
@@ -55,8 +55,11 @@ export function SettingsProvider({ children }) {
         try {
             const saved = localStorage.getItem('dashboardLayout');
             const parsed = saved ? JSON.parse(saved) : DEFAULTS.dashboardLayout;
-            // Migration: If old structure (no 'top'), reset to default
-            if (!parsed.top) return DEFAULTS.dashboardLayout;
+
+            // Migration: Check if 'top' has 'demand' (our new standard). If not, reset to defaults.
+            // This ensures users get the new requested layout automatically.
+            if (!parsed.top || !parsed.top.includes('demand')) return DEFAULTS.dashboardLayout;
+
             return parsed;
         } catch (e) {
             return DEFAULTS.dashboardLayout;
