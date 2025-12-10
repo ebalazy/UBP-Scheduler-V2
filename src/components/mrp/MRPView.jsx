@@ -20,6 +20,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import SortableWidget from '../common/SortableWidget';
+import DroppableColumn from '../common/DroppableColumn';
 
 export default function MRPView({ state, setters, results }) {
     const { bottleSizes, dashboardLayout, setDashboardLayout } = useSettings();
@@ -295,36 +296,37 @@ export default function MRPView({ state, setters, results }) {
             >
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                     {/* Zone A (Col 1) */}
-                    <div className="xl:col-span-2 space-y-6">
-                        <SortableContext
-                            items={dashboardLayout.col1}
-                            strategy={verticalListSortingStrategy}
-                            id="col1" // Droppable ID
-                        >
-                            {dashboardLayout.col1.map(id => (
-                                <SortableWidget key={id} id={id}>
-                                    {renderWidget(id)}
-                                </SortableWidget>
-                            ))}
-                            {/* Empty state placeholder if needed, or min-height via css */}
-                            <div className="min-h-[10px]" />
-                        </SortableContext>
+                    {/* Zone A (Col 1) */}
+                    <div className="xl:col-span-2">
+                        <DroppableColumn id="col1">
+                            <SortableContext
+                                items={dashboardLayout.col1}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                {dashboardLayout.col1.map(id => (
+                                    <SortableWidget key={id} id={id}>
+                                        {renderWidget(id)}
+                                    </SortableWidget>
+                                ))}
+                            </SortableContext>
+                        </DroppableColumn>
                     </div>
 
                     {/* Zone B (Col 2) */}
-                    <div className="space-y-6">
-                        <SortableContext
-                            items={dashboardLayout.col2}
-                            strategy={verticalListSortingStrategy}
-                            id="col2" // Droppable ID
-                        >
-                            {dashboardLayout.col2.map(id => (
-                                <SortableWidget key={id} id={id}>
-                                    {renderWidget(id)}
-                                </SortableWidget>
-                            ))}
-                            <div className="min-h-[10px]" />
-                        </SortableContext>
+                    {/* Zone B (Col 2) */}
+                    <div>
+                        <DroppableColumn id="col2">
+                            <SortableContext
+                                items={dashboardLayout.col2}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                {dashboardLayout.col2.map(id => (
+                                    <SortableWidget key={id} id={id}>
+                                        {renderWidget(id)}
+                                    </SortableWidget>
+                                ))}
+                            </SortableContext>
+                        </DroppableColumn>
                     </div>
                 </div>
             </DndContext>
