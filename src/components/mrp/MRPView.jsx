@@ -25,6 +25,7 @@ import DroppableColumn from '../common/DroppableColumn';
 export default function MRPView({ state, setters, results }) {
     const { bottleSizes, dashboardLayout, setDashboardLayout } = useSettings();
     const [isEditingYard, setIsEditingYard] = useState(false);
+    const [activeDragId, setActiveDragId] = useState(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -236,7 +237,12 @@ export default function MRPView({ state, setters, results }) {
     };
 
     // --- DnD Handlers ---
+    const handleDragStart = (event) => {
+        setActiveDragId(event.active.id);
+    };
+
     const handleDragEnd = useCallback((event) => {
+        setActiveDragId(null);
         const { active, over } = event;
 
         if (!over) return;
@@ -295,12 +301,13 @@ export default function MRPView({ state, setters, results }) {
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
                 {/* Full Width Top Zone */}
                 {dashboardLayout.top && (
                     <div className="w-full">
-                        <DroppableColumn id="top" className="min-h-[100px]">
+                        <DroppableColumn id="top" className="min-h-[100px]" highlight={!!activeDragId}>
                             <SortableContext
                                 items={dashboardLayout.top}
                                 strategy={verticalListSortingStrategy}
@@ -319,7 +326,7 @@ export default function MRPView({ state, setters, results }) {
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                     {/* Zone A (Col 1) */}
                     <div className="xl:col-span-2">
-                        <DroppableColumn id="col1">
+                        <DroppableColumn id="col1" highlight={!!activeDragId}>
                             <SortableContext
                                 items={dashboardLayout.col1}
                                 strategy={verticalListSortingStrategy}
@@ -335,7 +342,7 @@ export default function MRPView({ state, setters, results }) {
 
                     {/* Zone B (Col 2) */}
                     <div>
-                        <DroppableColumn id="col2">
+                        <DroppableColumn id="col2" highlight={!!activeDragId}>
                             <SortableContext
                                 items={dashboardLayout.col2}
                                 strategy={verticalListSortingStrategy}
