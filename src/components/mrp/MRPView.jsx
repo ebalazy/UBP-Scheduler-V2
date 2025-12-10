@@ -69,10 +69,18 @@ export default function MRPView({ state, setters, results }) {
             case 'kpis':
                 return (
                     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-center">
-                        <div className="bg-gray-800 text-white p-6 rounded-lg shadow-inner flex flex-col justify-between h-32 relative">
-                            <div className="absolute top-3 right-3 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md border border-blue-400/30 flex items-center gap-1">
-                                <span>📦</span>
-                                <span>{state.selectedSize}</span>
+                        <div className="bg-gray-800 text-white p-6 rounded-lg shadow-inner flex flex-col justify-between h-32 relative group">
+                            <div className="absolute top-3 right-3 flex items-center">
+                                <span className="absolute left-3 pointer-events-none z-10 text-sm">📦</span>
+                                <select
+                                    value={state.selectedSize}
+                                    onChange={(e) => setters.setSelectedSize(e.target.value)}
+                                    className="appearance-none bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold pl-8 pr-4 py-1.5 rounded-full shadow-md border border-blue-400/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors"
+                                >
+                                    {bottleSizes.map(size => (
+                                        <option key={size} value={size} className="text-gray-900 bg-white">{size}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <p className="text-gray-400 text-xs uppercase font-bold">Projected End-of-Week</p>
@@ -111,18 +119,7 @@ export default function MRPView({ state, setters, results }) {
                         <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">🎛️ Inventory Controls</h2>
 
                         <div className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Active SKU</label>
-                                <select
-                                    value={state.selectedSize}
-                                    onChange={(e) => setters.setSelectedSize(e.target.value)}
-                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg py-2"
-                                >
-                                    {bottleSizes.map(size => (
-                                        <option key={size} value={size}>{size}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            {/* SKU Selector Moved to Top */}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -212,7 +209,7 @@ export default function MRPView({ state, setters, results }) {
             case 'demand':
                 return (
                     <div className="p-6 h-full">
-                        <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">📅 Demand Schedule</h2>
+                        <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">📅 Demand Schedule (Cases)</h2>
                         <div className="grid grid-cols-4 gap-2 mb-2">
                             {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => (
                                 <div key={day} className="text-center">
@@ -222,9 +219,13 @@ export default function MRPView({ state, setters, results }) {
                                     <input
                                         type="text"
                                         inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        value={state.weeklyDemand[day] === 0 ? '' : state.weeklyDemand[day]}
-                                        onChange={(e) => setters.updateDailyDemand(day, e.target.value)}
+                                        value={state.weeklyDemand[day] ? state.weeklyDemand[day].toLocaleString() : ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/,/g, '');
+                                            if (!isNaN(val)) {
+                                                setters.updateDailyDemand(day, val);
+                                            }
+                                        }}
                                         className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-1 px-0"
                                         placeholder="-"
                                     />
