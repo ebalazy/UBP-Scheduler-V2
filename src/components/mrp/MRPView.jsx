@@ -69,7 +69,11 @@ export default function MRPView({ state, setters, results }) {
             case 'kpis':
                 return (
                     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-center">
-                        <div className="bg-gray-800 text-white p-6 rounded-lg shadow-inner flex flex-col justify-between h-32">
+                        <div className="bg-gray-800 text-white p-6 rounded-lg shadow-inner flex flex-col justify-between h-32 relative">
+                            <div className="absolute top-3 right-3 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md border border-blue-400/30 flex items-center gap-1">
+                                <span>📦</span>
+                                <span>{state.selectedSize}</span>
+                            </div>
                             <div>
                                 <p className="text-gray-400 text-xs uppercase font-bold">Projected End-of-Week</p>
                                 <p className={`text-4xl font-mono font-bold mt-2 ${netInventory < safetyTarget ? 'text-red-400' : 'text-green-400'}`}>
@@ -212,7 +216,9 @@ export default function MRPView({ state, setters, results }) {
                         <div className="grid grid-cols-4 gap-2 mb-2">
                             {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => (
                                 <div key={day} className="text-center">
-                                    <label className="block text-xs text-gray-500 uppercase font-bold mb-1">{day.charAt(0)}</label>
+                                    <label className="block text-xs text-gray-500 uppercase font-bold mb-1">
+                                        {day.toUpperCase()}
+                                    </label>
                                     <input
                                         type="text"
                                         inputMode="numeric"
