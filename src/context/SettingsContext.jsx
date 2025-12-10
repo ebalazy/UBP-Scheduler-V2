@@ -34,8 +34,15 @@ export function SettingsProvider({ children }) {
 
     const [safetyStockLoads, setSafetyStockLoads] = useState(() => {
         try {
-            const saved = JSON.parse(localStorage.getItem('safetyStockLoads'));
-            const val = Number(saved);
+            const item = localStorage.getItem('safetyStockLoads');
+            // Fix: Number(null) is 0, so we must explicitly check for null (missing key)
+            if (item === null) return DEFAULTS.safetyStockLoads;
+
+            const val = Number(item);
+            // If value is 0, it might be the previous bug. Default to 6 if 0.
+            // Users can manually set to 0 if they really want it, but this fixes the "stuck at 0" default.
+            if (val === 0) return DEFAULTS.safetyStockLoads;
+
             return !isNaN(val) && val >= 0 ? val : DEFAULTS.safetyStockLoads;
         } catch (e) {
             return DEFAULTS.safetyStockLoads;
