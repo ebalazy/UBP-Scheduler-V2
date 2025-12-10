@@ -1,66 +1,85 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import CsvDropZone from './CsvDropZone';
 import BurnDownChart from './BurnDownChart';
 import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
+// DnD Kit Imports
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import SortableWidget from '../common/SortableWidget';
+
 export default function MRPView({ state, setters, results }) {
-    const { bottleSizes } = useSettings();
+    const { bottleSizes, dashboardLayout, setDashboardLayout } = useSettings();
     const [isEditingYard, setIsEditingYard] = useState(false);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     if (!results) return <div>Loading...</div>;
 
     const { netInventory, safetyTarget, trucksToOrder, specs, yardInventory } = results;
-    // Calculate total scheduled bottles for chart burn rate calculation
     const weeklyDemandBottles = state.totalScheduledCases * specs.bottlesPerCase;
-
-    // Helpers for formatting
     const fmt = (n) => n ? n.toLocaleString() : '0';
 
-    return (
-        <div className="space-y-6">
-            {/* Top Zone: Integration Check & Drop Status */}
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-                <CsvDropZone
-                    onUpdateInventory={setters.setYardInventory}
-                    currentSku={state.selectedSize}
-                />
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Zone A: Visualization & Critical Metrics (Takes up 2/3 on large screens) */}
-                <div className="xl:col-span-2 space-y-6">
-                    {/* Burn Down Chart */}
-                    <BurnDownChart
-                        currentInventoryBottles={results.netInventory + weeklyDemandBottles}
-                        weeklyDemandBottles={weeklyDemandBottles}
-                        safetyStockBottles={safetyTarget}
-                    />
-
-                    {/* Key Results High Level */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-gray-800 text-white p-6 rounded-lg shadow-md flex flex-col justify-between">
+    // --- Component Definitions based on ID ---
+    const renderWidget = (id) => {
+        switch (id) {
+            case 'chart':
+                return (
+                    <div className="p-4 h-full">
+                        <BurnDownChart
+                            currentInventoryBottles={results.netInventory + weeklyDemandBottles}
+                            weeklyDemandBottles={weeklyDemandBottles}
+                            safetyStockBottles={safetyTarget}
+                        />
+                    </div>
+                );
+            case 'kpis':
+                return (
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+                        <div className="bg-gray-800 text-white p-6 rounded-lg shadow-inner flex flex-col justify-between">
                             <div>
-                                <p className="text-gray-400 text-sm uppercase font-bold">Projected End-of-Week Status</p>
-                                <p className={`text-4xl font-mono font-bold mt-2 ${netInventory < safetyTarget ? 'text-red-400' : 'text-green-400'}`}>
+                                <p className="text-gray-400 text-xs uppercase font-bold">Projected End-of-Week</p>
+                                <p className={`text-3xl font-mono font-bold mt-1 ${netInventory < safetyTarget ? 'text-red-400' : 'text-green-400'}`}>
                                     {fmt(netInventory)}
                                 </p>
-                                <p className="text-sm text-gray-400 mt-1">Bottles Net</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Bottles Net</p>
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 flex flex-col justify-between">
+                        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col justify-between">
                             <div>
-                                <p className="text-gray-500 text-sm uppercase font-bold">Safety Stock Target</p>
-                                <p className="text-4xl font-mono font-bold mt-2 text-gray-700">{fmt(safetyTarget)}</p>
-                                <p className="text-sm text-gray-400 mt-1">Bottles ({state.selectedSize})</p>
+                                <p className="text-gray-500 text-xs uppercase font-bold">Safety Target</p>
+                                <p className="text-3xl font-mono font-bold mt-1 text-gray-700">{fmt(safetyTarget)}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Bottles ({state.selectedSize})</p>
                             </div>
                         </div>
 
-                        <div className={`p-6 rounded-lg shadow-md border-2 flex flex-col justify-between ${trucksToOrder > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between ${trucksToOrder > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                             <div>
-                                <p className={`${trucksToOrder > 0 ? 'text-red-600' : 'text-green-600'} text-sm uppercase font-bold`}> replenishment Action</p>
-                                <div className="text-4xl font-extrabold mt-2">
+                                <p className={`${trucksToOrder > 0 ? 'text-red-600' : 'text-green-600'} text-xs uppercase font-bold`}>Action</p>
+                                <div className="text-3xl font-extrabold mt-1">
                                     {trucksToOrder > 0 ? (
                                         <span className="text-red-600">{trucksToOrder} TRUCKS</span>
                                     ) : (
@@ -70,12 +89,10 @@ export default function MRPView({ state, setters, results }) {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* Zone B: Inputs & Manual Overrides (Side Panel) */}
-                <div className="space-y-6">
-                    {/* Controls Panel */}
-                    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                );
+            case 'inputs':
+                return (
+                    <div className="p-6 h-full">
                         <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">🎛️ Inventory Controls</h2>
 
                         <div className="space-y-5">
@@ -176,9 +193,10 @@ export default function MRPView({ state, setters, results }) {
                             </div>
                         </div>
                     </div>
-
-                    {/* Weekly Demand Condensed */}
-                    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                );
+            case 'demand':
+                return (
+                    <div className="p-6 h-full">
                         <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">📅 Demand Schedule</h2>
                         <div className="grid grid-cols-4 gap-2 mb-2">
                             {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => (
@@ -201,8 +219,115 @@ export default function MRPView({ state, setters, results }) {
                             <span className="text-lg font-bold text-gray-900">{fmt(state.totalScheduledCases)} <span className="text-xs font-normal text-gray-500">cs</span></span>
                         </div>
                     </div>
-                </div>
+                );
+            default:
+                return <div>Unknown Widget</div>;
+        }
+    };
+
+    // --- DnD Handlers ---
+    const handleDragEnd = useCallback((event) => {
+        const { active, over } = event;
+
+        if (!over) return;
+
+        // Find which column the items belong to
+        const findContainer = (id) => {
+            if (id === 'col1' || id === 'col2') return id;
+            if (dashboardLayout.col1.includes(id)) return 'col1';
+            if (dashboardLayout.col2.includes(id)) return 'col2';
+            return null;
+        };
+
+        const activeContainer = findContainer(active.id);
+        const overContainer = findContainer(over.id);
+
+        if (!activeContainer || !overContainer) return;
+
+        // Clone layout to mutate
+        const newLayout = {
+            col1: [...dashboardLayout.col1],
+            col2: [...dashboardLayout.col2]
+        };
+
+        // Moving within same container
+        if (activeContainer === overContainer) {
+            const oldIndex = newLayout[activeContainer].indexOf(active.id);
+            const newIndex = newLayout[activeContainer].indexOf(over.id);
+            if (oldIndex !== newIndex) {
+                newLayout[activeContainer] = arrayMove(newLayout[activeContainer], oldIndex, newIndex);
+                setDashboardLayout(newLayout);
+            }
+        }
+        // Moving between containers
+        else {
+            // Remove from old
+            newLayout[activeContainer] = newLayout[activeContainer].filter(id => id !== active.id);
+            // Add to new
+            // If dropping directly over a container (empty space), append to end
+            if (over.id === 'col1' || over.id === 'col2') {
+                newLayout[overContainer].push(active.id);
+            } else {
+                // Dropping over another item, insert before it
+                const index = newLayout[overContainer].indexOf(over.id);
+                newLayout[overContainer].splice(index, 0, active.id);
+            }
+            setDashboardLayout(newLayout);
+        }
+
+    }, [dashboardLayout, setDashboardLayout]);
+
+
+    return (
+        <div className="space-y-6">
+            {/* Top Zone: Integration Check & Drop Status */}
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+                <CsvDropZone
+                    onUpdateInventory={setters.setYardInventory}
+                    currentSku={state.selectedSize}
+                />
             </div>
+
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    {/* Zone A (Col 1) */}
+                    <div className="xl:col-span-2 space-y-6">
+                        <SortableContext
+                            items={dashboardLayout.col1}
+                            strategy={verticalListSortingStrategy}
+                            id="col1" // Droppable ID
+                        >
+                            {dashboardLayout.col1.map(id => (
+                                <SortableWidget key={id} id={id}>
+                                    {renderWidget(id)}
+                                </SortableWidget>
+                            ))}
+                            {/* Empty state placeholder if needed, or min-height via css */}
+                            <div className="min-h-[10px]" />
+                        </SortableContext>
+                    </div>
+
+                    {/* Zone B (Col 2) */}
+                    <div className="space-y-6">
+                        <SortableContext
+                            items={dashboardLayout.col2}
+                            strategy={verticalListSortingStrategy}
+                            id="col2" // Droppable ID
+                        >
+                            {dashboardLayout.col2.map(id => (
+                                <SortableWidget key={id} id={id}>
+                                    {renderWidget(id)}
+                                </SortableWidget>
+                            ))}
+                            <div className="min-h-[10px]" />
+                        </SortableContext>
+                    </div>
+                </div>
+            </DndContext>
         </div>
     );
 }

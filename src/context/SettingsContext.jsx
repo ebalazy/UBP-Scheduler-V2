@@ -11,6 +11,10 @@ const DEFAULTS = {
         statusColumn: 'Trailer State',
         fullValue: 'Loaded - Inbound',
         skuColumn: 'Commodity'
+    },
+    dashboardLayout: {
+        col1: ['chart', 'kpis'],
+        col2: ['inputs', 'demand']
     }
 };
 
@@ -46,6 +50,15 @@ export function SettingsProvider({ children }) {
         }
     });
 
+    const [dashboardLayout, setDashboardLayout] = useState(() => {
+        try {
+            const saved = localStorage.getItem('dashboardLayout');
+            return saved ? JSON.parse(saved) : DEFAULTS.dashboardLayout;
+        } catch (e) {
+            return DEFAULTS.dashboardLayout;
+        }
+    });
+
     // Persist to LocalStorage whenever state changes
     useEffect(() => {
         localStorage.setItem('bottleDefinitions', JSON.stringify(bottleDefinitions));
@@ -58,6 +71,10 @@ export function SettingsProvider({ children }) {
     useEffect(() => {
         localStorage.setItem('csvMapping', JSON.stringify(csvMapping));
     }, [csvMapping]);
+
+    useEffect(() => {
+        localStorage.setItem('dashboardLayout', JSON.stringify(dashboardLayout));
+    }, [dashboardLayout]);
 
     const updateBottleDefinition = (size, field, value) => {
         setBottleDefinitions(prev => {
@@ -84,12 +101,15 @@ export function SettingsProvider({ children }) {
         setBottleDefinitions(DEFAULTS.bottleDefinitions);
         setSafetyStockLoads(DEFAULTS.safetyStockLoads);
         setCsvMapping(DEFAULTS.csvMapping);
+        setDashboardLayout(DEFAULTS.dashboardLayout);
     };
 
     const value = {
         bottleDefinitions,
         safetyStockLoads,
         csvMapping,
+        dashboardLayout,
+        setDashboardLayout,
         setSafetyStockLoads: (v) => {
             const val = Number(v);
             setSafetyStockLoads(!isNaN(val) && val >= 0 ? val : 0);
