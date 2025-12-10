@@ -5,7 +5,13 @@ export function useScheduler() {
     const { bottleDefinitions, safetyStockLoads } = useSettings();
 
     const [selectedSize, setSelectedSize] = useState(() => localStorage.getItem('sched_selectedSize') || '20oz');
-    const [targetDailyProduction, setTargetDailyProduction] = useState(() => Number(localStorage.getItem('sched_targetDailyProduction')) || 0); // Cases
+
+    // Robust Integer Initialization
+    const [targetDailyProduction, setTargetDailyProduction] = useState(() => {
+        const val = Number(localStorage.getItem('sched_targetDailyProduction'));
+        return !isNaN(val) && val >= 0 ? val : 0;
+    });
+
     const [shiftStartTime, setShiftStartTime] = useState(() => localStorage.getItem('sched_shiftStartTime') || '00:00');
 
     useEffect(() => localStorage.setItem('sched_selectedSize', selectedSize), [selectedSize]);
@@ -13,14 +19,18 @@ export function useScheduler() {
     useEffect(() => localStorage.setItem('sched_shiftStartTime', shiftStartTime), [shiftStartTime]);
 
     const [poAssignments, setPoAssignments] = useState(() => {
-        const saved = localStorage.getItem('sched_poAssignments');
-        return saved ? JSON.parse(saved) : {};
+        try {
+            const saved = localStorage.getItem('sched_poAssignments');
+            return saved ? JSON.parse(saved) : {};
+        } catch (e) { return {}; }
     });
     useEffect(() => localStorage.setItem('sched_poAssignments', JSON.stringify(poAssignments)), [poAssignments]);
 
     const [cancelledLoads, setCancelledLoads] = useState(() => {
-        const saved = localStorage.getItem('sched_cancelledLoads');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem('sched_cancelledLoads');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) { return []; }
     });
     useEffect(() => localStorage.setItem('sched_cancelledLoads', JSON.stringify(cancelledLoads)), [cancelledLoads]);
 
@@ -35,9 +45,9 @@ export function useScheduler() {
         const specs = { ...specsDef, name: selectedSize, palletsPerTruck: computedPallets };
 
         // Required Daily Loads = Target / Cases Per Truck
-        // (Round up as per requirements "Round up to the nearest full truck")
-        // Wait, requirement says "Required Daily Loads = Target Daily Production / Cases Per Truck (Round up)."
-        const requiredDailyLoads = Math.ceil(targetDailyProduction / specs.casesPerTruck);
+        // Handle NaN target
+        const safeTarget = !isNaN(targetDailyProduction) ? targetDailyProduction : 0;
+        const requiredDailyLoads = Math.ceil(safeTarget / specs.casesPerTruck);
 
         const weeklyLoads = requiredDailyLoads * 7;
 
@@ -53,17 +63,13 @@ export function useScheduler() {
 
         // Hourly Logistics Logic
         // Burn Rate (Cases / Hour) assuming 24h ops
-        const casesPerHour = targetDailyProduction / 24;
+        const casesPerHour = safeTarget / 24;
         const burnRate = casesPerHour; // aliases
 
         // Truck Interval
-        // How many hours does one truck last?
-        // Truck Capacity (Bottles) / Consumption (Bottles/hr)
-        // OR Truck Capacity (Cases) / Consumption (Cases/hr)
         const truckCapacityCases = specs.casesPerTruck;
         const hoursPerTruck = casesPerHour > 0 ? truckCapacityCases / casesPerHour : 0;
 
-        // Generate Detailed Schedule
         // Generate Detailed Schedule
         let truckSchedule = [];
         if (hoursPerTruck > 0 && requiredDailyLoads > 0) {
@@ -102,9 +108,6 @@ export function useScheduler() {
         truckSchedule = activeTrucks;
 
         // Risk Alert Logic
-        // "If Safety Stock < Required Daily Loads"
-        // Safety Stock is defined as "6 Loads" (safetyStockLoads from context)
-        // Required Daily Loads is calculated above.
         const isHighRisk = safetyStockLoads < requiredDailyLoads;
 
         return {
@@ -147,7 +150,10 @@ export function useScheduler() {
         },
         setters: {
             setSelectedSize,
-            setTargetDailyProduction: (v) => setTargetDailyProduction(Number(v)),
+            setTargetDailyProduction: (v) => {
+                const val = Number(v);
+                setTargetDailyProduction(!isNaN(val) && val >= 0 ? val : 0);
+            },
             setShiftStartTime,
             updatePO,
             toggleCancelled

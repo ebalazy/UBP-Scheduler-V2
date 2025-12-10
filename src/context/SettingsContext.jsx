@@ -14,13 +14,22 @@ const SettingsContext = createContext();
 export function SettingsProvider({ children }) {
     // Initialize state from LocalStorage or Defaults
     const [bottleDefinitions, setBottleDefinitions] = useState(() => {
-        const saved = localStorage.getItem('bottleDefinitions');
-        return saved ? JSON.parse(saved) : DEFAULTS.bottleDefinitions;
+        try {
+            const saved = localStorage.getItem('bottleDefinitions');
+            return saved ? JSON.parse(saved) : DEFAULTS.bottleDefinitions;
+        } catch (e) {
+            return DEFAULTS.bottleDefinitions;
+        }
     });
 
     const [safetyStockLoads, setSafetyStockLoads] = useState(() => {
-        const saved = localStorage.getItem('safetyStockLoads');
-        return saved ? JSON.parse(saved) : DEFAULTS.safetyStockLoads;
+        try {
+            const saved = JSON.parse(localStorage.getItem('safetyStockLoads'));
+            const val = Number(saved);
+            return !isNaN(val) && val >= 0 ? val : DEFAULTS.safetyStockLoads;
+        } catch (e) {
+            return DEFAULTS.safetyStockLoads;
+        }
     });
 
     // Persist to LocalStorage whenever state changes
@@ -33,13 +42,17 @@ export function SettingsProvider({ children }) {
     }, [safetyStockLoads]);
 
     const updateBottleDefinition = (size, field, value) => {
-        setBottleDefinitions(prev => ({
-            ...prev,
-            [size]: {
-                ...prev[size],
-                [field]: Number(value)
-            }
-        }));
+        setBottleDefinitions(prev => {
+            const val = Number(value);
+            const safeVal = !isNaN(val) && val >= 0 ? val : 0;
+            return {
+                ...prev,
+                [size]: {
+                    ...prev[size],
+                    [field]: safeVal
+                }
+            };
+        });
     };
 
     const resetDefaults = () => {
@@ -50,7 +63,10 @@ export function SettingsProvider({ children }) {
     const value = {
         bottleDefinitions,
         safetyStockLoads,
-        setSafetyStockLoads,
+        setSafetyStockLoads: (v) => {
+            const val = Number(v);
+            setSafetyStockLoads(!isNaN(val) && val >= 0 ? val : 0);
+        },
         updateBottleDefinition,
         resetDefaults,
         bottleSizes: Object.keys(DEFAULTS.bottleDefinitions)
