@@ -7,6 +7,11 @@ const DEFAULTS = {
         '32oz': { bottlesPerCase: 15, bottlesPerTruck: 50820, casesPerTruck: 3388, casesPerPallet: 154, palletsPerTruck: 22 },
     },
     safetyStockLoads: 6,
+    csvMapping: {
+        statusColumn: 'Trailer State',
+        fullValue: 'Loaded - Inbound',
+        skuColumn: 'Commodity'
+    }
 };
 
 const SettingsContext = createContext();
@@ -32,6 +37,15 @@ export function SettingsProvider({ children }) {
         }
     });
 
+    const [csvMapping, setCsvMapping] = useState(() => {
+        try {
+            const saved = localStorage.getItem('csvMapping');
+            return saved ? JSON.parse(saved) : DEFAULTS.csvMapping;
+        } catch (e) {
+            return DEFAULTS.csvMapping;
+        }
+    });
+
     // Persist to LocalStorage whenever state changes
     useEffect(() => {
         localStorage.setItem('bottleDefinitions', JSON.stringify(bottleDefinitions));
@@ -40,6 +54,10 @@ export function SettingsProvider({ children }) {
     useEffect(() => {
         localStorage.setItem('safetyStockLoads', JSON.stringify(safetyStockLoads));
     }, [safetyStockLoads]);
+
+    useEffect(() => {
+        localStorage.setItem('csvMapping', JSON.stringify(csvMapping));
+    }, [csvMapping]);
 
     const updateBottleDefinition = (size, field, value) => {
         setBottleDefinitions(prev => {
@@ -55,19 +73,29 @@ export function SettingsProvider({ children }) {
         });
     };
 
+    const updateCsvMapping = (field, value) => {
+        setCsvMapping(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
     const resetDefaults = () => {
         setBottleDefinitions(DEFAULTS.bottleDefinitions);
         setSafetyStockLoads(DEFAULTS.safetyStockLoads);
+        setCsvMapping(DEFAULTS.csvMapping);
     };
 
     const value = {
         bottleDefinitions,
         safetyStockLoads,
+        csvMapping,
         setSafetyStockLoads: (v) => {
             const val = Number(v);
             setSafetyStockLoads(!isNaN(val) && val >= 0 ? val : 0);
         },
         updateBottleDefinition,
+        updateCsvMapping,
         resetDefaults,
         bottleSizes: Object.keys(DEFAULTS.bottleDefinitions)
     };

@@ -7,6 +7,8 @@ export default function SettingsModal({ onClose }) {
         updateBottleDefinition,
         safetyStockLoads,
         setSafetyStockLoads,
+        csvMapping,
+        updateCsvMapping,
         resetDefaults
     } = useSettings();
 
@@ -40,6 +42,51 @@ export default function SettingsModal({ onClose }) {
                         <p className="text-xs text-blue-700 mt-1">
                             Minimum inventory to hold in terms of Full Truck Loads.
                         </p>
+                    </div>
+
+                    <hr className="border-gray-200" />
+
+                    {/* CSV Mapping Settings */}
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-4">CSV Integration Mappings</h3>
+                        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 uppercase">Status Column Header</label>
+                                <input
+                                    type="text"
+                                    value={csvMapping.statusColumn}
+                                    onChange={(e) => updateCsvMapping('statusColumn', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    placeholder="e.g. Trailer State"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 uppercase">"Full" Keyword</label>
+                                <input
+                                    type="text"
+                                    value={csvMapping.fullValue}
+                                    onChange={(e) => updateCsvMapping('fullValue', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    placeholder="e.g. Loaded"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 uppercase">SKU/Product Column</label>
+                                <input
+                                    type="text"
+                                    value={csvMapping.skuColumn}
+                                    onChange={(e) => updateCsvMapping('skuColumn', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    placeholder="e.g. Commodity"
+                                />
+                            </div>
+                            <div className="col-span-1 md:col-span-3">
+                                <p className="text-xs text-gray-500 italic">
+                                    The importer will look for rows where <strong>{csvMapping.statusColumn}</strong> contains "<strong>{csvMapping.fullValue}</strong>"
+                                    {csvMapping.skuColumn ? <span> and <strong>{csvMapping.skuColumn}</strong> contains the active bottle size (e.g. "20oz").</span> : '.'}
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <hr className="border-gray-200" />
