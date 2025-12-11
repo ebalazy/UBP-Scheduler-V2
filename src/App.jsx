@@ -9,6 +9,9 @@ import { useScheduler } from './hooks/useScheduler';
 import { useMasterSchedule } from './hooks/useMasterSchedule';
 import MasterScheduleView from './components/master/MasterScheduleView';
 import { useSettings } from './context/SettingsContext';
+import { useAuth } from './context/AuthContext';
+import { useSupabaseSync } from './hooks/useSupabaseSync';
+import { useEffect } from 'react';
 
 
 export default function App() {
@@ -16,11 +19,22 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Core Hooks (Lifted to App level for shared state/persistence/alerts)
+  // Core Hooks (Lifted to App level for shared state/persistence/alerts)
   const mrp = useMRP();
   const scheduler = useScheduler();
   // We need bottleSizes for Master Schedule
   const { bottleSizes } = useSettings();
   const masterSchedule = useMasterSchedule(bottleSizes);
+
+  // Cloud Sync / Migration
+  const { user } = useAuth();
+  const { uploadLocalData } = useSupabaseSync();
+
+  useEffect(() => {
+    if (user) {
+      uploadLocalData(user, bottleSizes);
+    }
+  }, [user, bottleSizes, uploadLocalData]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

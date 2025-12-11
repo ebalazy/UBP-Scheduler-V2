@@ -1,11 +1,23 @@
-import { useState } from 'react';
-import { Cog6ToothIcon, UserCircleIcon, ArrowRightOnRectangleIcon, PrinterIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { Cog6ToothIcon, UserCircleIcon, ArrowRightOnRectangleIcon, PrinterIcon, CloudIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './auth/AuthModal';
 
 export default function Header({ onOpenSettings }) {
     const { user, signOut } = useAuth();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
 
     return (
         <header className="bg-white shadow relative z-10">
@@ -28,6 +40,16 @@ export default function Header({ onOpenSettings }) {
 
                 {/* 2. Global Actions */}
                 <div className="flex items-center space-x-2 md:space-x-4 no-print">
+
+                    {/* Sync Status - Only show if logged in */}
+                    {user && (
+                        <div className="hidden md:flex items-center text-sm font-medium transition-colors" title={isOnline ? "Synced to Cloud" : "Offline Mode"}>
+                            <CloudIcon className={`h-6 w-6 mr-1 ${isOnline ? 'text-green-500' : 'text-gray-400'}`} />
+                            <span className={isOnline ? 'text-green-600' : 'text-gray-500'}>
+                                {isOnline ? 'Saved' : 'Offline'}
+                            </span>
+                        </div>
+                    )}
 
                     {/* Print Button -- NEW */}
                     <button

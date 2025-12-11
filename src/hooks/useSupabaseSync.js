@@ -303,8 +303,38 @@ export const useSupabaseSync = () => {
         if (error) console.error("Error saving profile:", error);
     };
 
+    /**
+     * SMART MIGRATION
+     * Checks if this user has any data in the cloud.
+     * If NOT, it uploads local data (bootstrapping).
+     */
+    const uploadLocalData = async (user, bottleSizes) => {
+        if (!user) return;
+
+        // 1. Check if user has data (entries or settings)
+        // We check 'products' as a proxy for "Has this user set up anything?"
+        const { count, error } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+
+        if (error) {
+            console.error("Migration Check Failed:", error);
+            return;
+        }
+
+        // 2. If no products, assume fresh cloud account. Run migration.
+        if (count === 0) {
+            console.log("Fresh Cloud Account detected. Uploading Local Data...");
+            await migrateLocalStorage(user, bottleSizes);
+        } else {
+            console.log("Cloud Data exists. Skipping migration to prevent overwrite.");
+        }
+    };
+
     return {
         migrateLocalStorage,
+        uploadLocalData, // New Export
         fetchMRPState,
         fetchUserProfile,
         savePlanningEntry,
