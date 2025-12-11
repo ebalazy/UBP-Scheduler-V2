@@ -4,6 +4,7 @@ import CsvDropZone from './CsvDropZone';
 import CalendarDemand from './CalendarDemand';
 import ProductionInputs from './ProductionInputs';
 import OrderActionLog from './OrderActionLog';
+import SharePlanModal from '../SharePlanModal';
 import { useSettings } from '../../context/SettingsContext';
 import BurnDownChart from './BurnDownChart';
 import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -29,6 +30,7 @@ import DroppableColumn from '../common/DroppableColumn';
 export default function MRPView({ state, setters, results }) {
     const { bottleSizes, dashboardLayout, setDashboardLayout, leadTimeDays } = useSettings();
     const [isEditingYard, setIsEditingYard] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [activeDragId, setActiveDragId] = useState(null);
 
     const sensors = useSensors(
@@ -133,8 +135,8 @@ export default function MRPView({ state, setters, results }) {
 
                         {/* Card 3: Action (Direct Command) */}
                         <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${trucksToOrder > 0 ? 'bg-red-500 border-red-600 text-white shadow-lg transform scale-105 transition-transform' :
-                                trucksToCancel > 0 ? 'bg-orange-100 border-orange-300 text-orange-800' :
-                                    'bg-gray-50 border-gray-200 text-gray-600'
+                            trucksToCancel > 0 ? 'bg-orange-100 border-orange-300 text-orange-800' :
+                                'bg-gray-50 border-gray-200 text-gray-600'
                             }`}>
                             <div className="flex justify-between items-start">
                                 <p className="text-xs uppercase font-bold opacity-90">Recommendation</p>
@@ -412,6 +414,18 @@ export default function MRPView({ state, setters, results }) {
                 </div>
 
                 <div className="flex items-center mt-4 md:mt-0 space-x-4">
+                    {/* Share Button (New) */}
+                    <button
+                        onClick={() => setIsShareModalOpen(true)}
+                        className="flex items-center text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg font-medium transition-colors"
+                        title="Share Plan"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 md:mr-1">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                        </svg>
+                        <span className="hidden md:inline">Share</span>
+                    </button>
+
                     <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">Plan For:</span>
                     <div className="relative">
                         <select
@@ -431,6 +445,15 @@ export default function MRPView({ state, setters, results }) {
                     </div>
                 </div>
             </div>
+
+            <SharePlanModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                selectedSize={state.selectedSize}
+                monthlyDemand={state.monthlyDemand}
+                monthlyInbound={state.monthlyInbound}
+                monthlyProductionActuals={state.monthlyProductionActuals}
+            />
 
             <DndContext
                 sensors={sensors}
