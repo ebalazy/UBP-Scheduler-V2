@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'; // Falling back to text if icons issue, but package.json has heroicons
 
-export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthlyInbound, updateDateInbound, monthlyProductionActuals, updateDateActual, specs, trucksToCancel }) {
+export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthlyInbound, updateDateInbound, monthlyProductionActuals, updateDateActual, specs, trucksToCancel, dailyLedger, safetyTarget }) {
     const [viewDate, setViewDate] = useState(new Date());
 
     // Generate calendar grid
@@ -22,16 +22,33 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
         const today = new Date().toISOString().split('T')[0];
         let nextTruckDate = null;
         if (trucksToCancel > 0) {
-            // Simple scan: find first day >= today with inbound trucks
-            // (Ideally we scan beyond just this month, but visually we only care about this view)
             const allDates = Object.keys(monthlyInbound || {}).sort();
             nextTruckDate = allDates.find(d => d >= today && monthlyInbound[d] > 0);
         }
+
+        // Map dailyLedger to a dictionary for fast lookup
+        const ledgerMap = (dailyLedger || []).reduce((acc, item) => {
+            acc[item.date] = item.balance;
+            return acc;
+        }, {});
 
         // Array of days
         const dateArray = Array.from({ length: daysInMonth }, (_, i) => {
             const d = new Date(year, month, i + 1);
             const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+
+            // Get Ending Inventory (Balance) for this date
+            const endInvBottles = ledgerMap[dateStr];
+            // Format to Load Equivalent (more readable?) or just bottles. 
+            // Planners often think in "Weeks of Supply" or "Trucks". 
+            // Let's show "Trucks" or "Pallets"? Or raw bottles?
+            // "Cases" is usually best denominator.
+            // Let's us "Cases" (balance / bottlesPerCase).
+            let endInvCases = null;
+            if (endInvBottles !== undefined && specs?.bottlesPerCase) {
+                endInvCases = Math.round(endInvBottles / specs.bottlesPerCase);
+            }
+
             return {
                 date: d,
                 dateStr,
@@ -39,7 +56,10 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                 val: monthlyDemand[dateStr] || 0,
                 trucks: monthlyInbound?.[dateStr] || 0,
                 actual: monthlyProductionActuals?.[dateStr],
-                isPushCandidate: nextTruckDate === dateStr
+                isPushCandidate: nextTruckDate === dateStr,
+                endInvCases: endInvCases,
+                isSafetyRisk: endInvBottles !== undefined && endInvBottles < (safetyTarget || 0),
+                isOverflow: endInvBottles !== undefined && endInvBottles > ((safetyTarget || 0) + (specs?.bottlesPerTruck || 0) * 2)
             };
         });
 
@@ -191,6 +211,17 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                                     }}
                                 />
                             </div>
+
+                            {/* Ending Inventory Row */}
+                            {day.endInvCases !== null && (
+                                <div className={`
+                                    text-[9px] text-center mt-auto pt-1 font-mono
+                                    ${day.isSafetyRisk ? 'text-red-500 font-bold' :
+                                        day.isOverflow ? 'text-orange-500 font-bold' : 'text-gray-400'}
+                                `}>
+                                    {day.endInvCases.toLocaleString()} cs
+                                </div>
+                            )}
                         </div>
                     );
                 })}

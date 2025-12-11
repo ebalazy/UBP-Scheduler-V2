@@ -301,6 +301,8 @@ export default function MRPView({ state, setters, results }) {
                         updateDateActual={setters.updateDateActual}
                         specs={results?.specs}
                         trucksToCancel={results?.trucksToCancel}
+                        dailyLedger={results?.dailyLedger}
+                        safetyTarget={results?.safetyTarget}
                     />
                 );
             case 'production':
