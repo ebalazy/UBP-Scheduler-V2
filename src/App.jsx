@@ -79,8 +79,8 @@ function AuthenticatedApp({ user }) {
 
       <main className="flex-grow p-4 md:p-6 max-w-7xl mx-auto w-full">
         {/* Tab Navigation */}
-        <div className="mb-6 border-b border-gray-200 no-print">
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+        <div className="mb-6 border-b border-gray-200 no-print overflow-x-auto">
+          <nav className="-mb-px flex space-x-8 min-w-max" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('mrp')}
               className={`${activeTab === 'mrp'
