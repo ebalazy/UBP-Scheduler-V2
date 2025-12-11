@@ -11,25 +11,67 @@ export function useMRP() {
     // Format: { "YYYY-MM-DD": 12345 }
     const [monthlyDemand, setMonthlyDemand] = useState(() => {
         const saved = localStorage.getItem('mrp_monthlyDemand');
-        return saved ? JSON.parse(saved) : {};
+        return (saved ? JSON.parse(saved) : {}) || {};
     });
 
     // Monthly Production Actuals (Date -> Cases)
     const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => {
         const saved = localStorage.getItem('mrp_monthlyProductionActuals');
-        return saved ? JSON.parse(saved) : {};
+        return (saved ? JSON.parse(saved) : {}) || {};
     });
     useEffect(() => localStorage.setItem('mrp_monthlyProductionActuals', JSON.stringify(monthlyProductionActuals)), [monthlyProductionActuals]);
 
     // Monthly Inbound State (Date -> Trucks)
     const [monthlyInbound, setMonthlyInbound] = useState(() => {
         const saved = localStorage.getItem('mrp_monthlyInbound');
-        return saved ? JSON.parse(saved) : {};
+        return (saved ? JSON.parse(saved) : {}) || {};
     });
 
-    // ... (rest of states) ...
+    // Smart Scheduler Inputs
+    const [productionRate, setProductionRate] = useState(() => Number(localStorage.getItem('mrp_productionRate')) || 0); // Cases per Hour
+    const [downtimeHours, setDowntimeHours] = useState(() => Number(localStorage.getItem('mrp_downtimeHours')) || 0); // Hours
 
-    // Derived total for calculations
+    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => Number(localStorage.getItem('mrp_currentInventoryPallets')) || 0); // Deprecated/Fallback
+
+    const [inventoryAnchor, setInventoryAnchor] = useState(() => {
+        const saved = localStorage.getItem('mrp_inventoryAnchor');
+        return (saved ? JSON.parse(saved) : null) || { date: new Date().toISOString().split('T')[0], count: 0 };
+    });
+    useEffect(() => localStorage.setItem('mrp_inventoryAnchor', JSON.stringify(inventoryAnchor)), [inventoryAnchor]);
+
+    const [incomingTrucks, setIncomingTrucks] = useState(() => Number(localStorage.getItem('mrp_incomingTrucks')) || 0); // Trucks
+
+    // Yard Inventory (from CSV)
+    const [yardInventory, setYardInventory] = useState(() => {
+        const saved = localStorage.getItem('mrp_yardInventory');
+        return (saved ? JSON.parse(saved) : null) || { count: 0, timestamp: null, fileName: null };
+    });
+    // Manual Override for Yard Inventory (if CSV is wrong/old)
+    const [manualYardOverride, setManualYardOverride] = useState(() => {
+        const saved = localStorage.getItem('mrp_manualYardOverride');
+        return saved ? Number(saved) : null;
+    });
+
+    // Persistence Effects
+    useEffect(() => localStorage.setItem('mrp_selectedSize', selectedSize), [selectedSize]);
+    useEffect(() => localStorage.setItem('mrp_monthlyDemand', JSON.stringify(monthlyDemand)), [monthlyDemand]);
+    useEffect(() => localStorage.setItem('mrp_monthlyInbound', JSON.stringify(monthlyInbound)), [monthlyInbound]);
+    useEffect(() => localStorage.setItem('mrp_productionRate', productionRate), [productionRate]);
+    useEffect(() => localStorage.setItem('mrp_downtimeHours', downtimeHours), [downtimeHours]);
+    useEffect(() => localStorage.setItem('mrp_currentInventoryPallets', currentInventoryPallets), [currentInventoryPallets]);
+    useEffect(() => localStorage.setItem('mrp_incomingTrucks', incomingTrucks), [incomingTrucks]);
+    useEffect(() => localStorage.setItem('mrp_yardInventory', JSON.stringify(yardInventory)), [yardInventory]);
+    useEffect(() => {
+        if (manualYardOverride !== null) localStorage.setItem('mrp_manualYardOverride', manualYardOverride);
+        else localStorage.removeItem('mrp_manualYardOverride');
+    }, [manualYardOverride]);
+
+    // Auto-Replenish State
+    const [isAutoReplenish, setIsAutoReplenish] = useState(() => {
+        const saved = localStorage.getItem('mrp_isAutoReplenish');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
+    useEffect(() => localStorage.setItem('mrp_isAutoReplenish', JSON.stringify(isAutoReplenish)), [isAutoReplenish]);
     // Updated to use Actuals if present, otherwise Demand
     const totalScheduledCases = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
