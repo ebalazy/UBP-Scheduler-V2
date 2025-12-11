@@ -35,7 +35,7 @@ export default function App() {
 
       <main className="flex-grow p-4 md:p-6 max-w-7xl mx-auto w-full">
         {/* Tab Navigation */}
-        <div className="mb-6 border-b border-gray-200">
+        <div className="mb-6 border-b border-gray-200 no-print">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('mrp')}

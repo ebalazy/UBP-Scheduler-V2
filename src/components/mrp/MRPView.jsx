@@ -417,7 +417,7 @@ export default function MRPView({ state, setters, results }) {
                     {/* Share Button (New) */}
                     <button
                         onClick={() => setIsShareModalOpen(true)}
-                        className="flex items-center text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg font-medium transition-colors"
+                        className="flex items-center text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg font-medium transition-colors no-print"
                         title="Share Plan"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 md:mr-1">
@@ -431,13 +431,13 @@ export default function MRPView({ state, setters, results }) {
                         <select
                             value={state.selectedSize}
                             onChange={(e) => setters.setSelectedSize(e.target.value)}
-                            className="appearance-none bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold pl-5 pr-12 py-3 rounded-lg shadow-lg border-2 border-blue-400 cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-200 transition-all transform hover:-translate-y-0.5"
+                            className="appearance-none bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold pl-5 pr-12 py-3 rounded-lg shadow-lg border-2 border-blue-400 cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-200 transition-all transform hover:-translate-y-0.5 print:bg-white print:text-black print:border-none print:shadow-none"
                         >
                             {bottleSizes.map(size => (
                                 <option key={size} value={size} className="text-gray-900 bg-white">{size}</option>
                             ))}
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-blue-100">
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-blue-100 no-print">
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                             </svg>
