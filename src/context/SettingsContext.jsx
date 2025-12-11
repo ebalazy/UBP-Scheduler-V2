@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { useSupabaseSync } from '../hooks/useSupabaseSync';
 
@@ -275,7 +275,10 @@ export function SettingsProvider({ children }) {
         setSchedulerSettings({ targetDailyProduction: 0, shiftStartTime: '00:00', poAssignments: {}, cancelledLoads: [] });
     };
 
-    const value = {
+    // Stable Bottle Sizes (derived from constant)
+    const staticBottleSizes = Object.keys(DEFAULTS.bottleDefinitions);
+
+    const value = useMemo(() => ({
         bottleDefinitions,
         safetyStockLoads,
         leadTimeDays,
@@ -295,8 +298,15 @@ export function SettingsProvider({ children }) {
         updateCsvMapping,
         updateSchedulerSetting, // Exported
         resetDefaults,
-        bottleSizes: Object.keys(DEFAULTS.bottleDefinitions)
-    };
+        bottleSizes: staticBottleSizes
+    }), [
+        bottleDefinitions,
+        safetyStockLoads,
+        leadTimeDays,
+        csvMapping,
+        dashboardLayout,
+        schedulerSettings
+    ]);
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
