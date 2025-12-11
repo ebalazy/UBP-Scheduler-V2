@@ -252,6 +252,32 @@ export function useMRP() {
             if (surplus > specs.bottlesPerTruck) trucksToCancel = Math.floor(surplus / specs.bottlesPerTruck);
         }
 
+        // --- DoS (Days of Supply) Calculation ---
+        let daysOfSupply = 30; // Default cap (30+ days)
+        if (dailyLedger.length > 0) {
+            // Find the index where balance first goes below 0 (absolute stockout)
+            const stockoutIndex = dailyLedger.findIndex(d => d.balance < 0);
+
+            if (stockoutIndex !== -1) {
+                // Precise calculation: Full days + partial
+                // If index is 5, it means we survived day 0,1,2,3,4.
+                // Partial day = BalancePrevDay / DemandThisDay
+
+                const failingDay = dailyLedger[stockoutIndex];
+                const prevBalance = stockoutIndex > 0 ? dailyLedger[stockoutIndex - 1].balance : (inventoryBottles + yardBottles); // Initial
+
+                let partial = 0;
+                if (failingDay.demand > 0 && prevBalance > 0) {
+                    partial = prevBalance / failingDay.demand;
+                }
+
+                daysOfSupply = stockoutIndex + partial;
+            } else {
+                // If no stockout in 30 days, we assume > 30
+                daysOfSupply = 30;
+            }
+        }
+
         return {
             netInventory, safetyTarget, trucksToOrder, trucksToCancel,
             lostProductionCases, effectiveScheduledCases, specs,
@@ -259,6 +285,7 @@ export function useMRP() {
             dailyLedger, firstStockoutDate, firstOverflowDate, totalIncomingTrucks,
             initialInventory: inventoryBottles + yardBottles,
             calculatedPallets: derivedPallets,
+            daysOfSupply,
             inventoryAnchor,
             plannedOrders: (() => {
                 const orders = {};

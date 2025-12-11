@@ -82,61 +82,82 @@ export default function MRPView({ state, setters, results }) {
                     </div>
                 );
             case 'kpis':
+                // Helper for Colors
+                const getDosColor = (dos) => {
+                    if (dos <= (leadTimeDays || 2)) return 'bg-red-50 border-red-200 text-red-700';
+                    if (dos <= 7) return 'bg-yellow-50 border-yellow-200 text-yellow-700';
+                    return 'bg-green-50 border-green-200 text-green-700';
+                };
+
+                const daysOfSupply = results.daysOfSupply !== undefined ? results.daysOfSupply : 30;
+                const dosFormatted = daysOfSupply >= 30 ? '30+' : daysOfSupply.toFixed(1);
+                const dosColorClass = getDosColor(daysOfSupply);
+
+                // Inventory in Pallets (Floor + Yard)
+                const totalPallets = Math.round(results.calculatedPallets + results.yardInventory.effectiveCount * (specs.bottlesPerTruck / specs.casesPerPallet / specs.bottlesPerCase * specs.casesPerPallet));
+                // Wait, calculatedPallets is Floor. Yard is Loads.
+                // We need a clean "Total On Hand Pallets".
+                // effectiveYardLoads * palletsPerTruck.
+                const palletsPerTruck = (specs.bottlesPerTruck / specs.bottlesPerCase) / (specs.casesPerPallet || 1);
+                const totalOnHandPallets = Math.round(results.calculatedPallets + (results.yardInventory.effectiveCount * palletsPerTruck));
+                const targetPallets = Math.round(safetyTarget / specs.bottlesPerCase / (specs.casesPerPallet || 1));
+
                 return (
                     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-center">
-                        <div className="bg-gray-800 text-white p-6 rounded-lg shadow-inner flex flex-col justify-between h-32 relative group">
-                            {/* SKU Icon */}
-                            <div className="absolute top-3 right-3 text-gray-600">
+                        {/* Card 1: Days of Supply (Coverage) */}
+                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${dosColorClass}`}>
+                            <div className="flex justify-between items-start">
+                                <p className="text-xs uppercase font-bold opacity-80">Coverage</p>
+                                <span className="text-2xl">⏳</span>
+                            </div>
+                            <div>
+                                <p className="text-4xl font-mono font-bold">{dosFormatted}</p>
+                                <p className="text-xs opacity-70 mt-1 font-medium">Days of Supply</p>
+                            </div>
+                        </div>
+
+                        {/* Card 2: Current Inventory (Pallets) */}
+                        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col justify-between h-32">
+                            <div className="flex justify-between items-start">
+                                <p className="text-gray-500 text-xs uppercase font-bold">On Hand</p>
                                 <span className="text-2xl">📦</span>
                             </div>
                             <div>
-                                <p className="text-gray-400 text-xs uppercase font-bold">Projected Inventory</p>
-                                <p className={`text-4xl font-mono font-bold mt-2 ${netInventory < safetyTarget ? 'text-red-400' : 'text-green-400'}`}>
-                                    {fmt(netInventory)}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">Bottles (Net)</p>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col justify-between h-32">
-                            <div>
-                                <p className="text-gray-500 text-xs uppercase font-bold">Target Inventory</p>
-                                <p className="text-4xl font-mono font-bold mt-2 text-gray-700">{fmt(safetyTarget)}</p>
-                                <p className="text-xs text-gray-400 mt-1">Bottles (Safety)</p>
-                            </div>
-                        </div>
-
-                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${results.firstStockoutDate || trucksToOrder > 0 ? 'bg-red-50 border-red-200' :
-                            results.firstOverflowDate || trucksToCancel > 0 ? 'bg-orange-50 border-orange-200' :
-                                'bg-green-50 border-green-200'
-                            }`}>
-                            <div>
-                                <p className={`${results.firstStockoutDate || trucksToOrder > 0 ? 'text-red-600' :
-                                    results.firstOverflowDate || trucksToCancel > 0 ? 'text-orange-600' :
-                                        'text-green-600'
-                                    } text-xs uppercase font-bold`}>Action</p>
-                                <div className="text-4xl font-extrabold mt-2">
-                                    {results.firstStockoutDate ? (
-                                        <div className="flex flex-col">
-                                            <span className="text-red-600 text-3xl">STOCKOUT {new Date(results.firstStockoutDate).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</span>
-                                            <span className="text-red-400 text-xs font-normal mt-1">Order Trucks Beforehand</span>
-                                        </div>
-                                    ) : trucksToOrder > 0 ? (
-                                        <span className="text-red-600">{trucksToOrder} TRUCKS</span>
-                                    ) : results.firstOverflowDate ? (
-                                        <div className="flex flex-col">
-                                            <span className="text-orange-600 text-3xl">PUSH OUT {new Date(results.firstOverflowDate).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</span>
-                                            <span className="text-orange-400 text-xs font-normal mt-1">Overflow Predicted</span>
-                                        </div>
-                                    ) : trucksToCancel > 0 ? (
-                                        <div className="flex flex-col">
-                                            <span className="text-orange-600 text-3xl">PUSH OUT {trucksToCancel}</span>
-                                            <span className="text-orange-400 text-xs font-normal mt-1">Projected &gt; Target (Surplus)</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-green-600">✅ OK</span>
-                                    )}
+                                <div className="flex items-baseline space-x-2">
+                                    <p className="text-4xl font-mono font-bold text-gray-700">{fmt(totalOnHandPallets)}</p>
+                                    <span className="text-sm text-gray-400">Pallets</span>
                                 </div>
+                                <p className="text-xs text-gray-400 mt-1">Target: {fmt(targetPallets)} Pallets</p>
+                            </div>
+                        </div>
+
+                        {/* Card 3: Action (Direct Command) */}
+                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${trucksToOrder > 0 ? 'bg-red-500 border-red-600 text-white shadow-lg transform scale-105 transition-transform' :
+                                trucksToCancel > 0 ? 'bg-orange-100 border-orange-300 text-orange-800' :
+                                    'bg-gray-50 border-gray-200 text-gray-600'
+                            }`}>
+                            <div className="flex justify-between items-start">
+                                <p className="text-xs uppercase font-bold opacity-90">Recommendation</p>
+                                {trucksToOrder > 0 && <span className="text-2xl animate-pulse">🚨</span>}
+                            </div>
+
+                            <div>
+                                {trucksToOrder > 0 ? (
+                                    <>
+                                        <p className="text-3xl font-black uppercase leading-none">ORDER {trucksToOrder}</p>
+                                        <p className="text-sm font-bold opacity-90 mt-1">Trucks Required</p>
+                                    </>
+                                ) : trucksToCancel > 0 ? (
+                                    <>
+                                        <p className="text-3xl font-black uppercase leading-none">PUSH {trucksToCancel}</p>
+                                        <p className="text-xs font-bold opacity-80 mt-1">Trucks Surplus</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="text-3xl font-bold uppercase leading-none">On Track</p>
+                                        <p className="text-xs opacity-60 mt-1">No actions needed</p>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
