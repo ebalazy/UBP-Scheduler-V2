@@ -6,6 +6,9 @@ import MRPView from './components/mrp/MRPView';
 import SchedulerView from './components/scheduler/SchedulerView';
 import { useMRP } from './hooks/useMRP';
 import { useScheduler } from './hooks/useScheduler';
+import { useMasterSchedule } from './hooks/useMasterSchedule';
+import MasterScheduleView from './components/master/MasterScheduleView';
+import { useSettings } from './context/SettingsContext';
 
 
 export default function App() {
@@ -15,6 +18,9 @@ export default function App() {
   // Core Hooks (Lifted to App level for shared state/persistence/alerts)
   const mrp = useMRP();
   const scheduler = useScheduler();
+  // We need bottleSizes for Master Schedule
+  const { bottleSizes } = useSettings();
+  const masterSchedule = useMasterSchedule(bottleSizes);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -49,6 +55,15 @@ export default function App() {
             >
               Scheduler
             </button>
+            <button
+              onClick={() => setActiveTab('master')}
+              className={`${activeTab === 'master'
+                ? 'border-purple-500 text-purple-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg flex items-center`}
+            >
+              <span className="mr-2">👑</span> Master Plan
+            </button>
           </nav>
         </div>
 
@@ -65,6 +80,12 @@ export default function App() {
             state={scheduler.formState}
             setters={scheduler.setters}
             results={scheduler.results}
+          />
+        </div>
+        <div className={activeTab === 'master' ? 'block' : 'hidden'}>
+          <MasterScheduleView
+            masterLedger={masterSchedule.masterLedger}
+            loading={masterSchedule.loading}
           />
         </div>
       </main>
