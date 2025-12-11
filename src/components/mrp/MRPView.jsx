@@ -1,7 +1,9 @@
+
 import { useState, useCallback } from 'react';
 import CsvDropZone from './CsvDropZone';
 import CalendarDemand from './CalendarDemand';
 import ProductionInputs from './ProductionInputs';
+import OrderActionLog from './OrderActionLog';
 import { useSettings } from '../../context/SettingsContext';
 import BurnDownChart from './BurnDownChart';
 import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -25,7 +27,7 @@ import SortableWidget from '../common/SortableWidget';
 import DroppableColumn from '../common/DroppableColumn';
 
 export default function MRPView({ state, setters, results }) {
-    const { bottleSizes, dashboardLayout, setDashboardLayout } = useSettings();
+    const { bottleSizes, dashboardLayout, setDashboardLayout, leadTimeDays } = useSettings();
     const [isEditingYard, setIsEditingYard] = useState(false);
     const [activeDragId, setActiveDragId] = useState(null);
 
@@ -49,6 +51,17 @@ export default function MRPView({ state, setters, results }) {
     // --- Component Definitions based on ID ---
     const renderWidget = (id) => {
         switch (id) {
+            case 'actions':
+            case 'purchasing':
+                return (
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Purchasing Advice</h3>
+                        <OrderActionLog
+                            plannedOrders={results.plannedOrders}
+                            leadTimeDays={leadTimeDays}
+                        />
+                    </div>
+                );
             case 'dropzone':
                 return (
                     <div className="p-4 bg-gray-50 rounded-lg">
@@ -72,17 +85,9 @@ export default function MRPView({ state, setters, results }) {
                 return (
                     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-center">
                         <div className="bg-gray-800 text-white p-6 rounded-lg shadow-inner flex flex-col justify-between h-32 relative group">
-                            <div className="absolute top-3 right-3 flex items-center">
-                                <span className="absolute left-3 pointer-events-none z-10 text-sm">📦</span>
-                                <select
-                                    value={state.selectedSize}
-                                    onChange={(e) => setters.setSelectedSize(e.target.value)}
-                                    className="appearance-none bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold pl-8 pr-4 py-1.5 rounded-full shadow-md border border-blue-400/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors"
-                                >
-                                    {bottleSizes.map(size => (
-                                        <option key={size} value={size} className="text-gray-900 bg-white">{size}</option>
-                                    ))}
-                                </select>
+                            {/* SKU Icon */}
+                            <div className="absolute top-3 right-3 text-gray-600">
+                                <span className="text-2xl">📦</span>
                             </div>
                             <div>
                                 <p className="text-gray-400 text-xs uppercase font-bold">Projected Inventory</p>
@@ -136,12 +141,12 @@ export default function MRPView({ state, setters, results }) {
                         </div>
                     </div>
                 );
-            case 'inputs':
+            case 'inventory':
+            case 'inputs': // Legacy Fallback
                 return (
                     <div className="p-6 h-full">
                         <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex justify-between items-center">
                             <span>🎛️ Inventory Controls</span>
-                            {/* Auto-Replenish Toggle */}
                             <label className="flex items-center cursor-pointer">
                                 <span className="text-xs mr-2 font-medium text-purple-600">
                                     {state.isAutoReplenish ? '✨ Auto-Plan' : 'Manual'}
@@ -158,71 +163,53 @@ export default function MRPView({ state, setters, results }) {
                                 </div>
                             </label>
                         </h2>
-
                         <div className="space-y-5">
-                            {/* SKU Selector Moved to Top */}
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Floor (Pallets)</label>
-
-                                    {isEditingYard === 'floor' ? (
-                                        <div className="flex items-center space-x-1">
-                                            <input
-                                                type="number"
-                                                autoFocus
-                                                placeholder="Count"
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        setters.setInventoryAnchor({
-                                                            date: new Date().toISOString().split('T')[0],
-                                                            count: Number(e.target.value)
-                                                        });
-                                                        setIsEditingYard(false);
-                                                    }
-                                                }}
-                                                className="block w-20 rounded-md border-purple-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-lg"
-                                            />
-                                            <button
-                                                onClick={() => setIsEditingYard(false)}
-                                                className="text-xs text-gray-400 border border-gray-200 rounded p-1"
-                                            >Cancel</button>
+                            {/* Floor Inventory */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Floor (Pallets)</label>
+                                {isEditingYard === 'floor' ? (
+                                    <div className="flex items-center space-x-1">
+                                        <input
+                                            type="number"
+                                            autoFocus
+                                            placeholder="Count"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    setters.setInventoryAnchor({
+                                                        date: new Date().toISOString().split('T')[0],
+                                                        count: Number(e.target.value)
+                                                    });
+                                                    setIsEditingYard(false);
+                                                }
+                                            }}
+                                            className="block w-20 rounded-md border-purple-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-lg"
+                                        />
+                                        <button
+                                            onClick={() => setIsEditingYard(false)}
+                                            className="text-xs text-gray-400 border border-gray-200 rounded p-1"
+                                        >Cancel</button>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-200">
+                                        <div>
+                                            <span className="text-xl font-bold text-gray-900 block leading-none">
+                                                {Math.round(results.calculatedPallets || 0)}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500 uppercase">Calculated</span>
                                         </div>
-                                    ) : (
-                                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-200">
-                                            <div>
-                                                <span className="text-xl font-bold text-gray-900 block leading-none">
-                                                    {Math.round(results.calculatedPallets || 0)}
-                                                </span>
-                                                <span className="text-[10px] text-gray-500 uppercase">Calculated</span>
-                                            </div>
-                                            <button
-                                                onClick={() => setIsEditingYard('floor')}
-                                                className="ml-2 text-xs bg-white border border-gray-300 shadow-sm px-2 py-1 rounded hover:bg-gray-50 text-gray-700"
-                                            >
-                                                Update
-                                            </button>
-                                        </div>
-                                    )}
-                                    {state.inventoryAnchor && (
-                                        <p className="text-[10px] text-gray-400 mt-1">
-                                            Last Count: {state.inventoryAnchor.count} on {state.inventoryAnchor.date}
-                                        </p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Inbound (Trucks)</label>
-                                    <input
-                                        type="number"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        min="0"
-                                        value={state.incomingTrucks === 0 ? '' : state.incomingTrucks}
-                                        onChange={(e) => setters.setIncomingTrucks(e.target.value)}
-                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
-                                        placeholder="0"
-                                    />
-                                </div>
+                                        <button
+                                            onClick={() => setIsEditingYard('floor')}
+                                            className="ml-2 text-xs bg-white border border-gray-300 shadow-sm px-2 py-1 rounded hover:bg-gray-50 text-gray-700"
+                                        >
+                                            Update
+                                        </button>
+                                    </div>
+                                )}
+                                {state.inventoryAnchor && (
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                        Last Count: {state.inventoryAnchor.count} on {state.inventoryAnchor.date}
+                                    </p>
+                                )}
                             </div>
 
                             {/* Yard Inventory Section */}
@@ -236,7 +223,7 @@ export default function MRPView({ state, setters, results }) {
                                     )}
                                 </div>
 
-                                {isEditingYard ? (
+                                {isEditingYard === true ? (
                                     <div className="flex items-center space-x-2">
                                         <input
                                             type="number"
@@ -281,6 +268,28 @@ export default function MRPView({ state, setters, results }) {
                         </div>
                     </div>
                 );
+            case 'supply':
+                return (
+                    <div className="p-6 h-full border border-dashed border-gray-300 rounded-lg">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Manual Supply (Legacy)</h3>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Inbound (Trucks)</label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                min="0"
+                                value={state.incomingTrucks === 0 ? '' : state.incomingTrucks}
+                                onChange={(e) => setters.setIncomingTrucks(e.target.value)}
+                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
+                                placeholder="0"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">
+                                Use this only for trucks NOT in the calendar.
+                            </p>
+                        </div>
+                    </div>
+                );
             case 'demand':
                 return (
                     <CalendarDemand
@@ -305,7 +314,7 @@ export default function MRPView({ state, setters, results }) {
                     />
                 );
             default:
-                return <div>Unknown Widget</div>;
+                return null;
         }
     };
 
@@ -368,9 +377,38 @@ export default function MRPView({ state, setters, results }) {
 
     }, [dashboardLayout, setDashboardLayout]);
 
-
     return (
         <div className="space-y-6">
+            {/* Header with Title and SKU Selector */}
+            <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-2">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800">Production & Inventory Planner</h1>
+                    <div className="flex items-center space-x-2">
+                        <p className="text-sm text-gray-500">Manage demand, inventory, and truck schedules.</p>
+                    </div>
+                </div>
+
+                <div className="flex items-center mt-4 md:mt-0 space-x-4">
+                    <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">Plan For:</span>
+                    <div className="relative">
+                        <select
+                            value={state.selectedSize}
+                            onChange={(e) => setters.setSelectedSize(e.target.value)}
+                            className="appearance-none bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold pl-5 pr-12 py-3 rounded-lg shadow-lg border-2 border-blue-400 cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-200 transition-all transform hover:-translate-y-0.5"
+                        >
+                            {bottleSizes.map(size => (
+                                <option key={size} value={size} className="text-gray-900 bg-white">{size}</option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-blue-100">
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}

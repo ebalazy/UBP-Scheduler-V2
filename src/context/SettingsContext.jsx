@@ -1,4 +1,7 @@
+
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { useSupabaseSync } from '../hooks/useSupabaseSync';
 
 const DEFAULTS = {
     bottleDefinitions: {
@@ -15,13 +18,16 @@ const DEFAULTS = {
     dashboardLayout: {
         top: ['kpis', 'demand'],
         col1: ['chart'],
-        col2: ['inputs', 'production', 'dropzone']
+        col2: ['purchasing', 'inventory', 'production', 'supply', 'dropzone']
     }
 };
 
 const SettingsContext = createContext();
 
 export function SettingsProvider({ children }) {
+    const { user } = useAuth();
+    const { fetchUserProfile, saveUserProfile } = useSupabaseSync();
+
     // Initialize state from LocalStorage or Defaults
     const [bottleDefinitions, setBottleDefinitions] = useState(() => {
         try {
@@ -35,14 +41,9 @@ export function SettingsProvider({ children }) {
     const [safetyStockLoads, setSafetyStockLoads] = useState(() => {
         try {
             const item = localStorage.getItem('safetyStockLoads');
-            // Fix: Number(null) is 0, so we must explicitly check for null (missing key)
             if (item === null) return DEFAULTS.safetyStockLoads;
-
             const val = Number(item);
-            // If value is 0, it might be the previous bug. Default to 6 if 0.
-            // Users can manually set to 0 if they really want it, but this fixes the "stuck at 0" default.
-            if (val === 0) return DEFAULTS.safetyStockLoads;
-
+            if (val === 0) return DEFAULTS.safetyStockLoads; // Default fix
             return !isNaN(val) && val >= 0 ? val : DEFAULTS.safetyStockLoads;
         } catch (e) {
             return DEFAULTS.safetyStockLoads;
@@ -62,39 +63,180 @@ export function SettingsProvider({ children }) {
         try {
             const saved = localStorage.getItem('dashboardLayout');
             const parsed = saved ? JSON.parse(saved) : DEFAULTS.dashboardLayout;
+            if (parsed.col2) {
+                // Migration: Renaming 'actions' -> 'purchasing'
+                if (parsed.col2.includes('actions')) {
+                    const idx = parsed.col2.indexOf('actions');
+                    parsed.col2.splice(idx, 1, 'purchasing');
+                }
 
-            // Migration: Check if 'col2' has 'production'.
-            if (parsed.col2 && !parsed.col2.includes('production')) {
-                return {
-                    ...parsed,
-                    col2: ['inputs', 'production', ...parsed.col2.filter(x => x !== 'inputs')]
-                };
+                // Migration: Check if 'col2' has 'production'.
+                if (!parsed.col2.includes('production')) {
+                    parsed.col2 = ['purchasing', 'production', ...parsed.col2.filter(x => x !== 'purchasing')];
+                }
+                // Migration: Split 'inputs' into 'inventory', 'supply'
+                if (parsed.col2.includes('inputs')) {
+                    const idx = parsed.col2.indexOf('inputs');
+                    // Remove 'inputs'
+                    parsed.col2.splice(idx, 1);
+                    // Insert new widgets inventory, supply if not already present
+                    // Check to avoid dups if re-running
+                    const toAdd = [];
+                    if (!parsed.col2.includes('inventory')) toAdd.push('inventory');
+                    if (!parsed.col2.includes('supply')) toAdd.push('supply');
+
+                    parsed.col2.splice(idx, 0, ...toAdd);
+                }
             }
-            // Migration: Check if 'top' has 'demand' (our new standard).
             if (!parsed.top || !parsed.top.includes('demand')) return DEFAULTS.dashboardLayout;
-
             return parsed;
         } catch (e) {
             return DEFAULTS.dashboardLayout;
         }
     });
 
-    // Persist to LocalStorage whenever state changes
+    const [leadTimeDays, setLeadTimeDays] = useState(() => {
+        try {
+            const item = localStorage.getItem('leadTimeDays');
+            if (item === null) return DEFAULTS.leadTimeDays || 2;
+            const val = Number(item);
+            return !isNaN(val) && val >= 0 ? val : (DEFAULTS.leadTimeDays || 2);
+        } catch (e) {
+            return DEFAULTS.leadTimeDays || 2;
+        }
+    });
+
+    // --- Persist to LocalStorage AND Cloud ---
+
+    // Cloud Load Effect
+    useEffect(() => {
+        if (user) {
+            fetchUserProfile(user.id).then(profile => {
+                if (profile) {
+                    if (profile.lead_time_days !== null) setLeadTimeDays(profile.lead_time_days);
+                    if (profile.safety_stock_loads !== null) setSafetyStockLoads(profile.safety_stock_loads);
+                    if (profile.dashboard_layout) setDashboardLayout(profile.dashboard_layout);
+                }
+            });
+        }
+    }, [user]);
+
+    // Savers
     useEffect(() => {
         localStorage.setItem('bottleDefinitions', JSON.stringify(bottleDefinitions));
     }, [bottleDefinitions]);
 
     useEffect(() => {
         localStorage.setItem('safetyStockLoads', JSON.stringify(safetyStockLoads));
-    }, [safetyStockLoads]);
+        if (user) saveUserProfile(user.id, { safety_stock_loads: safetyStockLoads });
+    }, [safetyStockLoads, user]);
+
+    useEffect(() => {
+        localStorage.setItem('leadTimeDays', JSON.stringify(leadTimeDays));
+        if (user) saveUserProfile(user.id, { lead_time_days: leadTimeDays });
+    }, [leadTimeDays, user]);
 
     useEffect(() => {
         localStorage.setItem('csvMapping', JSON.stringify(csvMapping));
     }, [csvMapping]);
 
+    const [schedulerSettings, setSchedulerSettings] = useState(() => {
+        try {
+            // Check if we have specific legacy keys
+            const target = localStorage.getItem('sched_targetDailyProduction');
+            const start = localStorage.getItem('sched_shiftStartTime');
+            const pos = localStorage.getItem('sched_poAssignments');
+            const cancelled = localStorage.getItem('sched_cancelledLoads');
+
+            // If we have any legacy data, construct object
+            if (target !== null || start !== null || pos !== null) {
+                return {
+                    targetDailyProduction: target ? Number(target) : 0,
+                    shiftStartTime: start || '00:00',
+                    poAssignments: pos ? JSON.parse(pos) : {},
+                    cancelledLoads: cancelled ? JSON.parse(cancelled) : []
+                };
+            }
+            return {
+                targetDailyProduction: 0,
+                shiftStartTime: '00:00',
+                poAssignments: {},
+                cancelledLoads: []
+            };
+        } catch (e) {
+            return { targetDailyProduction: 0, shiftStartTime: '00:00', poAssignments: {}, cancelledLoads: [] };
+        }
+    });
+
+    // Cloud Load Effect - Consolidated
+    useEffect(() => {
+        if (user) {
+            fetchUserProfile(user.id).then(profile => {
+                if (profile) {
+                    if (profile.lead_time_days !== null) setLeadTimeDays(profile.lead_time_days);
+                    if (profile.safety_stock_loads !== null) setSafetyStockLoads(profile.safety_stock_loads);
+
+                    // Handle Dashboard Layout + Scheduler Stored inside it
+                    if (profile.dashboard_layout) {
+                        const dl = profile.dashboard_layout;
+                        setDashboardLayout({
+                            top: dl.top || DEFAULTS.dashboardLayout.top,
+                            col1: dl.col1 || DEFAULTS.dashboardLayout.col1,
+                            col2: dl.col2 || DEFAULTS.dashboardLayout.col2
+                        });
+
+                        // Extract Scheduler Settings from JSON if present
+                        if (dl.scheduler) {
+                            setSchedulerSettings(prev => ({ ...prev, ...dl.scheduler }));
+                        }
+                    }
+                }
+            });
+        }
+    }, [user]);
+
+    // Savers
+    useEffect(() => {
+        localStorage.setItem('bottleDefinitions', JSON.stringify(bottleDefinitions));
+    }, [bottleDefinitions]);
+
+    useEffect(() => {
+        localStorage.setItem('safetyStockLoads', JSON.stringify(safetyStockLoads));
+        if (user) saveUserProfile(user.id, { safety_stock_loads: safetyStockLoads });
+    }, [safetyStockLoads, user]);
+
+    useEffect(() => {
+        localStorage.setItem('leadTimeDays', JSON.stringify(leadTimeDays));
+        if (user) saveUserProfile(user.id, { lead_time_days: leadTimeDays });
+    }, [leadTimeDays, user]);
+
+    useEffect(() => {
+        localStorage.setItem('csvMapping', JSON.stringify(csvMapping));
+    }, [csvMapping]);
+
+    // Consolidated Dashboard & Scheduler Saver
+    // We save both into 'dashboard_layout' column to simulate a 'settings' jsonb column
     useEffect(() => {
         localStorage.setItem('dashboardLayout', JSON.stringify(dashboardLayout));
-    }, [dashboardLayout]);
+
+        // Also persist scheduler settings locally for fallback? 
+        // We used to use separate keys. Let's keep separate local keys for safety if we revert?
+        // Or just trust this context.
+        // Let's keep local keys sync'd for now so if user reloads without net, 'useScheduler' legacy logic works?
+        // No, we are porting useScheduler to use THIS context. So local keys 'sched_*' are obsolete unless we write back to them for backup.
+        // Let's write to `settings_scheduler` local key.
+        localStorage.setItem('settings_scheduler', JSON.stringify(schedulerSettings));
+
+        if (user) {
+            // merge dashboardLayout + scheduler into one JSON
+            const merged = {
+                ...dashboardLayout,
+                scheduler: schedulerSettings
+            };
+            saveUserProfile(user.id, { dashboard_layout: merged });
+        }
+    }, [dashboardLayout, schedulerSettings, user]);
+
 
     const updateBottleDefinition = (size, field, value) => {
         setBottleDefinitions(prev => {
@@ -117,25 +259,41 @@ export function SettingsProvider({ children }) {
         }));
     };
 
+    const updateSchedulerSetting = (field, value) => {
+        setSchedulerSettings(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
     const resetDefaults = () => {
         setBottleDefinitions(DEFAULTS.bottleDefinitions);
         setSafetyStockLoads(DEFAULTS.safetyStockLoads);
+        setLeadTimeDays(DEFAULTS.leadTimeDays || 2);
         setCsvMapping(DEFAULTS.csvMapping);
         setDashboardLayout(DEFAULTS.dashboardLayout);
+        setSchedulerSettings({ targetDailyProduction: 0, shiftStartTime: '00:00', poAssignments: {}, cancelledLoads: [] });
     };
 
     const value = {
         bottleDefinitions,
         safetyStockLoads,
+        leadTimeDays,
         csvMapping,
         dashboardLayout,
+        schedulerSettings, // Exported
         setDashboardLayout,
         setSafetyStockLoads: (v) => {
             const val = Number(v);
             setSafetyStockLoads(!isNaN(val) && val >= 0 ? val : 0);
         },
+        setLeadTimeDays: (v) => {
+            const val = Number(v);
+            setLeadTimeDays(!isNaN(val) && val >= 0 ? val : 2);
+        },
         updateBottleDefinition,
         updateCsvMapping,
+        updateSchedulerSetting, // Exported
         resetDefaults,
         bottleSizes: Object.keys(DEFAULTS.bottleDefinitions)
     };

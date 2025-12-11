@@ -7,6 +7,8 @@ export default function SettingsModal({ onClose }) {
         updateBottleDefinition,
         safetyStockLoads,
         setSafetyStockLoads,
+        leadTimeDays,
+        setLeadTimeDays,
         csvMapping,
         updateCsvMapping,
         resetDefaults
@@ -26,22 +28,40 @@ export default function SettingsModal({ onClose }) {
                 </div>
 
                 <div className="space-y-6">
-                    {/* Safety Stock Rule */}
-                    <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-                        <label className="block text-sm font-medium text-blue-900 mb-2">
-                            Global Safety Stock Requirement (Full Loads)
-                        </label>
-                        <input
-                            type="number"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={safetyStockLoads}
-                            onChange={(e) => setSafetyStockLoads(Number(e.target.value))}
-                            className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
-                        />
-                        <p className="text-xs text-blue-700 mt-1">
-                            Minimum inventory to hold in terms of Full Truck Loads.
-                        </p>
+                    {/* Global Planning Rules */}
+                    <div className="bg-blue-50 p-4 rounded-md border border-blue-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-blue-900 mb-2">
+                                Global Safety Stock (Full Loads)
+                            </label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={safetyStockLoads}
+                                onChange={(e) => setSafetyStockLoads(Number(e.target.value))}
+                                className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
+                            />
+                            <p className="text-xs text-blue-700 mt-1">
+                                Minimum inventory target (Trucks).
+                            </p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-blue-900 mb-2">
+                                Inbound Lead Time (Days)
+                            </label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={leadTimeDays}
+                                onChange={(e) => setLeadTimeDays(Number(e.target.value))}
+                                className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
+                            />
+                            <p className="text-xs text-blue-700 mt-1">
+                                Days from Order to Delivery.
+                            </p>
+                        </div>
                     </div>
 
                     <hr className="border-gray-200" />

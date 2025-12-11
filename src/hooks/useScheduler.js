@@ -1,51 +1,39 @@
+
 import { useState, useMemo, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
 
 export function useScheduler() {
-    const { bottleDefinitions, safetyStockLoads } = useSettings();
+    const {
+        bottleDefinitions,
+        safetyStockLoads,
+        schedulerSettings,
+        updateSchedulerSetting
+    } = useSettings();
 
+    // UI View State (Local Preferred)
     const [selectedSize, setSelectedSize] = useState(() => localStorage.getItem('sched_selectedSize') || '20oz');
 
-    // Robust Integer Initialization
-    const [targetDailyProduction, setTargetDailyProduction] = useState(() => {
-        const val = Number(localStorage.getItem('sched_targetDailyProduction'));
-        return !isNaN(val) && val >= 0 ? val : 0;
-    });
-
-    const [shiftStartTime, setShiftStartTime] = useState(() => localStorage.getItem('sched_shiftStartTime') || '00:00');
-
+    // Persist UI selection locally
     useEffect(() => localStorage.setItem('sched_selectedSize', selectedSize), [selectedSize]);
-    useEffect(() => localStorage.setItem('sched_targetDailyProduction', targetDailyProduction), [targetDailyProduction]);
-    useEffect(() => localStorage.setItem('sched_shiftStartTime', shiftStartTime), [shiftStartTime]);
 
-    const [poAssignments, setPoAssignments] = useState(() => {
-        try {
-            const saved = localStorage.getItem('sched_poAssignments');
-            return saved ? JSON.parse(saved) : {};
-        } catch (e) { return {}; }
-    });
-    useEffect(() => localStorage.setItem('sched_poAssignments', JSON.stringify(poAssignments)), [poAssignments]);
+    // Extract synced settings
+    const {
+        targetDailyProduction = 0,
+        shiftStartTime = '00:00',
+        poAssignments = {},
+        cancelledLoads = []
+    } = schedulerSettings;
 
-    const [cancelledLoads, setCancelledLoads] = useState(() => {
-        try {
-            const saved = localStorage.getItem('sched_cancelledLoads');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) { return []; }
-    });
-    useEffect(() => localStorage.setItem('sched_cancelledLoads', JSON.stringify(cancelledLoads)), [cancelledLoads]);
-
-
+    // --- Calculations (Preserved Logic) ---
     const calculations = useMemo(() => {
         const specsDef = bottleDefinitions[selectedSize];
         if (!specsDef) return null;
 
         // Inject name for UI/Export usage
-        // Ensure palletsPerTruck is available (fallback for legacy data)
         const computedPallets = specsDef.palletsPerTruck || Math.ceil(specsDef.casesPerTruck / specsDef.casesPerPallet);
         const specs = { ...specsDef, name: selectedSize, palletsPerTruck: computedPallets };
 
-        // Required Daily Loads = Target / Cases Per Truck
-        // Handle NaN target
+        // Required Daily Loads
         const safeTarget = !isNaN(targetDailyProduction) ? targetDailyProduction : 0;
         const requiredDailyLoads = Math.ceil(safeTarget / specs.casesPerTruck);
 
@@ -58,13 +46,9 @@ export function useScheduler() {
             { name: 'Shift 3 (16:00-00:00)', loads: 0 },
         ];
 
-        // Remove pre-calculation of even distribution
-        // We will calculate exact distribution based on active trucks below
-
         // Hourly Logistics Logic
-        // Burn Rate (Cases / Hour) assuming 24h ops
         const casesPerHour = safeTarget / 24;
-        const burnRate = casesPerHour; // aliases
+        const burnRate = casesPerHour;
 
         // Truck Interval
         const truckCapacityCases = specs.casesPerTruck;
@@ -96,7 +80,7 @@ export function useScheduler() {
         // Filter Cancelled Loads
         const activeTrucks = truckSchedule.filter(t => !cancelledLoads.includes(String(t.id)));
 
-        // Calculate Shift Distribution based on Active Trucks
+        // Calculate Shift Distribution
         activeTrucks.forEach(truck => {
             const dec = truck.rawDecimal;
             if (dec >= 0 && dec < 8) shifts[0].loads++;
@@ -104,7 +88,7 @@ export function useScheduler() {
             else shifts[2].loads++;
         });
 
-        // Use filtered schedule for display
+        // Use filtered schedule for display (but keep IDs stable)
         truckSchedule = activeTrucks;
 
         // Risk Alert Logic
@@ -114,31 +98,30 @@ export function useScheduler() {
             requiredDailyLoads,
             weeklyLoads,
             schedule: shifts,
-            truckSchedule, // New detailed list
-            burnRate,      // Cases/Hour
-            hoursPerTruck, // Interval
+            truckSchedule,
+            burnRate,
+            hoursPerTruck,
             isHighRisk,
-            safetyStockLoads, // For display in alert
+            safetyStockLoads,
             specs
         };
 
     }, [selectedSize, targetDailyProduction, shiftStartTime, bottleDefinitions, safetyStockLoads, poAssignments, cancelledLoads]);
 
+    // --- Setters (Proxy to SettingsContext) ---
+
     const updatePO = (id, value) => {
-        setPoAssignments(prev => ({
-            ...prev,
-            [String(id)]: value
-        }));
+        const newMap = { ...poAssignments, [String(id)]: value };
+        updateSchedulerSetting('poAssignments', newMap);
     };
 
     const toggleCancelled = (id) => {
-        setCancelledLoads(prev => {
-            const sid = String(id);
-            if (prev.includes(sid)) {
-                return prev.filter(item => item !== sid);
-            }
-            return [...prev, sid];
-        });
+        const sid = String(id);
+        const isCancelled = cancelledLoads.includes(sid);
+        const newKey = isCancelled
+            ? cancelledLoads.filter(item => item !== sid)
+            : [...cancelledLoads, sid];
+        updateSchedulerSetting('cancelledLoads', newKey);
     };
 
     return {
@@ -152,9 +135,9 @@ export function useScheduler() {
             setSelectedSize,
             setTargetDailyProduction: (v) => {
                 const val = Number(v);
-                setTargetDailyProduction(!isNaN(val) && val >= 0 ? val : 0);
+                updateSchedulerSetting('targetDailyProduction', !isNaN(val) && val >= 0 ? val : 0);
             },
-            setShiftStartTime,
+            setShiftStartTime: (v) => updateSchedulerSetting('shiftStartTime', v),
             updatePO,
             toggleCancelled
         },
