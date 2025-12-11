@@ -20,10 +20,18 @@ export default function AuthModal({ isOpen, onClose }) {
         try {
             if (isLogin) {
                 await signIn(email, password);
+                onClose();
             } else {
-                await signUp(email, password);
+                const data = await signUp(email, password);
+                // Check if session is null (implies email confirmation required)
+                if (data?.user && !data?.session) {
+                    setIsLogin(true); // Switch to login mode
+                    setError("Account created! Please check your email to confirm valid address before logging in.");
+                    // Do not close modal
+                } else {
+                    onClose();
+                }
             }
-            onClose();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -51,7 +59,7 @@ export default function AuthModal({ isOpen, onClose }) {
                     </p>
 
                     {error && (
-                        <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">
+                        <div className={`p-3 rounded mb-4 text-sm ${error.includes('Account created') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                             {error}
                         </div>
                     )}
