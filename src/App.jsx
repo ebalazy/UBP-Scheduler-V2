@@ -14,27 +14,57 @@ import { useSupabaseSync } from './hooks/useSupabaseSync';
 import { useEffect } from 'react';
 
 
+import LandingPage from './components/LandingPage';
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('mrp'); // 'mrp' | 'scheduler'
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Core Hooks (Lifted to App level for shared state/persistence/alerts)
-  // Core Hooks (Lifted to App level for shared state/persistence/alerts)
-  const mrp = useMRP();
-  const scheduler = useScheduler();
-  // We need bottleSizes for Master Schedule
-  const { bottleSizes } = useSettings();
-  const masterSchedule = useMasterSchedule(bottleSizes);
-
   // Cloud Sync / Migration
-  const { user } = useAuth();
+  const { user, loading } = useAuth(); // Destruct loading state
   const { uploadLocalData } = useSupabaseSync();
+  const { bottleSizes } = useSettings();
 
   useEffect(() => {
     if (user) {
       uploadLocalData(user, bottleSizes);
     }
   }, [user, bottleSizes, uploadLocalData]);
+
+
+  // 1. Loading State
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // 2. Unauthenticated State (Lockdown)
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  // 3. Authenticated App
+  // Hooks initialization should ideally be split, but for this level of app, 
+  // keeping them here is fine as long as they don't crash without data. 
+  // But strictly, we should componentize 'AuthenticatedApp' to avoid Hook Rule violations 
+  // if we conditionally render before calling them.
+  // HOWEVER, Hooks must be called unconditionally.
+  // Splitting App into AuthenticatedApp is cleaner. Let's do a quick inline split.
+  return <AuthenticatedApp user={user} />;
+}
+
+// Wrapper for Main App Logic to ensure Hooks run only when Auth is ready
+function AuthenticatedApp({ user }) {
+  const [activeTab, setActiveTab] = useState('mrp'); // 'mrp' | 'scheduler'
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const mrp = useMRP();
+  const scheduler = useScheduler();
+  const { bottleSizes } = useSettings();
+  const masterSchedule = useMasterSchedule(bottleSizes);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
