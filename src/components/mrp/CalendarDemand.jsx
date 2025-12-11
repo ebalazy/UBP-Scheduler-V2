@@ -110,7 +110,8 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                 </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500 mb-2">
+            {/* Day Header (Desktop Only) */}
+            <div className="hidden md:grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500 mb-2">
                 <div>SUN</div>
                 <div>MON</div>
                 <div>TUE</div>
@@ -120,9 +121,11 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                 <div>SAT</div>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 flex-1">
+            {/* Calendar Grid / List */}
+            <div className="flex flex-col space-y-2 md:space-y-0 md:grid md:grid-cols-7 md:gap-1 flex-1">
                 {days.map((day, idx) => {
-                    if (!day) return <div key={`pad-${idx}`} className="bg-gray-50/50 rounded" />;
+                    // Padding slots (Desktop only)
+                    if (!day) return <div key={`pad-${idx}`} className="hidden md:block bg-gray-50/50 rounded" />;
 
                     const isToday = new Date().toISOString().split('T')[0] === day.dateStr;
                     const hasDemand = day.val > 0;
@@ -134,94 +137,109 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                         <div
                             key={day.dateStr}
                             className={`
-                                relative p-1 rounded border min-h-[90px] flex flex-col justify-between
+                                relative rounded border transition-all
                                 ${isToday ? 'border-blue-400 bg-blue-50' : 'border-gray-100'}
                                 ${hasDemand || hasTrucks || hasActual ? 'bg-white' : 'bg-gray-50'}
                                 ${isPush ? 'ring-2 ring-red-400 ring-opacity-50' : ''}
+                                
+                                /* Desktop Styles */
+                                md:p-1 md:min-h-[90px] md:flex-col md:justify-between
+                                
+                                /* Mobile Styles (List Row) */
+                                flex flex-row items-center p-3 justify-between shadow-sm md:shadow-none
                             `}
                         >
-                            <span className={`text-[10px] items-start mb-1 ${isToday ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
-                                {day.dayNum}
-                            </span>
+                            {/* Date Label */}
+                            <div className="flex flex-col md:items-start w-16 md:w-auto">
+                                <span className={`text-sm md:text-[10px] ${isToday ? 'text-blue-600 font-bold' : 'text-gray-500 font-medium'}`}>
+                                    {day.date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
+                                </span>
+                                {/* Mobile-only Month label on first of month? Optional */}
+                            </div>
 
-                            <div className="flex flex-col space-y-1">
+                            {/* Inputs Container */}
+                            <div className="flex flex-row md:flex-col space-x-4 md:space-x-0 md:space-y-1 items-center md:items-stretch flex-1 md:flex-none justify-center">
+
                                 {/* Plan Input */}
-                                <div className="flex items-center">
-                                    <span className="text-[8px] text-gray-400 w-3">P:</span>
+                                <div className="flex items-center space-x-1">
+                                    <span className="text-[10px] text-gray-400 w-3 md:inline hidden">P:</span>
+                                    <span className="text-[10px] text-gray-400 md:hidden font-bold">Plan</span>
                                     <input
                                         type="text"
                                         inputMode="numeric"
                                         className={`
-                                            w-full text-center text-xs p-0 border-0 bg-transparent focus:ring-0 font-medium
-                                            ${hasDemand ? 'text-gray-900 border-b border-gray-100' : 'text-gray-300'}
+                                            w-12 md:w-full text-center text-sm md:text-xs p-1 md:p-0 border rounded md:border-0 bg-white md:bg-transparent focus:ring-1 focus:ring-blue-200 font-medium
+                                            ${hasDemand ? 'text-gray-900 border-gray-300' : 'text-gray-300 border-gray-200'}
                                         `}
                                         placeholder="-"
                                         value={day.val ? day.val.toLocaleString() : ''}
                                         onChange={(e) => {
                                             const raw = e.target.value.replace(/,/g, '');
-                                            if (!isNaN(raw)) {
-                                                updateDateDemand(day.dateStr, raw);
-                                            }
+                                            if (!isNaN(raw)) updateDateDemand(day.dateStr, raw);
                                         }}
                                     />
                                 </div>
 
                                 {/* Actual Input */}
-                                <div className="flex items-center">
-                                    <span className="text-[8px] text-blue-400 w-3 font-bold">A:</span>
+                                <div className="flex items-center space-x-1">
+                                    <span className="text-[10px] text-blue-400 w-3 font-bold md:inline hidden">A:</span>
+                                    <span className="text-[10px] text-blue-400 md:hidden font-bold">Act</span>
                                     <input
                                         type="text"
                                         inputMode="numeric"
                                         className={`
-                                            w-full text-center text-xs p-0 border-0 bg-transparent focus:ring-0 font-bold
-                                            ${hasActual ? 'text-blue-700 bg-blue-50/50 rounded' : 'text-gray-300'}
+                                            w-12 md:w-full text-center text-sm md:text-xs p-1 md:p-0 border rounded md:border-0 bg-white md:bg-transparent focus:ring-1 focus:ring-blue-200 font-bold
+                                            ${hasActual ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-gray-300 border-gray-200'}
                                         `}
                                         placeholder="-"
                                         value={hasActual ? day.actual.toLocaleString() : ''}
                                         onChange={(e) => {
                                             const raw = e.target.value.replace(/,/g, '');
-                                            if (!isNaN(raw)) {
-                                                updateDateActual(day.dateStr, raw);
-                                            }
+                                            if (!isNaN(raw)) updateDateActual(day.dateStr, raw);
                                         }}
                                     />
                                 </div>
                             </div>
 
-                            {/* Inbound Trucks Input - With Alert Pulsing */}
-                            <div className={`
-                                flex items-center justify-center mt-1 border-t border-gray-100 pt-1 transition-all duration-500
-                                ${hasTrucks ? (isPush ? 'bg-red-100 animate-pulse rounded' : 'bg-green-50 animate-pulse rounded') : ''}
-                            `}>
-                                <span className="text-[9px] mr-1 text-gray-400">🚛</span>
-                                <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    className={`
-                                        w-6 text-center text-[10px] p-0 border-0 bg-transparent focus:ring-0 font-bold
-                                        ${hasTrucks ? (isPush ? 'text-red-600' : 'text-green-600') : 'text-gray-300'}
-                                    `}
-                                    placeholder="0"
-                                    value={day.trucks > 0 ? day.trucks : ''}
-                                    onChange={(e) => {
-                                        const raw = e.target.value.replace(/,/g, '');
-                                        if (!isNaN(raw)) {
-                                            updateDateInbound(day.dateStr, raw);
-                                        }
-                                    }}
-                                />
-                            </div>
+                            {/* Right Side Actions (Trucks + End Inv) */}
+                            <div className="flex flex-row md:flex-col items-center space-x-3 md:space-x-0 md:space-y-1 justify-end w-24 md:w-auto">
 
-                            {/* Ending Inventory Row */}
-                            {day.endInvCases !== null && (
+                                {/* Inbound Trucks Input */}
                                 <div className={`
-                                    text-[9px] text-center mt-auto pt-1 font-mono
-                                    ${day.isSafetyRisk ? 'text-red-500 font-bold' :
-                                        day.isOverflow ? 'text-orange-500 font-bold' : 'text-gray-400'}
+                                    flex items-center justify-center transition-all duration-500
+                                    md:mt-1 md:border-t md:border-gray-100 md:pt-1 md:w-full
+                                    ${hasTrucks ? (isPush ? 'bg-red-50 animate-pulse rounded p-1 md:p-0' : 'bg-green-50 animate-pulse rounded p-1 md:p-0') : ''}
                                 `}>
-                                    {day.endInvCases.toLocaleString()} cs
+                                    <span className="text-xs md:text-[9px] mr-1 text-gray-400">🚛</span>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        className={`
+                                            w-6 text-center text-sm md:text-[10px] p-0 border-0 bg-transparent focus:ring-0 font-bold
+                                            ${hasTrucks ? (isPush ? 'text-red-600' : 'text-green-600') : 'text-gray-300'}
+                                        `}
+                                        placeholder="0"
+                                        value={day.trucks > 0 ? day.trucks : ''}
+                                        onChange={(e) => {
+                                            const raw = e.target.value.replace(/,/g, '');
+                                            if (!isNaN(raw)) updateDateInbound(day.dateStr, raw);
+                                        }}
+                                    />
                                 </div>
-                            )}
+
+                                {/* Ending Inventory Row */}
+                                {day.endInvCases !== null && (
+                                    <div className={`
+                                        text-[10px] md:text-[9px] text-center md:mt-auto md:pt-1 font-mono
+                                        ${day.isSafetyRisk ? 'text-red-500 font-bold' :
+                                            day.isOverflow ? 'text-orange-500 font-bold' : 'text-gray-400'}
+                                    `}>
+                                        {day.endInvCases.toLocaleString()}
+                                        <span className="md:hidden ml-1">cs</span>
+                                        <span className="hidden md:inline"> cs</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     );
                 })}
