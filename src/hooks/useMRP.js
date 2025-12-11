@@ -24,7 +24,14 @@ export function useMRP() {
     const [productionRate, setProductionRate] = useState(() => Number(localStorage.getItem('mrp_productionRate')) || 0); // Cases per Hour
     const [downtimeHours, setDowntimeHours] = useState(() => Number(localStorage.getItem('mrp_downtimeHours')) || 0); // Hours
 
-    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => Number(localStorage.getItem('mrp_currentInventoryPallets')) || 0); // Pallets
+    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => Number(localStorage.getItem('mrp_currentInventoryPallets')) || 0); // Deprecated/Fallback
+
+    const [inventoryAnchor, setInventoryAnchor] = useState(() => {
+        const saved = localStorage.getItem('mrp_inventoryAnchor');
+        return saved ? JSON.parse(saved) : { date: new Date().toISOString().split('T')[0], count: 0 };
+    });
+    useEffect(() => localStorage.setItem('mrp_inventoryAnchor', JSON.stringify(inventoryAnchor)), [inventoryAnchor]);
+
     const [incomingTrucks, setIncomingTrucks] = useState(() => Number(localStorage.getItem('mrp_incomingTrucks')) || 0); // Trucks
 
     // Yard Inventory (from CSV)
@@ -102,7 +109,46 @@ export function useMRP() {
 
         // Inventory: Pallets -> Cases -> Bottles
         const csm = specs.casesPerPallet || 0;
-        const inventoryBottles = currentInventoryPallets * csm * specs.bottlesPerCase;
+
+        // --- PERPETUAL INVENTORY CALCULATION ---
+        // 1. Start with Anchor Count (Pallets)
+        let derivedPallets = inventoryAnchor.count;
+
+        // 2. Iterate from Anchor Date to Today (exclusive of Today?) 
+        // Logic: "Current Inventory" usually means "Start of Day".
+        // So we process transactions for all PAST days.
+        const anchorDate = new Date(inventoryAnchor.date);
+        anchorDate.setHours(0, 0, 0, 0);
+
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+
+        // Safety: Limit loop to avoid browser hang if date is weird
+        const diffTime = todayDate - anchorDate;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 0 && diffDays < 365) { // Limit to 1 year lookback
+            for (let i = 0; i < diffDays; i++) {
+                const d = new Date(anchorDate);
+                d.setDate(anchorDate.getDate() + i);
+                const ds = d.toISOString().split('T')[0];
+
+                const dDemandCases = Number(monthlyDemand[ds]) || 0;
+                const dInboundTrucks = Number(monthlyInbound[ds]) || 0;
+
+                // Convert to Pallets
+                // 1 Truck = (bottlesPerTruck / bottlesPerCase) cases / casesPerPallet
+                // Easier: 1 Truck -> bottles -> cases -> pallets
+                const palletsPerTruck = (specs.bottlesPerTruck / specs.bottlesPerCase) / (specs.casesPerPallet || 1);
+
+                const dInboundPallets = dInboundTrucks * palletsPerTruck;
+                const dDemandPallets = dDemandCases / (specs.casesPerPallet || 1);
+
+                derivedPallets = derivedPallets + dInboundPallets - dDemandPallets;
+            }
+        }
+
+        const inventoryBottles = derivedPallets * csm * specs.bottlesPerCase;
 
         // Net Inventory = (Current + Incoming + Yard) - Demand
         const netInventory = (inventoryBottles + incomingBottles + yardBottles) - demandBottles;
@@ -112,7 +158,7 @@ export function useMRP() {
 
         // --- DAILY LEDGER (Time-Phased Logic) ---
         const dailyLedger = [];
-        let currentBalance = inventoryBottles + yardBottles; // Start with what we have on floor/yard
+        let currentBalance = inventoryBottles + yardBottles; // Start with Calculated Balance
         let firstStockoutDate = null;
         let firstOverflowDate = null;
 
@@ -188,9 +234,12 @@ export function useMRP() {
             firstOverflowDate,
             totalIncomingTrucks,
             // Helper for Auto-Replenishment
-            initialInventory: inventoryBottles + yardBottles
+            initialInventory: inventoryBottles + yardBottles,
+            // Exposed Calculated Inventory for UI
+            calculatedPallets: derivedPallets,
+            inventoryAnchor
         };
-    }, [selectedSize, totalScheduledCases, productionRate, downtimeHours, currentInventoryPallets, incomingTrucks, bottleDefinitions, safetyStockLoads, yardInventory, manualYardOverride, monthlyDemand, monthlyInbound]);
+    }, [selectedSize, totalScheduledCases, productionRate, downtimeHours, currentInventoryPallets, incomingTrucks, bottleDefinitions, safetyStockLoads, yardInventory, manualYardOverride, monthlyDemand, monthlyInbound, inventoryAnchor]);
 
     const updateDateDemand = (date, value) => {
         const val = Number(value);
@@ -257,7 +306,8 @@ export function useMRP() {
             incomingTrucks,
             yardInventory,
             manualYardOverride,
-            isAutoReplenish
+            isAutoReplenish,
+            inventoryAnchor
         },
         setters: {
             setSelectedSize,
@@ -269,7 +319,8 @@ export function useMRP() {
             setIncomingTrucks: (v) => setIncomingTrucks(Number(v)),
             setYardInventory,
             setManualYardOverride: (v) => setManualYardOverride(v === '' ? null : Number(v)),
-            setIsAutoReplenish
+            setIsAutoReplenish,
+            setInventoryAnchor
         },
         results: calculations
     };

@@ -165,16 +165,50 @@ export default function MRPView({ state, setters, results }) {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Floor (Pallets)</label>
-                                    <input
-                                        type="number"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        min="0"
-                                        value={state.currentInventoryPallets === 0 ? '' : state.currentInventoryPallets}
-                                        onChange={(e) => setters.setCurrentInventoryPallets(e.target.value)}
-                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
-                                        placeholder="0"
-                                    />
+
+                                    {isEditingYard === 'floor' ? (
+                                        <div className="flex items-center space-x-1">
+                                            <input
+                                                type="number"
+                                                autoFocus
+                                                placeholder="Count"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        setters.setInventoryAnchor({
+                                                            date: new Date().toISOString().split('T')[0],
+                                                            count: Number(e.target.value)
+                                                        });
+                                                        setIsEditingYard(false);
+                                                    }
+                                                }}
+                                                className="block w-20 rounded-md border-purple-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-lg"
+                                            />
+                                            <button
+                                                onClick={() => setIsEditingYard(false)}
+                                                className="text-xs text-gray-400 border border-gray-200 rounded p-1"
+                                            >Cancel</button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-200">
+                                            <div>
+                                                <span className="text-xl font-bold text-gray-900 block leading-none">
+                                                    {Math.round(results.calculatedPallets || 0)}
+                                                </span>
+                                                <span className="text-[10px] text-gray-500 uppercase">Calculated</span>
+                                            </div>
+                                            <button
+                                                onClick={() => setIsEditingYard('floor')}
+                                                className="ml-2 text-xs bg-white border border-gray-300 shadow-sm px-2 py-1 rounded hover:bg-gray-50 text-gray-700"
+                                            >
+                                                Update
+                                            </button>
+                                        </div>
+                                    )}
+                                    {state.inventoryAnchor && (
+                                        <p className="text-[10px] text-gray-400 mt-1">
+                                            Last Count: {state.inventoryAnchor.count} on {state.inventoryAnchor.date}
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Inbound (Trucks)</label>
