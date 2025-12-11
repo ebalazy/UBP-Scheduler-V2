@@ -3,41 +3,25 @@ import { useAuth } from '../../context/AuthContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function AuthModal({ isOpen, onClose }) {
-    const { signIn, signUp } = useAuth();
-    const [isLogin, setIsLogin] = useState(true);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [resent, setResent] = useState(false);
+    const { signIn, signUp, resendVerificationEmail } = useAuth();
 
-    if (!isOpen) return null;
+    // ... existing state ...
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(null);
-        setLoading(true);
-
+    const handleResend = async () => {
         try {
-            if (isLogin) {
-                await signIn(email, password);
-                onClose();
-            } else {
-                const data = await signUp(email, password);
-                // Check if session is null (implies email confirmation required)
-                if (data?.user && !data?.session) {
-                    setIsLogin(true); // Switch to login mode
-                    setError("Account created! Please check your email to confirm valid address before logging in.");
-                    // Do not close modal
-                } else {
-                    onClose();
-                }
-            }
+            setLoading(true);
+            await resendVerificationEmail(email);
+            setResent(true);
+            setError("Confirmation email resent! Check your spam folder.");
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
     };
+
+    // ... handleSubmit ...
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -59,12 +43,22 @@ export default function AuthModal({ isOpen, onClose }) {
                     </p>
 
                     {error && (
-                        <div className={`p-3 rounded mb-4 text-sm ${error.includes('Account created') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                        <div className={`p-3 rounded mb-4 text-sm ${error.includes('Account created') || error.includes('resent') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                             {error}
+                            {/* Show Resend Button if error implies unconfirmed email */}
+                            {(error.includes('Email not confirmed') || error.includes('Account created')) && !resent && (
+                                <button
+                                    onClick={handleResend}
+                                    className="block mt-2 text-xs font-bold underline hover:text-green-800"
+                                >
+                                    Resend Verification Email
+                                </button>
+                            )}
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* ... inputs ... */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Email</label>
                             <input
