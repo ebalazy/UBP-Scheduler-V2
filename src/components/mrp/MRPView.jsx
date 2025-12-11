@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import InventoryControls from './InventoryControls';
 import CsvDropZone from './CsvDropZone';
 import CalendarDemand from './CalendarDemand';
 import ProductionInputs from './ProductionInputs';
@@ -103,13 +102,13 @@ export default function MRPView({ state, setters, results }) {
                         </div>
 
                         <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${trucksToOrder > 0 ? 'bg-red-50 border-red-200' :
-                                trucksToCancel > 0 ? 'bg-orange-50 border-orange-200' :
-                                    'bg-green-50 border-green-200'
+                            trucksToCancel > 0 ? 'bg-orange-50 border-orange-200' :
+                                'bg-green-50 border-green-200'
                             }`}>
                             <div>
                                 <p className={`${trucksToOrder > 0 ? 'text-red-600' :
-                                        trucksToCancel > 0 ? 'text-orange-600' :
-                                            'text-green-600'
+                                    trucksToCancel > 0 ? 'text-orange-600' :
+                                        'text-green-600'
                                     } text-xs uppercase font-bold`}>Action</p>
                                 <div className="text-4xl font-extrabold mt-2">
                                     {trucksToOrder > 0 ? (
