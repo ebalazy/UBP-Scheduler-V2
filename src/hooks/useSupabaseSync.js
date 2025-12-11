@@ -1,4 +1,3 @@
-```
 import { useState, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 
@@ -67,9 +66,9 @@ export const useSupabaseSync = () => {
                 const productId = await ensureProduct(user.id, sku);
 
                 // 2. Migrate Production Settings
-                const rate = localStorage.getItem(`mrp_${ sku } _productionRate`);
-                const downtime = localStorage.getItem(`mrp_${ sku } _downtimeHours`);
-                const isAuto = localStorage.getItem(`mrp_${ sku } _isAutoReplenish`);
+                const rate = localStorage.getItem(`mrp_${sku} _productionRate`);
+                const downtime = localStorage.getItem(`mrp_${sku} _downtimeHours`);
+                const isAuto = localStorage.getItem(`mrp_${sku} _isAutoReplenish`);
 
                 if (rate || downtime || isAuto) {
                     await supabase.from('production_settings').upsert({
@@ -90,7 +89,7 @@ export const useSupabaseSync = () => {
                 const entriesToInsert = [];
 
                 for (const { key, type } of types) {
-                    const saved = localStorage.getItem(`mrp_${ sku }_${ key } `);
+                    const saved = localStorage.getItem(`mrp_${sku}_${key} `);
                     if (saved) {
                         try {
                             const parsed = JSON.parse(saved);
@@ -108,7 +107,7 @@ export const useSupabaseSync = () => {
                                 }
                             });
                         } catch (e) {
-                            console.warn(`Failed to parse ${ key } for ${ sku }`, e);
+                            console.warn(`Failed to parse ${key} for ${sku}`, e);
                         }
                     }
                 }
@@ -120,7 +119,7 @@ export const useSupabaseSync = () => {
                 }
 
                 // 4. Migrate Inventory Anchors
-                const anchor = localStorage.getItem(`mrp_${ sku } _inventoryAnchor`);
+                const anchor = localStorage.getItem(`mrp_${sku} _inventoryAnchor`);
                 if (anchor) {
                     try {
                         const parsed = JSON.parse(anchor);
