@@ -14,69 +14,42 @@ export function useMRP() {
         return saved ? JSON.parse(saved) : {};
     });
 
+    // Monthly Production Actuals (Date -> Cases)
+    const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => {
+        const saved = localStorage.getItem('mrp_monthlyProductionActuals');
+        return saved ? JSON.parse(saved) : {};
+    });
+    useEffect(() => localStorage.setItem('mrp_monthlyProductionActuals', JSON.stringify(monthlyProductionActuals)), [monthlyProductionActuals]);
+
     // Monthly Inbound State (Date -> Trucks)
     const [monthlyInbound, setMonthlyInbound] = useState(() => {
         const saved = localStorage.getItem('mrp_monthlyInbound');
         return saved ? JSON.parse(saved) : {};
     });
 
-    // Smart Scheduler Inputs
-    const [productionRate, setProductionRate] = useState(() => Number(localStorage.getItem('mrp_productionRate')) || 0); // Cases per Hour
-    const [downtimeHours, setDowntimeHours] = useState(() => Number(localStorage.getItem('mrp_downtimeHours')) || 0); // Hours
-
-    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => Number(localStorage.getItem('mrp_currentInventoryPallets')) || 0); // Deprecated/Fallback
-
-    const [inventoryAnchor, setInventoryAnchor] = useState(() => {
-        const saved = localStorage.getItem('mrp_inventoryAnchor');
-        return saved ? JSON.parse(saved) : { date: new Date().toISOString().split('T')[0], count: 0 };
-    });
-    useEffect(() => localStorage.setItem('mrp_inventoryAnchor', JSON.stringify(inventoryAnchor)), [inventoryAnchor]);
-
-    const [incomingTrucks, setIncomingTrucks] = useState(() => Number(localStorage.getItem('mrp_incomingTrucks')) || 0); // Trucks
-
-    // Yard Inventory (from CSV)
-    const [yardInventory, setYardInventory] = useState(() => {
-        const saved = localStorage.getItem('mrp_yardInventory');
-        return saved ? JSON.parse(saved) : { count: 0, timestamp: null, fileName: null };
-    });
-
-    // Manual Override for Yard Inventory (if CSV is wrong/old)
-    const [manualYardOverride, setManualYardOverride] = useState(() => {
-        const saved = localStorage.getItem('mrp_manualYardOverride');
-        return saved ? Number(saved) : null; // null means use CSV value
-    });
-
-    // Persistence Effects
-    useEffect(() => localStorage.setItem('mrp_selectedSize', selectedSize), [selectedSize]);
-    useEffect(() => localStorage.setItem('mrp_monthlyDemand', JSON.stringify(monthlyDemand)), [monthlyDemand]);
-    useEffect(() => localStorage.setItem('mrp_monthlyInbound', JSON.stringify(monthlyInbound)), [monthlyInbound]);
-    useEffect(() => localStorage.setItem('mrp_productionRate', productionRate), [productionRate]);
-    useEffect(() => localStorage.setItem('mrp_downtimeHours', downtimeHours), [downtimeHours]);
-    useEffect(() => localStorage.setItem('mrp_currentInventoryPallets', currentInventoryPallets), [currentInventoryPallets]);
-    useEffect(() => localStorage.setItem('mrp_incomingTrucks', incomingTrucks), [incomingTrucks]);
-    useEffect(() => localStorage.setItem('mrp_yardInventory', JSON.stringify(yardInventory)), [yardInventory]);
-    useEffect(() => {
-        if (manualYardOverride !== null) localStorage.setItem('mrp_manualYardOverride', manualYardOverride);
-        else localStorage.removeItem('mrp_manualYardOverride');
-    }, [manualYardOverride]);
-
-    // Auto-Replenish State
-    const [isAutoReplenish, setIsAutoReplenish] = useState(() => {
-        const saved = localStorage.getItem('mrp_isAutoReplenish');
-        return saved !== null ? JSON.parse(saved) : true;
-    });
-    useEffect(() => localStorage.setItem('mrp_isAutoReplenish', JSON.stringify(isAutoReplenish)), [isAutoReplenish]);
+    // ... (rest of states) ...
 
     // Derived total for calculations
+    // Updated to use Actuals if present, otherwise Demand
     const totalScheduledCases = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
-        return Object.entries(monthlyDemand).reduce((acc, [date, val]) => {
+        // We need to iterate over ALL dates that have either Demand OR Actuals
+        const allDates = new Set([...Object.keys(monthlyDemand), ...Object.keys(monthlyProductionActuals)]);
+
+        return Array.from(allDates).reduce((acc, date) => {
             if (date >= today) {
-                return acc + (Number(val) || 0);
+                // Future: Use Plan (unless Actuals entered for future? Unlikely but possible override)
+                // Logic: If Actual is explicitly entered (not undefined), use it? 
+                // Usually Actuals are for Past. Future is Plan.
+                // Let's stick to: If Actual exists, use it.
+                const actual = monthlyProductionActuals[date];
+                const plan = monthlyDemand[date];
+                const val = (actual !== undefined && actual !== null) ? Number(actual) : Number(plan);
+                return acc + (val || 0);
             }
             return acc;
         }, 0);
-    }, [monthlyDemand]);
+    }, [monthlyDemand, monthlyProductionActuals]);
 
     const calculations = useMemo(() => {
         const specs = bottleDefinitions[selectedSize];
@@ -133,7 +106,11 @@ export function useMRP() {
                 d.setDate(anchorDate.getDate() + i);
                 const ds = d.toISOString().split('T')[0];
 
-                const dDemandCases = Number(monthlyDemand[ds]) || 0;
+                // Use Actuals if present, otherwise Demand
+                const actual = monthlyProductionActuals[ds];
+                const plan = monthlyDemand[ds];
+                const dDemandCases = (actual !== undefined && actual !== null) ? Number(actual) : Number(plan || 0);
+
                 const dInboundTrucks = Number(monthlyInbound[ds]) || 0;
 
                 // Convert to Pallets
@@ -168,8 +145,11 @@ export function useMRP() {
             d.setDate(d.getDate() + i);
             const dateStr = d.toISOString().split('T')[0];
 
-            // Demand for this day
-            const dailyCases = Number(monthlyDemand[dateStr]) || 0;
+            // Demand for this day (Actual || Plan)
+            const actual = monthlyProductionActuals[dateStr];
+            const plan = monthlyDemand[dateStr];
+            const dailyCases = (actual !== undefined && actual !== null) ? Number(actual) : Number(plan || 0);
+
             const dailyDemand = dailyCases * specs.bottlesPerCase;
 
             // Inbound for this day
@@ -247,45 +227,61 @@ export function useMRP() {
         setMonthlyDemand(newDemand);
 
         if (isAutoReplenish && calculations) {
-            // "Magic Mode": Automatically schedule trucks to meet Safety Stock
-            const specs = bottleDefinitions[selectedSize];
-            const safetyTarget = safetyStockLoads * specs.bottlesPerTruck;
-            let runningBalance = calculations.initialInventory;
-
-            // Re-calculate the ENTIRE schedule to be safe
-            const today = new Date();
-            const next60Days = {};
-
-            for (let i = 0; i < 60; i++) {
-                const d = new Date(today);
-                d.setDate(today.getDate() + i);
-                const ds = d.toISOString().split('T')[0];
-
-                // Use new demand value if it's the date being edited
-                const dDem = (ds === date ? val : (monthlyDemand[ds] || 0)) * specs.bottlesPerCase;
-
-                let dTrucks = 0;
-                let bal = runningBalance - dDem;
-
-                if (bal < safetyTarget) {
-                    const needed = Math.ceil((safetyTarget - bal) / specs.bottlesPerTruck);
-                    dTrucks = needed;
-                    bal += needed * specs.bottlesPerTruck;
-                }
-
-                // Only write to map if > 0 (or if we need to overwrite an existing value to 0)
-                // To support clearing old values, we should probably output 0s? 
-                // But merging { ...prev, ...next60Days } will overwrite. 
-                // However, we only have prev monthlyInbound inside the setter below.
-                if (dTrucks > 0) next60Days[ds] = dTrucks;
-                else next60Days[ds] = 0;
-
-                runningBalance = bal;
-            }
-
-            setMonthlyInbound(prev => ({ ...prev, ...next60Days }));
+            runAutoReplenishment(newDemand, monthlyProductionActuals);
         }
     };
+
+    const updateDateActual = (date, value) => {
+        const val = (value === '' || value === null) ? undefined : Number(value);
+        const newActuals = { ...monthlyProductionActuals };
+        if (val === undefined) delete newActuals[date];
+        else newActuals[date] = val;
+
+        setMonthlyProductionActuals(newActuals);
+
+        if (isAutoReplenish && calculations) {
+            runAutoReplenishment(monthlyDemand, newActuals);
+        }
+    };
+
+    // Extracted Magic Mode Logic for re-use
+    const runAutoReplenishment = (demandMap, actualMap) => {
+        const specs = bottleDefinitions[selectedSize];
+        const safetyTarget = safetyStockLoads * specs.bottlesPerTruck;
+
+        // Use calculated initial inventory as base
+        let runningBalance = calculations.initialInventory;
+
+        const today = new Date();
+        const next60Days = {};
+
+        for (let i = 0; i < 60; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            const ds = d.toISOString().split('T')[0];
+
+            // Demand Logic: Actual || Plan
+            const act = actualMap[ds];
+            const plan = demandMap[ds];
+            const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase;
+
+            let dTrucks = 0;
+            let bal = runningBalance - dDem;
+
+            if (bal < safetyTarget) {
+                const needed = Math.ceil((safetyTarget - bal) / specs.bottlesPerTruck);
+                dTrucks = needed;
+                bal += needed * specs.bottlesPerTruck;
+            }
+
+            if (dTrucks > 0) next60Days[ds] = dTrucks;
+            else next60Days[ds] = 0;
+
+            runningBalance = bal;
+        }
+
+        setMonthlyInbound(prev => ({ ...prev, ...next60Days }));
+    }
 
     const updateDateInbound = (date, value) => {
         setMonthlyInbound(prev => ({
@@ -299,6 +295,7 @@ export function useMRP() {
             selectedSize,
             monthlyDemand,
             monthlyInbound,
+            monthlyProductionActuals,
             productionRate,
             downtimeHours,
             totalScheduledCases,
@@ -312,6 +309,7 @@ export function useMRP() {
         setters: {
             setSelectedSize,
             updateDateDemand,
+            updateDateActual,
             updateDateInbound,
             setProductionRate: (v) => setProductionRate(Number(v)),
             setDowntimeHours: (v) => setDowntimeHours(Number(v)),
