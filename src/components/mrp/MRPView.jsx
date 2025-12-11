@@ -102,13 +102,13 @@ export default function MRPView({ state, setters, results }) {
                         </div>
 
                         <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${results.firstStockoutDate || trucksToOrder > 0 ? 'bg-red-50 border-red-200' :
-                                results.firstOverflowDate || trucksToCancel > 0 ? 'bg-orange-50 border-orange-200' :
-                                    'bg-green-50 border-green-200'
+                            results.firstOverflowDate || trucksToCancel > 0 ? 'bg-orange-50 border-orange-200' :
+                                'bg-green-50 border-green-200'
                             }`}>
                             <div>
                                 <p className={`${results.firstStockoutDate || trucksToOrder > 0 ? 'text-red-600' :
-                                        results.firstOverflowDate || trucksToCancel > 0 ? 'text-orange-600' :
-                                            'text-green-600'
+                                    results.firstOverflowDate || trucksToCancel > 0 ? 'text-orange-600' :
+                                        'text-green-600'
                                     } text-xs uppercase font-bold`}>Action</p>
                                 <div className="text-4xl font-extrabold mt-2">
                                     {results.firstStockoutDate ? (
@@ -139,7 +139,25 @@ export default function MRPView({ state, setters, results }) {
             case 'inputs':
                 return (
                     <div className="p-6 h-full">
-                        <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">🎛️ Inventory Controls</h2>
+                        <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex justify-between items-center">
+                            <span>🎛️ Inventory Controls</span>
+                            {/* Auto-Replenish Toggle */}
+                            <label className="flex items-center cursor-pointer">
+                                <span className="text-xs mr-2 font-medium text-purple-600">
+                                    {state.isAutoReplenish ? '✨ Auto-Plan' : 'Manual'}
+                                </span>
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only"
+                                        checked={state.isAutoReplenish || false}
+                                        onChange={(e) => setters.setIsAutoReplenish(e.target.checked)}
+                                    />
+                                    <div className={`block w-10 h-6 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
+                                    <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-4' : ''}`}></div>
+                                </div>
+                            </label>
+                        </h2>
 
                         <div className="space-y-5">
                             {/* SKU Selector Moved to Top */}

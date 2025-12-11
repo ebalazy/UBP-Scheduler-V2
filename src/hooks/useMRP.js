@@ -53,6 +53,13 @@ export function useMRP() {
         else localStorage.removeItem('mrp_manualYardOverride');
     }, [manualYardOverride]);
 
+    // Auto-Replenish State
+    const [isAutoReplenish, setIsAutoReplenish] = useState(() => {
+        const saved = localStorage.getItem('mrp_isAutoReplenish');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
+    useEffect(() => localStorage.setItem('mrp_isAutoReplenish', JSON.stringify(isAutoReplenish)), [isAutoReplenish]);
+
     // Derived total for calculations
     const totalScheduledCases = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
@@ -179,15 +186,56 @@ export function useMRP() {
             dailyLedger,
             firstStockoutDate,
             firstOverflowDate,
-            totalIncomingTrucks
+            totalIncomingTrucks,
+            // Helper for Auto-Replenishment
+            initialInventory: inventoryBottles + yardBottles
         };
     }, [selectedSize, totalScheduledCases, productionRate, downtimeHours, currentInventoryPallets, incomingTrucks, bottleDefinitions, safetyStockLoads, yardInventory, manualYardOverride, monthlyDemand, monthlyInbound]);
 
     const updateDateDemand = (date, value) => {
-        setMonthlyDemand(prev => ({
-            ...prev,
-            [date]: Number(value)
-        }));
+        const val = Number(value);
+        const newDemand = { ...monthlyDemand, [date]: val };
+        setMonthlyDemand(newDemand);
+
+        if (isAutoReplenish && calculations) {
+            // "Magic Mode": Automatically schedule trucks to meet Safety Stock
+            const specs = bottleDefinitions[selectedSize];
+            const safetyTarget = safetyStockLoads * specs.bottlesPerTruck;
+            let runningBalance = calculations.initialInventory;
+
+            // Re-calculate the ENTIRE schedule to be safe
+            const today = new Date();
+            const next60Days = {};
+
+            for (let i = 0; i < 60; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+                const ds = d.toISOString().split('T')[0];
+
+                // Use new demand value if it's the date being edited
+                const dDem = (ds === date ? val : (monthlyDemand[ds] || 0)) * specs.bottlesPerCase;
+
+                let dTrucks = 0;
+                let bal = runningBalance - dDem;
+
+                if (bal < safetyTarget) {
+                    const needed = Math.ceil((safetyTarget - bal) / specs.bottlesPerTruck);
+                    dTrucks = needed;
+                    bal += needed * specs.bottlesPerTruck;
+                }
+
+                // Only write to map if > 0 (or if we need to overwrite an existing value to 0)
+                // To support clearing old values, we should probably output 0s? 
+                // But merging { ...prev, ...next60Days } will overwrite. 
+                // However, we only have prev monthlyInbound inside the setter below.
+                if (dTrucks > 0) next60Days[ds] = dTrucks;
+                else next60Days[ds] = 0;
+
+                runningBalance = bal;
+            }
+
+            setMonthlyInbound(prev => ({ ...prev, ...next60Days }));
+        }
     };
 
     const updateDateInbound = (date, value) => {
@@ -200,7 +248,7 @@ export function useMRP() {
     return {
         formState: {
             selectedSize,
-            monthlyDemand, // Changed from weeklyDemand
+            monthlyDemand,
             monthlyInbound,
             productionRate,
             downtimeHours,
@@ -208,18 +256,20 @@ export function useMRP() {
             currentInventoryPallets,
             incomingTrucks,
             yardInventory,
-            manualYardOverride
+            manualYardOverride,
+            isAutoReplenish
         },
         setters: {
             setSelectedSize,
-            updateDateDemand, // Changed from updateDailyDemand
+            updateDateDemand,
             updateDateInbound,
             setProductionRate: (v) => setProductionRate(Number(v)),
             setDowntimeHours: (v) => setDowntimeHours(Number(v)),
             setCurrentInventoryPallets: (v) => setCurrentInventoryPallets(Number(v)),
             setIncomingTrucks: (v) => setIncomingTrucks(Number(v)),
             setYardInventory,
-            setManualYardOverride: (v) => setManualYardOverride(v === '' ? null : Number(v))
+            setManualYardOverride: (v) => setManualYardOverride(v === '' ? null : Number(v)),
+            setIsAutoReplenish
         },
         results: calculations
     };
