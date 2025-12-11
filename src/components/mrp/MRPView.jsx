@@ -85,19 +85,19 @@ export default function MRPView({ state, setters, results }) {
                                 </select>
                             </div>
                             <div>
-                                <p className="text-gray-400 text-xs uppercase font-bold">Projected End-of-Week</p>
+                                <p className="text-gray-400 text-xs uppercase font-bold">Projected Inventory</p>
                                 <p className={`text-4xl font-mono font-bold mt-2 ${netInventory < safetyTarget ? 'text-red-400' : 'text-green-400'}`}>
                                     {fmt(netInventory)}
                                 </p>
-                                <p className="text-xs text-gray-400 mt-1">Bottles Net</p>
+                                <p className="text-xs text-gray-400 mt-1">Bottles (Net)</p>
                             </div>
                         </div>
 
                         <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col justify-between h-32">
                             <div>
-                                <p className="text-gray-500 text-xs uppercase font-bold">Safety Target</p>
+                                <p className="text-gray-500 text-xs uppercase font-bold">Target Inventory</p>
                                 <p className="text-4xl font-mono font-bold mt-2 text-gray-700">{fmt(safetyTarget)}</p>
-                                <p className="text-xs text-gray-400 mt-1">Bottles ({state.selectedSize})</p>
+                                <p className="text-xs text-gray-400 mt-1">Bottles (Safety)</p>
                             </div>
                         </div>
 
@@ -114,7 +114,10 @@ export default function MRPView({ state, setters, results }) {
                                     {trucksToOrder > 0 ? (
                                         <span className="text-red-600">{trucksToOrder} TRUCKS</span>
                                     ) : trucksToCancel > 0 ? (
-                                        <span className="text-orange-600">CANCEL {trucksToCancel}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-orange-600 text-3xl">PUSH OUT {trucksToCancel}</span>
+                                            <span className="text-orange-400 text-xs font-normal mt-1">Projected &gt; Target (Surplus)</span>
+                                        </div>
                                     ) : (
                                         <span className="text-green-600">✅ OK</span>
                                     )}
