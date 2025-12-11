@@ -3,10 +3,44 @@ import { useAuth } from '../../context/AuthContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function AuthModal({ isOpen, onClose }) {
-    const [resent, setResent] = useState(false);
     const { signIn, signUp, resendVerificationEmail } = useAuth();
 
-    // ... existing state ...
+    // State
+    const [isLogin, setIsLogin] = useState(true);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [resent, setResent] = useState(false);
+
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError(null);
+        setLoading(true);
+
+        try {
+            if (isLogin) {
+                await signIn(email, password);
+                onClose();
+            } else {
+                const data = await signUp(email, password);
+                // Check if session is null (implies email confirmation required)
+                if (data?.user && !data?.session) {
+                    setIsLogin(true); // Switch to login mode
+                    setError("Account created! Please check your email to confirm valid address before logging in.");
+                    // Do not close modal
+                } else {
+                    onClose();
+                }
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleResend = async () => {
         try {
@@ -20,8 +54,6 @@ export default function AuthModal({ isOpen, onClose }) {
             setLoading(false);
         }
     };
-
-    // ... handleSubmit ...
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -58,7 +90,6 @@ export default function AuthModal({ isOpen, onClose }) {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* ... inputs ... */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Email</label>
                             <input
