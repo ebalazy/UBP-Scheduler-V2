@@ -41,13 +41,18 @@ export default function Header({ onOpenSettings }) {
                 {/* 2. Global Actions */}
                 <div className="flex items-center space-x-2 md:space-x-4 no-print">
 
-                    {/* Sync Status - Only show if logged in */}
-                    {user && (
-                        <div className="hidden md:flex items-center text-sm font-medium transition-colors" title={isOnline ? "Synced to Cloud" : "Offline Mode"}>
+                    {/* Sync Status - Always Show */}
+                    {user ? (
+                        <div className="flex items-center text-sm font-medium transition-colors" title={isOnline ? "Synced to Cloud" : "Offline Mode"}>
                             <CloudIcon className={`h-6 w-6 mr-1 ${isOnline ? 'text-green-500' : 'text-gray-400'}`} />
-                            <span className={isOnline ? 'text-green-600' : 'text-gray-500'}>
+                            <span className={`hidden md:inline ${isOnline ? 'text-green-600' : 'text-gray-500'}`}>
                                 {isOnline ? 'Saved' : 'Offline'}
                             </span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center text-sm font-medium text-gray-400" title="Local Data Only (Not Logged In)">
+                            <CloudIcon className="h-6 w-6 mr-1" />
+                            <span className="hidden md:inline">Local Only</span>
                         </div>
                     )}
 
