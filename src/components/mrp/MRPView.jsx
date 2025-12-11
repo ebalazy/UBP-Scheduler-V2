@@ -290,6 +290,8 @@ export default function MRPView({ state, setters, results }) {
                         updateDateInbound={setters.updateDateInbound}
                         monthlyProductionActuals={state.monthlyProductionActuals || {}}
                         updateDateActual={setters.updateDateActual}
+                        specs={results?.specs}
+                        trucksToCancel={results?.trucksToCancel}
                     />
                 );
             case 'production':

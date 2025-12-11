@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'; // Falling back to text if icons issue, but package.json has heroicons
 
-export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthlyInbound, updateDateInbound, monthlyProductionActuals, updateDateActual }) {
+export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthlyInbound, updateDateInbound, monthlyProductionActuals, updateDateActual, specs, trucksToCancel }) {
     const [viewDate, setViewDate] = useState(new Date());
 
     // Generate calendar grid
-    const { days, monthLabel, totalMonthlyDemand } = useMemo(() => {
+    const { days, monthLabel, totalMonthlyDemand, totalEstTrucks } = useMemo(() => {
         const year = viewDate.getFullYear();
         const month = viewDate.getMonth();
 
@@ -18,6 +18,16 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
         // Array of empty slots for padding start
         const padding = Array(startDayOfWeek).fill(null);
 
+        // Find next truck date (for Push Alert)
+        const today = new Date().toISOString().split('T')[0];
+        let nextTruckDate = null;
+        if (trucksToCancel > 0) {
+            // Simple scan: find first day >= today with inbound trucks
+            // (Ideally we scan beyond just this month, but visually we only care about this view)
+            const allDates = Object.keys(monthlyInbound || {}).sort();
+            nextTruckDate = allDates.find(d => d >= today && monthlyInbound[d] > 0);
+        }
+
         // Array of days
         const dateArray = Array.from({ length: daysInMonth }, (_, i) => {
             const d = new Date(year, month, i + 1);
@@ -28,7 +38,8 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                 dayNum: i + 1,
                 val: monthlyDemand[dateStr] || 0,
                 trucks: monthlyInbound?.[dateStr] || 0,
-                actual: monthlyProductionActuals?.[dateStr]
+                actual: monthlyProductionActuals?.[dateStr],
+                isPushCandidate: nextTruckDate === dateStr
             };
         });
 
@@ -37,12 +48,21 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
             return sum + usage;
         }, 0);
 
+        // Est Trucks Calculation
+        let totalEstTrucks = 0;
+        if (specs && specs.bottlesPerTruck && specs.bottlesPerCase) {
+            // Cases per truck = bottlesPerTruck / bottlesPerCase
+            const casesPerTruck = specs.bottlesPerTruck / specs.bottlesPerCase;
+            totalEstTrucks = Math.ceil(totalMonthlyDemand / casesPerTruck);
+        }
+
         return {
             days: [...padding, ...dateArray],
             monthLabel: firstDay.toLocaleString('default', { month: 'long', year: 'numeric' }),
-            totalMonthlyDemand
+            totalMonthlyDemand,
+            totalEstTrucks
         };
-    }, [viewDate, monthlyDemand, monthlyInbound]);
+    }, [viewDate, monthlyDemand, monthlyInbound, monthlyProductionActuals, specs, trucksToCancel]);
 
     const changeMonth = (offset) => {
         setViewDate(prev => {
@@ -60,7 +80,10 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                 </button>
                 <div className="text-center">
                     <h3 className="font-bold text-gray-800">{monthLabel}</h3>
-                    <p className="text-xs text-blue-600 font-medium">{totalMonthlyDemand.toLocaleString()} Cases</p>
+                    <p className="text-xs text-blue-600 font-medium">
+                        {totalMonthlyDemand.toLocaleString()} Cases
+                        {totalEstTrucks > 0 && <span className="text-gray-400 ml-1">(~{totalEstTrucks} Trucks)</span>}
+                    </p>
                 </div>
                 <button onClick={() => changeMonth(1)} className="p-1 hover:bg-gray-100 rounded text-gray-600">
                     Next &gt;
@@ -85,6 +108,7 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                     const hasDemand = day.val > 0;
                     const hasActual = day.actual !== undefined;
                     const hasTrucks = day.trucks > 0;
+                    const isPush = day.isPushCandidate;
 
                     return (
                         <div
@@ -93,6 +117,7 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                                 relative p-1 rounded border min-h-[90px] flex flex-col justify-between
                                 ${isToday ? 'border-blue-400 bg-blue-50' : 'border-gray-100'}
                                 ${hasDemand || hasTrucks || hasActual ? 'bg-white' : 'bg-gray-50'}
+                                ${isPush ? 'ring-2 ring-red-400 ring-opacity-50' : ''}
                             `}
                         >
                             <span className={`text-[10px] items-start mb-1 ${isToday ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
@@ -143,15 +168,18 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                                 </div>
                             </div>
 
-                            {/* Inbound Trucks Input */}
-                            <div className="flex items-center justify-center mt-1 border-t border-gray-100 pt-1">
+                            {/* Inbound Trucks Input - With Alert Pulsing */}
+                            <div className={`
+                                flex items-center justify-center mt-1 border-t border-gray-100 pt-1 transition-all duration-500
+                                ${hasTrucks ? (isPush ? 'bg-red-100 animate-pulse rounded' : 'bg-green-50 animate-pulse rounded') : ''}
+                            `}>
                                 <span className="text-[9px] mr-1 text-gray-400">🚛</span>
                                 <input
                                     type="text"
                                     inputMode="numeric"
                                     className={`
                                         w-6 text-center text-[10px] p-0 border-0 bg-transparent focus:ring-0 font-bold
-                                        ${hasTrucks ? 'text-green-600' : 'text-gray-300'}
+                                        ${hasTrucks ? (isPush ? 'text-red-600' : 'text-green-600') : 'text-gray-300'}
                                     `}
                                     placeholder="0"
                                     value={day.trucks > 0 ? day.trucks : ''}
