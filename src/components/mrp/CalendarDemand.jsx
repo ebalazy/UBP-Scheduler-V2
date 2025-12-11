@@ -60,7 +60,7 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                 </button>
                 <div className="text-center">
                     <h3 className="font-bold text-gray-800">{monthLabel}</h3>
-                    <p className="text-xs text-blue-600 font-medium">{days.reduce((acc, d) => d?.val ? acc + d.val : acc, 0).toLocaleString()} Cases</p>
+                    <p className="text-xs text-blue-600 font-medium">{totalMonthlyDemand.toLocaleString()} Cases</p>
                 </div>
                 <button onClick={() => changeMonth(1)} className="p-1 hover:bg-gray-100 rounded text-gray-600">
                     Next &gt;
