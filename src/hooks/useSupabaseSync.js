@@ -147,7 +147,7 @@ export const useSupabaseSync = () => {
     /**
      * Loads all MRP state for a specific SKU.
      */
-    const fetchMRPState = async (userId, skuName) => {
+    const fetchMRPState = useCallback(async (userId, skuName) => {
         // Get Product
         const { data: product, error: pErr } = await supabase
             .from('products')
@@ -211,7 +211,7 @@ export const useSupabaseSync = () => {
             isAutoReplenish: settings.data?.is_auto_replenish || false,
             inventoryAnchor
         };
-    };
+    }, []);
 
     /**
      * SAVERS
