@@ -15,7 +15,7 @@ const DEFAULTS = {
     dashboardLayout: {
         top: ['kpis', 'demand'],
         col1: ['chart'],
-        col2: ['inputs', 'dropzone']
+        col2: ['inputs', 'production', 'dropzone']
     }
 };
 
@@ -63,8 +63,14 @@ export function SettingsProvider({ children }) {
             const saved = localStorage.getItem('dashboardLayout');
             const parsed = saved ? JSON.parse(saved) : DEFAULTS.dashboardLayout;
 
-            // Migration: Check if 'top' has 'demand' (our new standard). If not, reset to defaults.
-            // This ensures users get the new requested layout automatically.
+            // Migration: Check if 'col2' has 'production'.
+            if (parsed.col2 && !parsed.col2.includes('production')) {
+                return {
+                    ...parsed,
+                    col2: ['inputs', 'production', ...parsed.col2.filter(x => x !== 'inputs')]
+                };
+            }
+            // Migration: Check if 'top' has 'demand' (our new standard).
             if (!parsed.top || !parsed.top.includes('demand')) return DEFAULTS.dashboardLayout;
 
             return parsed;

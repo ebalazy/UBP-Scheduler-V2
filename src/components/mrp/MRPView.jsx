@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react';
-import { useSettings } from '../../context/SettingsContext';
+import InventoryControls from './InventoryControls';
 import CsvDropZone from './CsvDropZone';
+import CalendarDemand from './CalendarDemand';
+import ProductionInputs from './ProductionInputs';
+import { useSettings } from '../../context/SettingsContext';
 import BurnDownChart from './BurnDownChart';
 import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -40,7 +43,7 @@ export default function MRPView({ state, setters, results }) {
 
     if (!results) return <div>Loading...</div>;
 
-    const { netInventory, safetyTarget, trucksToOrder, specs, yardInventory } = results;
+    const { netInventory, safetyTarget, trucksToOrder, trucksToCancel, specs, yardInventory } = results;
     const weeklyDemandBottles = state.totalScheduledCases * specs.bottlesPerCase;
     const fmt = (n) => n ? n.toLocaleString() : '0';
 
@@ -99,12 +102,20 @@ export default function MRPView({ state, setters, results }) {
                             </div>
                         </div>
 
-                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${trucksToOrder > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${trucksToOrder > 0 ? 'bg-red-50 border-red-200' :
+                                trucksToCancel > 0 ? 'bg-orange-50 border-orange-200' :
+                                    'bg-green-50 border-green-200'
+                            }`}>
                             <div>
-                                <p className={`${trucksToOrder > 0 ? 'text-red-600' : 'text-green-600'} text-xs uppercase font-bold`}>Action</p>
+                                <p className={`${trucksToOrder > 0 ? 'text-red-600' :
+                                        trucksToCancel > 0 ? 'text-orange-600' :
+                                            'text-green-600'
+                                    } text-xs uppercase font-bold`}>Action</p>
                                 <div className="text-4xl font-extrabold mt-2">
                                     {trucksToOrder > 0 ? (
                                         <span className="text-red-600">{trucksToOrder} TRUCKS</span>
+                                    ) : trucksToCancel > 0 ? (
+                                        <span className="text-orange-600">CANCEL {trucksToCancel}</span>
                                     ) : (
                                         <span className="text-green-600">✅ OK</span>
                                     )}
@@ -208,35 +219,20 @@ export default function MRPView({ state, setters, results }) {
                 );
             case 'demand':
                 return (
-                    <div className="p-6 h-full">
-                        <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">📅 Demand Schedule (Cases)</h2>
-                        <div className="grid grid-cols-4 gap-2 mb-2">
-                            {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => (
-                                <div key={day} className="text-center">
-                                    <label className="block text-xs text-gray-500 uppercase font-bold mb-1">
-                                        {day.toUpperCase()}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        value={state.weeklyDemand[day] ? state.weeklyDemand[day].toLocaleString() : ''}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/,/g, '');
-                                            if (!isNaN(val)) {
-                                                setters.updateDailyDemand(day, val);
-                                            }
-                                        }}
-                                        className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-1 px-0"
-                                        placeholder="-"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-200 mt-4">
-                            <span className="text-sm font-medium text-gray-600">Total Wk Demand:</span>
-                            <span className="text-lg font-bold text-gray-900">{fmt(state.totalScheduledCases)} <span className="text-xs font-normal text-gray-500">cs</span></span>
-                        </div>
-                    </div>
+                    <CalendarDemand
+                        monthlyDemand={state.monthlyDemand || {}}
+                        updateDateDemand={setters.updateDateDemand}
+                    />
+                );
+            case 'production':
+                return (
+                    <ProductionInputs
+                        productionRate={state.productionRate}
+                        setProductionRate={setters.setProductionRate}
+                        downtimeHours={state.downtimeHours}
+                        setDowntimeHours={setters.setDowntimeHours}
+                        lostProductionCases={results.lostProductionCases}
+                    />
                 );
             default:
                 return <div>Unknown Widget</div>;
