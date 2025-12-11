@@ -101,18 +101,28 @@ export default function MRPView({ state, setters, results }) {
                             </div>
                         </div>
 
-                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${trucksToOrder > 0 ? 'bg-red-50 border-red-200' :
-                            trucksToCancel > 0 ? 'bg-orange-50 border-orange-200' :
-                                'bg-green-50 border-green-200'
+                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${results.firstStockoutDate || trucksToOrder > 0 ? 'bg-red-50 border-red-200' :
+                                results.firstOverflowDate || trucksToCancel > 0 ? 'bg-orange-50 border-orange-200' :
+                                    'bg-green-50 border-green-200'
                             }`}>
                             <div>
-                                <p className={`${trucksToOrder > 0 ? 'text-red-600' :
-                                    trucksToCancel > 0 ? 'text-orange-600' :
-                                        'text-green-600'
+                                <p className={`${results.firstStockoutDate || trucksToOrder > 0 ? 'text-red-600' :
+                                        results.firstOverflowDate || trucksToCancel > 0 ? 'text-orange-600' :
+                                            'text-green-600'
                                     } text-xs uppercase font-bold`}>Action</p>
                                 <div className="text-4xl font-extrabold mt-2">
-                                    {trucksToOrder > 0 ? (
+                                    {results.firstStockoutDate ? (
+                                        <div className="flex flex-col">
+                                            <span className="text-red-600 text-3xl">STOCKOUT {new Date(results.firstStockoutDate).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</span>
+                                            <span className="text-red-400 text-xs font-normal mt-1">Order Trucks Beforehand</span>
+                                        </div>
+                                    ) : trucksToOrder > 0 ? (
                                         <span className="text-red-600">{trucksToOrder} TRUCKS</span>
+                                    ) : results.firstOverflowDate ? (
+                                        <div className="flex flex-col">
+                                            <span className="text-orange-600 text-3xl">PUSH OUT {new Date(results.firstOverflowDate).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</span>
+                                            <span className="text-orange-400 text-xs font-normal mt-1">Overflow Predicted</span>
+                                        </div>
                                     ) : trucksToCancel > 0 ? (
                                         <div className="flex flex-col">
                                             <span className="text-orange-600 text-3xl">PUSH OUT {trucksToCancel}</span>
@@ -224,6 +234,8 @@ export default function MRPView({ state, setters, results }) {
                     <CalendarDemand
                         monthlyDemand={state.monthlyDemand || {}}
                         updateDateDemand={setters.updateDateDemand}
+                        monthlyInbound={state.monthlyInbound || {}}
+                        updateDateInbound={setters.updateDateInbound}
                     />
                 );
             case 'production':

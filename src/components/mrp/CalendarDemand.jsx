@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'; // Falling back to text if icons issue, but package.json has heroicons
 
-export default function CalendarDemand({ monthlyDemand, updateDateDemand }) {
+export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthlyInbound, updateDateInbound }) {
     const [viewDate, setViewDate] = useState(new Date());
 
     // Generate calendar grid
@@ -26,7 +26,8 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand }) {
                 date: d,
                 dateStr,
                 dayNum: i + 1,
-                val: monthlyDemand[dateStr] || 0
+                val: monthlyDemand[dateStr] || 0,
+                trucks: monthlyInbound?.[dateStr] || 0
             };
         });
 
@@ -34,7 +35,7 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand }) {
             days: [...padding, ...dateArray],
             monthLabel: firstDay.toLocaleString('default', { month: 'long', year: 'numeric' })
         };
-    }, [viewDate, monthlyDemand]);
+    }, [viewDate, monthlyDemand, monthlyInbound]);
 
     const changeMonth = (offset) => {
         setViewDate(prev => {
@@ -72,25 +73,27 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand }) {
 
                     const isToday = new Date().toISOString().split('T')[0] === day.dateStr;
                     const hasDemand = day.val > 0;
+                    const hasTrucks = day.trucks > 0;
 
                     return (
                         <div
                             key={day.dateStr}
                             className={`
-                                relative p-1 rounded border min-h-[60px] flex flex-col justify-between
+                                relative p-1 rounded border min-h-[80px] flex flex-col justify-between
                                 ${isToday ? 'border-blue-400 bg-blue-50' : 'border-gray-100'}
-                                ${hasDemand ? 'bg-white' : 'bg-gray-50'}
+                                ${hasDemand || hasTrucks ? 'bg-white' : 'bg-gray-50'}
                             `}
                         >
                             <span className={`text-[10px] items-start ${isToday ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
                                 {day.dayNum}
                             </span>
 
+                            {/* Demand Input */}
                             <input
                                 type="text"
                                 inputMode="numeric"
                                 className={`
-                                    w-full text-center text-xs p-0 border-0 bg-transparent focus:ring-0 font-medium
+                                    w-full text-center text-xs p-0 border-0 bg-transparent focus:ring-0 font-medium -mb-1
                                     ${hasDemand ? 'text-gray-900' : 'text-gray-300'}
                                 `}
                                 placeholder="-"
@@ -102,6 +105,27 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand }) {
                                     }
                                 }}
                             />
+
+                            {/* Inbound Trucks Input */}
+                            <div className="flex items-center justify-center mt-1 border-t border-gray-100 pt-1">
+                                <span className="text-[9px] mr-1 text-gray-400">🚛</span>
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    className={`
+                                        w-6 text-center text-[10px] p-0 border-0 bg-transparent focus:ring-0 font-bold
+                                        ${hasTrucks ? 'text-green-600' : 'text-gray-300'}
+                                    `}
+                                    placeholder="0"
+                                    value={day.trucks > 0 ? day.trucks : ''}
+                                    onChange={(e) => {
+                                        const raw = e.target.value.replace(/,/g, '');
+                                        if (!isNaN(raw)) {
+                                            updateDateInbound(day.dateStr, raw);
+                                        }
+                                    }}
+                                />
+                            </div>
                         </div>
                     );
                 })}
