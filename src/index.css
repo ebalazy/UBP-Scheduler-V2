@@ -22,7 +22,24 @@
   }
 }
 
-/* Global Dark Mode Fallback Removed - Relying on Tailwind 'selector' strategy */
+/* Global Theme Styles */
+body {
+  background-color: #f9fafb;
+  /* gray-50 */
+  color: #1f2937;
+  /* gray-800 */
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+:root.dark body {
+  background-color: #111827;
+  /* gray-900 */
+  color: #f3f4f6;
+  /* gray-100 */
+}
+
+/* Ensure #main-app-wrapper doesn't block body bg if it's transparent, 
+   but we will set it to transparent in App.jsx */
 
 /* PRINT STYLES */
 @media print {

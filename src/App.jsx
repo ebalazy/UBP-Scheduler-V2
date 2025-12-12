@@ -68,7 +68,7 @@ function AuthenticatedApp({ user }) {
   const masterSchedule = useMasterSchedule(bottleSizes);
 
   return (
-    <div id="main-app-wrapper" className="min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100 flex flex-col transition-colors duration-200">
+    <div id="main-app-wrapper" className="min-h-screen flex flex-col transition-colors duration-200">
       <Header onOpenSettings={() => setIsSettingsOpen(true)} />
 
       {/* Risk Banner - Always configured based on Scheduler data */}
