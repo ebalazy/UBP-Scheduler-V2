@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 // v2.1 Updated KPIs
 import CsvDropZone from './CsvDropZone';
 import CalendarDemand from './CalendarDemand';
+import PlanningGrid from './PlanningGrid';
 import ProductionInputs from './ProductionInputs';
 import OrderActionLog from './OrderActionLog';
 import SharePlanModal from '../SharePlanModal';
@@ -34,6 +35,7 @@ export default function MRPView({ state, setters, results }) {
     const [isEditingYard, setIsEditingYard] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isRecModalOpen, setIsRecModalOpen] = useState(false);
+    const [viewMode, setViewMode] = useState('grid'); // Default to Grid now
     const [activeDragId, setActiveDragId] = useState(null);
 
     const sensors = useSensors(
@@ -337,18 +339,48 @@ export default function MRPView({ state, setters, results }) {
                 );
             case 'demand':
                 return (
-                    <CalendarDemand
-                        monthlyDemand={state.monthlyDemand || {}}
-                        updateDateDemand={setters.updateDateDemand}
-                        monthlyInbound={state.monthlyInbound || {}}
-                        updateDateInbound={setters.updateDateInbound}
-                        monthlyProductionActuals={state.monthlyProductionActuals || {}}
-                        updateDateActual={setters.updateDateActual}
-                        specs={results?.specs}
-                        trucksToCancel={results?.trucksToCancel}
-                        dailyLedger={results?.dailyLedger}
-                        safetyTarget={results?.safetyTarget}
-                    />
+                    <div className="h-full flex flex-col">
+                        <div className="flex justify-end mb-2 space-x-2">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`px-2 py-1 text-xs rounded border ${viewMode === 'grid' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
+                            >
+                                Spreadsheet
+                            </button>
+                            <button
+                                onClick={() => setViewMode('calendar')}
+                                className={`px-2 py-1 text-xs rounded border ${viewMode === 'calendar' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
+                            >
+                                Calendar
+                            </button>
+                        </div>
+                        {viewMode === 'calendar' ? (
+                            <CalendarDemand
+                                monthlyDemand={state.monthlyDemand || {}}
+                                updateDateDemand={setters.updateDateDemand}
+                                monthlyInbound={state.monthlyInbound || {}}
+                                updateDateInbound={setters.updateDateInbound}
+                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                                updateDateActual={setters.updateDateActual}
+                                specs={results?.specs}
+                                trucksToCancel={results?.trucksToCancel}
+                                dailyLedger={results?.dailyLedger}
+                                safetyTarget={results?.safetyTarget}
+                            />
+                        ) : (
+                            <PlanningGrid
+                                monthlyDemand={state.monthlyDemand || {}}
+                                updateDateDemand={setters.updateDateDemand}
+                                monthlyInbound={state.monthlyInbound || {}}
+                                updateDateInbound={setters.updateDateInbound}
+                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                                updateDateActual={setters.updateDateActual}
+                                specs={results?.specs}
+                                safetyTarget={results?.safetyTarget}
+                                dailyLedger={results?.dailyLedger}
+                            />
+                        )}
+                    </div>
                 );
             case 'production':
                 return (
