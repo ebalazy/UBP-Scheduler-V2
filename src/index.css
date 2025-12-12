@@ -1,21 +1,34 @@
 @import "tailwindcss";
 
 @layer components {
+
   /* Custom Scrollbar for non-print */
   .custom-scrollbar::-webkit-scrollbar {
     height: 8px;
     width: 8px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: #f1f1f1;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #c1c1c1;
     border-radius: 4px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
   }
+}
+
+/* Global Dark Mode Fallback */
+:root.dark body,
+:root.dark #main-app-wrapper {
+  background-color: #111827 !important;
+  /* gray-900 */
+  color: #f3f4f6 !important;
+  /* gray-100 */
 }
 
 /* PRINT STYLES */
@@ -49,13 +62,20 @@
   }
 
   /* Flatten Shadows & Borders */
-  .shadow-sm, .shadow-lg, .shadow-md {
+  .shadow-sm,
+  .shadow-lg,
+  .shadow-md {
     box-shadow: none !important;
-    border: 1px solid #e5e7eb !important; /* light gray border replacement */
+    border: 1px solid #e5e7eb !important;
+    /* light gray border replacement */
   }
 
   /* Ensure text converts to black mostly, but keep meaningful colors if 'exact' works */
-  p, h1, h2, h3, span {
+  p,
+  h1,
+  h2,
+  h3,
+  span {
     /* distinct high contrast */
   }
 }
