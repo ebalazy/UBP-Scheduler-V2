@@ -217,24 +217,39 @@ export const useSupabaseSync = () => {
      * SAVERS
      */
     const savePlanningEntry = async (userId, skuName, date, type, value) => {
-        // We need product ID. Assuming caller manages it or we fetch it? 
-        // Fetching every save is slow. Ideally pass productId.
-        // For now, fetch to be safe (cached likely by Supabase client? No.)
-        // We'll require productId ideally. But `useMRP` works with SkuNames.
-        // Let's ensureProduct again (it's fast if exists?).
-
-        // OPTIMIZATION: In a real app, we'd cache the product ID in a context.
-        // For now, I'll do a lookup.
         const productId = await ensureProduct(userId, skuName);
 
-        // Upsert
-        const { error } = await supabase.from('planning_entries').upsert({
-            product_id: productId,
-            user_id: userId,
-            date: date,
-            entry_type: type,
-            value: value
-        }, { onConflict: 'product_id,date,entry_type' });
+        // Manual Upsert: 1. Check if exists
+        const { data: existing } = await supabase
+            .from('planning_entries')
+            .select('id')
+            .eq('product_id', productId)
+            .eq('date', date)
+            .eq('entry_type', type)
+            .maybeSingle();
+
+        let error = null;
+
+        if (existing) {
+            // 2. Update
+            const res = await supabase
+                .from('planning_entries')
+                .update({ value, user_id: userId })
+                .eq('id', existing.id);
+            error = res.error;
+        } else {
+            // 3. Insert
+            const res = await supabase
+                .from('planning_entries')
+                .insert({
+                    product_id: productId,
+                    user_id: userId,
+                    date: date,
+                    entry_type: type,
+                    value: value
+                });
+            error = res.error;
+        }
 
         if (error) {
             console.error("Save failed", error);
