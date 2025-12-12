@@ -47,16 +47,8 @@ export default function PlanningGrid({
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden">
-            {/* Toolbar */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
-                <h3 className="font-bold text-gray-700 dark:text-white flex items-center">
-                    <span className="mr-2">📅</span> Planning Worksheet
-                </h3>
-                <div className="text-xs text-gray-500">
-                    Horizontal Layout (Spreadsheet Mode)
-                </div>
-            </div>
+        <div className="flex flex-col h-full overflow-hidden">
+
 
             {/* Grid Container */}
             <div className="flex-1 overflow-auto relative" ref={scrollRef}>

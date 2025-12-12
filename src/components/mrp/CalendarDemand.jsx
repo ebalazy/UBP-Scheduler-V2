@@ -93,7 +93,7 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow h-full flex flex-col transition-colors">
+        <div className="h-full flex flex-col transition-colors">
             <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
                 <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300">
                     &lt; Prev

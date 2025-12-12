@@ -271,48 +271,61 @@ export default function MRPView({ state, setters, results }) {
             // Removed 'supply' (Legacy manual input)
             case 'demand':
                 return (
-                    <div className="h-full flex flex-col">
-                        <div className="flex gap-2 mb-2">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-                            >
-                                Spreadsheet
-                            </button>
-                            <button
-                                onClick={() => setViewMode('calendar')}
-                                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${viewMode === 'calendar' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-                            >
-                                Calendar
-                            </button>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-full flex flex-col overflow-hidden">
+                        {/* Unified Header */}
+                        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+                            <h3 className="font-bold text-gray-700 dark:text-white flex items-center text-sm">
+                                <span className="mr-2">📅</span> Planning Worksheet
+                            </h3>
+
+                            {/* Segmented Control Toggle */}
+                            <div className="bg-gray-200 dark:bg-gray-700 p-1 rounded-lg flex text-xs font-bold">
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    className={`px-3 py-1 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
+                                >
+                                    Sheet
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('calendar')}
+                                    className={`px-3 py-1 rounded-md transition-all ${viewMode === 'calendar' ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
+                                >
+                                    Cal
+                                </button>
+                            </div>
                         </div>
 
-                        {viewMode === 'calendar' ? (
-                            <CalendarDemand
-                                monthlyDemand={state.monthlyDemand || {}}
-                                updateDateDemand={setters.updateDateDemand}
-                                monthlyInbound={state.monthlyInbound || {}}
-                                updateDateInbound={setters.updateDateInbound}
-                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
-                                updateDateActual={setters.updateDateActual}
-                                specs={results?.specs}
-                                trucksToCancel={results?.trucksToCancel}
-                                dailyLedger={results?.dailyLedger}
-                                safetyTarget={results?.safetyTarget}
-                            />
-                        ) : (
-                            <PlanningGrid
-                                monthlyDemand={state.monthlyDemand || {}}
-                                updateDateDemand={setters.updateDateDemand}
-                                monthlyInbound={state.monthlyInbound || {}}
-                                updateDateInbound={setters.updateDateInbound}
-                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
-                                updateDateActual={setters.updateDateActual}
-                                specs={results?.specs}
-                                safetyTarget={results?.safetyTarget}
-                                dailyLedger={results?.dailyLedger}
-                            />
-                        )}
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-hidden relative">
+                            {viewMode === 'calendar' ? (
+                                <div className="h-full p-4 overflow-auto">
+                                    <CalendarDemand
+                                        monthlyDemand={state.monthlyDemand || {}}
+                                        updateDateDemand={setters.updateDateDemand}
+                                        monthlyInbound={state.monthlyInbound || {}}
+                                        updateDateInbound={setters.updateDateInbound}
+                                        monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                                        updateDateActual={setters.updateDateActual}
+                                        specs={results?.specs}
+                                        trucksToCancel={results?.trucksToCancel}
+                                        dailyLedger={results?.dailyLedger}
+                                        safetyTarget={results?.safetyTarget}
+                                    />
+                                </div>
+                            ) : (
+                                <PlanningGrid
+                                    monthlyDemand={state.monthlyDemand || {}}
+                                    updateDateDemand={setters.updateDateDemand}
+                                    monthlyInbound={state.monthlyInbound || {}}
+                                    updateDateInbound={setters.updateDateInbound}
+                                    monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                                    updateDateActual={setters.updateDateActual}
+                                    specs={results?.specs}
+                                    safetyTarget={results?.safetyTarget}
+                                    dailyLedger={results?.dailyLedger}
+                                />
+                            )}
+                        </div>
                     </div>
                 );
             case 'production':
