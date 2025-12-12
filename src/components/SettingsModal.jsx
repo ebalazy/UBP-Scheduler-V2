@@ -235,7 +235,7 @@ export default function SettingsModal({ onClose }) {
                         </div>
                     </div>
                     <div className="text-center mt-4">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-600">v2.2.2 (Stability Fix)</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-600">v2.2.3 (Write Verify)</p>
                     </div>
                 </div>
             </div>
