@@ -50,7 +50,7 @@ export default function ProductionInputs({
 
                 {/* Impact Calculation */}
                 {lostProductionCases > 0 && (
-                    <div className="bg-red-50 p-3 rounded border border-red-100 flex items-start gap-2 animate-pulse-slow">
+                    <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded border border-red-100 dark:border-red-900 flex items-start gap-2 animate-pulse-slow">
                         <ArrowDownIcon className="h-5 w-5 text-red-500 mt-0.5" />
                         <div>
                             <p className="text-xs text-red-600 font-bold">Production Impact</p>

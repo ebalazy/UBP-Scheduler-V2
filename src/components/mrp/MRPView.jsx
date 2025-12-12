@@ -86,9 +86,9 @@ export default function MRPView({ state, setters, results }) {
             case 'kpis':
                 // Helper for Colors
                 const getDosColor = (dos) => {
-                    if (dos <= (leadTimeDays || 2)) return 'bg-red-50 border-red-200 text-red-700';
-                    if (dos <= 7) return 'bg-yellow-50 border-yellow-200 text-yellow-700';
-                    return 'bg-green-50 border-green-200 text-green-700';
+                    if (dos <= (leadTimeDays || 2)) return 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/40 dark:border-red-800 dark:text-red-300';
+                    if (dos <= 7) return 'bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:border-yellow-800 dark:text-yellow-300';
+                    return 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/40 dark:border-green-800 dark:text-green-300';
                 };
 
                 const daysOfSupply = results.daysOfSupply !== undefined ? results.daysOfSupply : 30;
@@ -135,8 +135,8 @@ export default function MRPView({ state, setters, results }) {
 
                         {/* Card 3: Action (Direct Command) */}
                         <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${trucksToOrder > 0 ? 'bg-red-500 border-red-600 text-white shadow-lg transform scale-105 transition-transform' :
-                            trucksToCancel > 0 ? 'bg-orange-100 border-orange-300 text-orange-800' :
-                                'bg-gray-50 border-gray-200 text-gray-600'
+                            trucksToCancel > 0 ? 'bg-orange-100 border-orange-300 text-orange-800 dark:bg-orange-900/40 dark:border-orange-800 dark:text-orange-200' :
+                                'bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
                             }`}>
                             <div className="flex justify-between items-start">
                                 <p className="text-xs uppercase font-bold opacity-90">Recommendation</p>
