@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSupabaseSync } from './useSupabaseSync';
 
 export function useMRP() {
-    const { bottleDefinitions, safetyStockLoads, leadTimeDays, bottleSizes } = useSettings();
+    const { bottleDefinitions, safetyStockLoads, leadTimeDays, bottleSizes, updateBottleDefinition } = useSettings();
     const { user } = useAuth();
     const { fetchMRPState, savePlanningEntry, saveProductionSetting, saveInventoryAnchor, migrateLocalStorage } = useSupabaseSync();
 
@@ -50,7 +50,7 @@ export function useMRP() {
     const [monthlyDemand, setMonthlyDemand] = useState(() => init('monthlyDemand', {}, true));
     const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => init('monthlyProductionActuals', {}, true));
     const [monthlyInbound, setMonthlyInbound] = useState(() => init('monthlyInbound', {}, true));
-    const [productionRate, setProductionRate] = useState(() => user ? 0 : Number(loadLocalState('productionRate', 0)));
+    // productionRate is now derived from settings
     const [downtimeHours, setDowntimeHours] = useState(() => user ? 0 : Number(loadLocalState('downtimeHours', 0)));
     const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => user ? 0 : Number(loadLocalState('currentInventoryPallets', 0)));
     const [inventoryAnchor, setInventoryAnchor] = useState(() =>
@@ -117,7 +117,8 @@ export function useMRP() {
                         setMonthlyDemand(data.monthlyDemand || {});
                         setMonthlyProductionActuals(data.monthlyProductionActuals || {});
                         setMonthlyInbound(data.monthlyInbound || {});
-                        setProductionRate(data.productionRate);
+                        // Update Settings Context
+                        if (data.productionRate) updateBottleDefinition(selectedSize, 'productionRate', data.productionRate);
                         setDowntimeHours(data.downtimeHours);
                         setIsAutoReplenish(data.isAutoReplenish);
                         if (data.inventoryAnchor) setInventoryAnchor(data.inventoryAnchor);
@@ -130,7 +131,7 @@ export function useMRP() {
                                 setMonthlyDemand(retry.monthlyDemand || {});
                                 setMonthlyProductionActuals(retry.monthlyProductionActuals || {});
                                 setMonthlyInbound(retry.monthlyInbound || {});
-                                setProductionRate(retry.productionRate);
+                                if (retry.productionRate) updateBottleDefinition(selectedSize, 'productionRate', retry.productionRate);
                                 setDowntimeHours(retry.downtimeHours);
                                 setIsAutoReplenish(retry.isAutoReplenish);
                                 if (retry.inventoryAnchor) setInventoryAnchor(retry.inventoryAnchor);
@@ -162,6 +163,9 @@ export function useMRP() {
             return acc;
         }, 0);
     }, [monthlyDemand, monthlyProductionActuals]);
+
+    // Derived productionRate for calculations
+    const productionRate = bottleDefinitions[selectedSize]?.productionRate || 0;
 
     const calculations = useMemo(() => {
         const specs = bottleDefinitions[selectedSize];
@@ -449,8 +453,9 @@ export function useMRP() {
             updateDateInbound,
             setProductionRate: (v) => {
                 const val = Number(v);
-                setProductionRate(val);
-                saveLocalState('productionRate', val);
+                // setProductionRate(val); // Removed local state
+                updateBottleDefinition(selectedSize, 'productionRate', val);
+                // No local save needed as SettingsContext saves to LS
                 if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'production_rate', val));
             },
             setDowntimeHours: (v) => {
