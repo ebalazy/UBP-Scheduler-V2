@@ -341,12 +341,8 @@ export function SettingsProvider({ children }) {
         updateCsvMapping,
         updateSchedulerSetting, // Exported
         resetDefaults,
-        updateBottleDefinition,
         addBottleDefinition, // Exported
         deleteBottleDefinition, // Exported
-        updateCsvMapping,
-        updateSchedulerSetting, // Exported
-        resetDefaults,
         bottleSizes: Object.keys(bottleDefinitions) // Dynamic
     }), [
         bottleDefinitions,

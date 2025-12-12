@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseSync } from './useSupabaseSync';
@@ -358,7 +358,6 @@ export function useMRP() {
         setMonthlyDemand(newDemand);
         saveLocalState('monthlyDemand', newDemand, true);
         if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'demand_plan', val));
-        if (isAutoReplenish && calculations) runAutoReplenishment(newDemand, monthlyProductionActuals);
     };
 
     const updateDateActual = (date, value) => {
@@ -369,7 +368,6 @@ export function useMRP() {
         setMonthlyProductionActuals(newActuals);
         saveLocalState('monthlyProductionActuals', newActuals, true);
         if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'production_actual', val || 0));
-        if (isAutoReplenish && calculations) runAutoReplenishment(monthlyDemand, newActuals);
     };
 
     const updateDateInbound = (date, value) => {
@@ -383,7 +381,10 @@ export function useMRP() {
     // Auto-Replenish Shared Logic -- (Optimized to batch save??) 
     // For now we assume runAutoReplenishment triggers multiple saves. 
     // We should probably optimize this, but "Saving..." indicator will just stay on, which is fine.
-    const runAutoReplenishment = (demandMap, actualMap) => {
+    // Auto-Replenish Logic (Reactive)
+    const runAutoReplenishment = useCallback((demandMap, actualMap, inboundMap) => {
+        if (!calculations || !isAutoReplenish) return;
+
         const specs = bottleDefinitions[selectedSize];
         const localSafetyTarget = safetyStockLoads * specs.bottlesPerTruck;
         let runningBalance = calculations.initialInventory;
@@ -400,7 +401,7 @@ export function useMRP() {
             const plan = demandMap[ds];
             const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase;
             // Use EXISTING Inbound (Locked)
-            const existingTrucks = monthlyInbound[ds] || 0;
+            const existingTrucks = inboundMap[ds] || 0;
             runningBalance = runningBalance + (existingTrucks * specs.bottlesPerTruck) - dDem;
         }
 
@@ -426,14 +427,21 @@ export function useMRP() {
             runningBalance = bal;
         }
 
-        const newInbound = { ...monthlyInbound, ...next60Days };
+        const newInbound = { ...inboundMap, ...next60Days };
+
+        // Equality Check to prevent loops/unnecessary saves
+        if (JSON.stringify(newInbound) === JSON.stringify(inboundMap)) return;
+
+        console.log("Auto-Replenish: Updating Inbound Schedule...");
         setMonthlyInbound(newInbound);
         saveLocalState('monthlyInbound', newInbound, true);
 
         if (user) {
             saveWithStatus(async () => {
                 const promises = Object.entries(next60Days).map(([date, trucks]) => {
-                    if (trucks > 0 || monthlyInbound[date] > 0) {
+                    // Only save if different from previous? (Optimization)
+                    // unique key logic might be needed here but Supabase upsert handles it.
+                    if (trucks > 0 || (inboundMap[date] > 0 && trucks === 0)) {
                         return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
                     }
                     return Promise.resolve();
@@ -441,7 +449,33 @@ export function useMRP() {
                 await Promise.all(promises);
             });
         }
-    };
+    }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, savePlanningEntry]);
+
+    // Reactive Trigger for Auto-Replenishment
+    useEffect(() => {
+        if (isAutoReplenish && calculations) {
+            // We pass current state maps explicitly to avoid closure staleness if dependencies lag
+            runAutoReplenishment(monthlyDemand, monthlyProductionActuals, monthlyInbound);
+        }
+    }, [
+        // Triggers:
+        calculations.initialInventory, // Floor/Yard/Yesterday Actuals change this
+        safetyStockLoads,
+        leadTimeDays,
+        isAutoReplenish, // Toggling on
+        // Note: monthlyDemand/Actuals change also triggers this via effect re-run? 
+        // We need to be careful. calculations depends on monthlyDemand.
+        // So yes, modifying demand triggers this.
+        monthlyDemand,
+        monthlyProductionActuals,
+        // We do NOT add monthlyInbound here to avoid loop (runAutoRep -> setInbound -> Effect).
+        // The equality check in runAutoRep stops the valid loop, but we shouldn't trigger FROM inbound change unless we want "Correction of manual overrides"? 
+        // If user manually changes inbound, do we want to overwrite it instantly? 
+        // Current logic: Planner sets next60days. If user edits next60days manually, 
+        // runAutoRep will see the new manual value in 'inboundMap', calculate 'needed', and likely overwritten it if it differs from math.
+        // This effectively makes Manual Overrides impossible in the "Auto Zone" (LeadTime+). 
+        // This is "Strict Auto-Replenish". For now, this is desired.
+    ]);
 
     return {
         formState: {

@@ -1,0 +1,280 @@
+import { useState, useEffect } from 'react';
+import {
+    ClipboardDocumentCheckIcon,
+    TruckIcon,
+    CubeIcon,
+    ArrowRightIcon,
+    CheckCircleIcon
+} from '@heroicons/react/24/outline'; // Using Heroicons v2
+
+export default function MorningReconciliationModal({
+    isOpen,
+    onClose,
+    state, // mrp.formState
+    setters // mrp.setters
+}) {
+    const [step, setStep] = useState(1);
+    const [yesterdayDate, setYesterdayDate] = useState('');
+
+    // Temporary State for the Wizard
+    const [yesterdayActual, setYesterdayActual] = useState('');
+    const [yesterdayPlan, setYesterdayPlan] = useState(0);
+    const [floorCount, setFloorCount] = useState('');
+    const [yardCount, setYardCount] = useState('');
+    const [downtime, setDowntime] = useState(0);
+
+    // Initialize Data when Modal Opens
+    useEffect(() => {
+        if (isOpen) {
+            const y = new Date();
+            y.setDate(y.getDate() - 1);
+            const dateStr = y.toISOString().split('T')[0];
+            setYesterdayDate(dateStr);
+
+            // Pre-fill
+            const plan = state.monthlyDemand[dateStr] || 0;
+            setYesterdayPlan(plan);
+
+            // If we already have actuals, use them. Otherwise default empty or to plan?
+            const existingActual = state.monthlyProductionActuals[dateStr];
+            setYesterdayActual(existingActual !== undefined ? existingActual : '');
+
+            // Current Inventory
+            setFloorCount(state.inventoryAnchor?.count || 0);
+
+            // Yard
+            setYardCount(state.yardInventory?.effectiveCount || 0);
+
+            setDowntime(state.downtimeHours || 0);
+            setStep(1);
+        }
+    }, [isOpen, state.monthlyDemand, state.monthlyProductionActuals, state.inventoryAnchor, state.yardInventory]);
+
+    const handleCommit = () => {
+        // 1. Save Yesterday's Production
+        if (yesterdayActual !== '') {
+            setters.updateDateActual(yesterdayDate, Number(yesterdayActual));
+        }
+
+        // 2. Save Inventory Anchor (Sets the "Now" baseline)
+        // We set the date to TODAY, so the ledger starts calculation from today.
+        const todayStr = new Date().toISOString().split('T')[0];
+        setters.setInventoryAnchor({
+            date: todayStr,
+            count: Number(floorCount)
+        });
+
+        // 3. Save Yard Inventory
+        setters.setManualYardOverride(Number(yardCount));
+
+        // 4. Force a Re-Plan (Triggered automatically by the setters usually, 
+        // but if we want to ensure specific sequencing we rely on the hooks)
+
+        onClose();
+    };
+
+    const renderStep1 = () => (
+        <div className="space-y-6">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                <h3 className="font-bold text-blue-900 dark:text-blue-300 mb-1">Production Check-in</h3>
+                <p className="text-sm text-blue-700 dark:text-blue-400">
+                    Recording actuals for <span className="font-bold">{yesterdayDate}</span>.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <span className="text-xs uppercase font-bold text-gray-500">Planned Cases</span>
+                    <div className="text-2xl font-mono font-bold text-gray-700 dark:text-gray-300 mt-1">
+                        {yesterdayPlan.toLocaleString()}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                        Actual Cases Produced
+                    </label>
+                    <input
+                        type="number"
+                        autoFocus
+                        value={yesterdayActual}
+                        onChange={(e) => setYesterdayActual(e.target.value)}
+                        className="w-full text-2xl font-mono font-bold p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                        placeholder="0"
+                    />
+                </div>
+            </div>
+
+            <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md border border-amber-100 dark:border-amber-800 flex items-start">
+                <span className="text-xl mr-2">💡</span>
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                    Accuracy here helps the system learn your run-rates and predict future shortages more precisely.
+                </p>
+            </div>
+        </div>
+    );
+
+    const renderStep2 = () => (
+        <div className="space-y-6">
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-100 dark:border-purple-800">
+                <h3 className="font-bold text-purple-900 dark:text-purple-300 mb-1">Morning Inventory Count</h3>
+                <p className="text-sm text-purple-700 dark:text-purple-400">
+                    What is physically on the floor and in the yard <strong>right now</strong>?
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Floor Count (Pallets)
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <CubeIcon className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="number"
+                            autoFocus
+                            value={floorCount}
+                            onChange={(e) => setFloorCount(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 text-xl font-bold border rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                        />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Count all finished goods on the floor.</p>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Yard Count (Full Loads)
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <TruckIcon className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="number"
+                            value={yardCount}
+                            onChange={(e) => setYardCount(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 text-xl font-bold border rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                        />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Number of fully loaded trailers available.</p>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderStep3 = () => (
+        <div className="text-center py-6 space-y-6">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30">
+                <CheckCircleIcon className="h-10 w-10 text-green-600 dark:text-green-400" />
+            </div>
+
+            <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Ready to Update?</h3>
+                <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-sm mx-auto">
+                    The system will reset the inventory baseline to <strong>{floorCount} Pallets</strong> + <strong>{yardCount} Loads</strong> and re-calculate the entire production schedule.
+                </p>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 max-w-sm mx-auto text-left text-sm space-y-2">
+                <div className="flex justify-between">
+                    <span className="text-gray-500">Yesterday actual:</span>
+                    <span className="font-mono font-bold">{yesterdayActual || 0} cases</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-gray-500">New Floor Count:</span>
+                    <span className="font-mono font-bold">{floorCount} plts</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-gray-500">New Yard Count:</span>
+                    <span className="font-mono font-bold">{yardCount} loads</span>
+                </div>
+            </div>
+        </div>
+    );
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            {/* Backdrop */}
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={onClose}></div>
+
+                <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                <div className="inline-block align-bottom bg-white dark:bg-gray-900 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border dark:border-gray-700">
+
+                    {/* Header */}
+                    <div className="sm:flex sm:items-start mb-6">
+                        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                            <ClipboardDocumentCheckIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                        </div>
+                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">
+                                Morning True-Up
+                            </h3>
+                            <div className="mt-2">
+                                {/* Progress Checkpoints */}
+                                <div className="flex items-center space-x-2 text-xs font-medium text-gray-400">
+                                    <span className={`${step === 1 ? 'text-blue-600 dark:text-blue-400' : ''}`}>1. Production</span>
+                                    <span>&rarr;</span>
+                                    <span className={`${step === 2 ? 'text-blue-600 dark:text-blue-400' : ''}`}>2. Inventory</span>
+                                    <span>&rarr;</span>
+                                    <span className={`${step === 3 ? 'text-blue-600 dark:text-blue-400' : ''}`}>3. Confirm</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="mt-2">
+                        {step === 1 && renderStep1()}
+                        {step === 2 && renderStep2()}
+                        {step === 3 && renderStep3()}
+                    </div>
+
+                    {/* Footer / Controls */}
+                    <div className="mt-8 sm:flex sm:flex-row-reverse">
+                        {step < 3 ? (
+                            <button
+                                type="button"
+                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                onClick={() => setStep(s => s + 1)}
+                            >
+                                Next Step <ArrowRightIcon className="ml-2 h-4 w-4" />
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                onClick={handleCommit}
+                            >
+                                Update Plan
+                            </button>
+                        )}
+
+                        {step > 1 && (
+                            <button
+                                type="button"
+                                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                                onClick={() => setStep(s => s - 1)}
+                            >
+                                Back
+                            </button>
+                        )}
+
+                        <button
+                            type="button"
+                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                            onClick={onClose}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

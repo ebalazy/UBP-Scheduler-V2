@@ -7,6 +7,7 @@ import ProductionInputs from './ProductionInputs';
 import OrderActionLog from './OrderActionLog';
 import SharePlanModal from '../SharePlanModal';
 import { useSettings } from '../../context/SettingsContext';
+import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
 import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -32,6 +33,7 @@ export default function MRPView({ state, setters, results }) {
     const { bottleSizes, dashboardLayout, setDashboardLayout, leadTimeDays } = useSettings();
     const [isEditingYard, setIsEditingYard] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [isRecModalOpen, setIsRecModalOpen] = useState(false);
     const [activeDragId, setActiveDragId] = useState(null);
 
     const sensors = useSensors(
@@ -434,6 +436,18 @@ export default function MRPView({ state, setters, results }) {
                 </div>
 
                 <div className="flex items-center mt-4 md:mt-0 space-x-4">
+                    {/* Morning True-Up Button */}
+                    <button
+                        onClick={() => setIsRecModalOpen(true)}
+                        className="flex items-center text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg font-medium transition-colors no-print border border-emerald-200"
+                        title="Morning True-Up"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 md:mr-1">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="hidden md:inline">Morning True-Up</span>
+                    </button>
+
                     {/* Share Button (New) */}
                     <button
                         onClick={() => setIsShareModalOpen(true)}
@@ -473,6 +487,13 @@ export default function MRPView({ state, setters, results }) {
                 monthlyDemand={state.monthlyDemand}
                 monthlyInbound={state.monthlyInbound}
                 monthlyProductionActuals={state.monthlyProductionActuals}
+            />
+
+            <MorningReconciliationModal
+                isOpen={isRecModalOpen}
+                onClose={() => setIsRecModalOpen(false)}
+                state={state}
+                setters={setters}
             />
 
             <DndContext
