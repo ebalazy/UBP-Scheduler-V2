@@ -7,7 +7,8 @@ export function useScheduler() {
         bottleDefinitions,
         safetyStockLoads,
         schedulerSettings,
-        updateSchedulerSetting
+        updateSchedulerSetting,
+        updateBottleDefinition // Add this
     } = useSettings();
 
     // UI View State (Local Preferred)
@@ -16,9 +17,8 @@ export function useScheduler() {
     // Persist UI selection locally
     useEffect(() => localStorage.setItem('sched_selectedSize', selectedSize), [selectedSize]);
 
-    // Extract synced settings
     const {
-        targetDailyProduction = 0,
+        // targetDailyProduction, // Removed in favor of Master Rate
         shiftStartTime = '00:00',
         poAssignments = {},
         cancelledLoads = []
@@ -34,6 +34,10 @@ export function useScheduler() {
         const specs = { ...specsDef, name: selectedSize, palletsPerTruck: computedPallets };
 
         // Required Daily Loads
+        // Derive Target & Rate from Master Settings
+        const productionRate = specs.productionRate || 0;
+        const targetDailyProduction = productionRate * 24; // Implicit 24h ops
+
         const safeTarget = !isNaN(targetDailyProduction) ? targetDailyProduction : 0;
         const requiredDailyLoads = Math.ceil(safeTarget / specs.casesPerTruck);
 
@@ -47,7 +51,7 @@ export function useScheduler() {
         ];
 
         // Hourly Logistics Logic
-        const casesPerHour = safeTarget / 24;
+        const casesPerHour = productionRate; // Use Master Rate directly
         const burnRate = casesPerHour;
 
         // Truck Interval
@@ -106,7 +110,7 @@ export function useScheduler() {
             specs
         };
 
-    }, [selectedSize, targetDailyProduction, shiftStartTime, bottleDefinitions, safetyStockLoads, poAssignments, cancelledLoads]);
+    }, [selectedSize, shiftStartTime, bottleDefinitions, safetyStockLoads, poAssignments, cancelledLoads]);
 
     // --- Setters (Proxy to SettingsContext) ---
 
@@ -127,7 +131,7 @@ export function useScheduler() {
     return {
         formState: {
             selectedSize,
-            targetDailyProduction,
+            targetDailyProduction: calculations?.burnRate * 24 || 0, // Expose derived target
             shiftStartTime,
             poAssignments
         },
@@ -135,7 +139,10 @@ export function useScheduler() {
             setSelectedSize,
             setTargetDailyProduction: (v) => {
                 const val = Number(v);
-                updateSchedulerSetting('targetDailyProduction', !isNaN(val) && val >= 0 ? val : 0);
+                const safeVal = !isNaN(val) && val >= 0 ? val : 0;
+                // Update MASTER Rate (Cases/Hr) from Daily Target
+                updateBottleDefinition(selectedSize, 'productionRate', safeVal / 24);
+                // remove local updateSchedulerSetting('targetDailyProduction')
             },
             setShiftStartTime: (v) => updateSchedulerSetting('shiftStartTime', v),
             updatePO,
