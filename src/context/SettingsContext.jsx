@@ -328,7 +328,8 @@ export function SettingsProvider({ children }) {
         leadTimeDays,
         csvMapping,
         dashboardLayout,
-        schedulerSettings
+        schedulerSettings,
+        theme
     ]);
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
