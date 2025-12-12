@@ -58,26 +58,7 @@ export default function MRPView({ state, setters, results }) {
     // --- Component Definitions based on ID ---
     const renderWidget = (id) => {
         switch (id) {
-            case 'actions':
-            case 'purchasing':
-                return (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 transition-colors">
-                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Purchasing Advice</h3>
-                        <OrderActionLog
-                            plannedOrders={results.plannedOrders}
-                            leadTimeDays={leadTimeDays}
-                        />
-                    </div>
-                );
-            case 'dropzone':
-                return (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 transition-colors">
-                        <CsvDropZone
-                            onUpdateInventory={setters.setYardInventory}
-                            currentSku={state.selectedSize}
-                        />
-                    </div>
-                );
+            // Removed 'actions', 'purchasing', 'dropzone' to clean up UI for Planner Focus.
             case 'chart':
                 return (
                     <div className="p-4 h-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 transition-colors">
@@ -166,8 +147,8 @@ export default function MRPView({ state, setters, results }) {
 
                         {/* KPI 3: ACTION / PIPELINE */}
                         <div className={`p-5 rounded-xl border flex flex-col justify-between shadow-sm transition-all ${trucksToOrder > 0
-                                ? 'bg-blue-600 border-blue-700 text-white'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                            ? 'bg-blue-600 border-blue-700 text-white'
+                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                             }`}>
                             <div className="flex justify-between items-center mb-2">
                                 <h3 className={`text-xs font-bold uppercase tracking-wider ${trucksToOrder > 0 ? 'text-blue-100' : 'text-gray-400'}`}>
@@ -329,28 +310,7 @@ export default function MRPView({ state, setters, results }) {
                         </div>
                     </div >
                 );
-            case 'supply':
-                return (
-                    <div className="p-6 h-full border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Manual Supply (Legacy)</h3>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Inbound (Trucks)</label>
-                            <input
-                                type="number"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                min="0"
-                                value={state.incomingTrucks === 0 ? '' : state.incomingTrucks}
-                                onChange={(e) => setters.setIncomingTrucks(e.target.value)}
-                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
-                                placeholder="0"
-                            />
-                            <p className="text-[10px] text-gray-400 mt-1">
-                                Use this only for trucks NOT in the calendar.
-                            </p>
-                        </div>
-                    </div>
-                );
+            // Removed 'supply' (Legacy manual input)
             case 'demand':
                 return (
                     <div className="h-full flex flex-col">

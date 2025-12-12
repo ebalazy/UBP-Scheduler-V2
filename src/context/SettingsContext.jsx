@@ -17,8 +17,8 @@ const DEFAULTS = {
     },
     dashboardLayout: {
         top: ['kpis', 'demand'],
-        col1: ['chart'],
-        col2: ['purchasing', 'inventory', 'production', 'supply', 'dropzone']
+        col1: [], // 'chart' is better in col2
+        col2: ['inventory', 'chart', 'production']
     }
 };
 
@@ -62,33 +62,24 @@ export function SettingsProvider({ children }) {
     const [dashboardLayout, setDashboardLayout] = useState(() => {
         try {
             const saved = localStorage.getItem('dashboardLayout');
-            const parsed = saved ? JSON.parse(saved) : DEFAULTS.dashboardLayout;
+            let parsed = saved ? JSON.parse(saved) : DEFAULTS.dashboardLayout;
+
+            // Migration: Clean up old keys if they persist in LocalStorage
             if (parsed.col2) {
-                // Migration: Renaming 'actions' -> 'purchasing'
-                if (parsed.col2.includes('actions')) {
-                    const idx = parsed.col2.indexOf('actions');
-                    parsed.col2.splice(idx, 1, 'purchasing');
-                }
+                // If col2 has 'supply', remove it.
+                parsed.col2 = parsed.col2.filter(id => id !== 'supply' && id !== 'purchasing' && id !== 'inputs');
 
-                // Migration: Check if 'col2' has 'production'.
-                if (!parsed.col2.includes('production')) {
-                    parsed.col2 = ['purchasing', 'production', ...parsed.col2.filter(x => x !== 'purchasing')];
-                }
-                // Migration: Split 'inputs' into 'inventory', 'supply'
-                if (parsed.col2.includes('inputs')) {
-                    const idx = parsed.col2.indexOf('inputs');
-                    // Remove 'inputs'
-                    parsed.col2.splice(idx, 1);
-                    // Insert new widgets inventory, supply if not already present
-                    // Check to avoid dups if re-running
-                    const toAdd = [];
-                    if (!parsed.col2.includes('inventory')) toAdd.push('inventory');
-                    if (!parsed.col2.includes('supply')) toAdd.push('supply');
-
-                    parsed.col2.splice(idx, 0, ...toAdd);
-                }
+                // Ensure critical widgets exist
+                if (!parsed.col2.includes('inventory')) parsed.col2.unshift('inventory');
+                if (!parsed.col2.includes('chart')) parsed.col2.push('chart');
             }
-            if (!parsed.top || !parsed.top.includes('demand')) return DEFAULTS.dashboardLayout;
+            // Ensure Top has demand + kpis
+            if (!parsed.top) parsed.top = ['kpis', 'demand'];
+            else {
+                if (!parsed.top.includes('kpis')) parsed.top.unshift('kpis');
+                if (!parsed.top.includes('demand')) parsed.top.push('demand');
+            }
+
             return parsed;
         } catch (e) {
             return DEFAULTS.dashboardLayout;
