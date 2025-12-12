@@ -143,12 +143,12 @@ function AuthenticatedApp({ user }) {
           />
         </div>
 
-        {/* Render Cockpit - Note: Cockpit has its own full-screen bg, so we might need to adjust container if active */}
-        {activeTab === 'cockpit' && (
-          <div className="absolute inset-0 z-10 top-[80px] bg-gray-900">
+        <div className={activeTab === 'cockpit' ? 'block' : 'hidden'}>
+          {/* Negative margins to expand cockpit to container edges */}
+          <div className="-mx-4 md:-mx-6 -my-4 md:-my-6">
             <CockpitView mrpData={mrp} />
           </div>
-        )}
+        </div>
       </main>
 
       {/* Settings Modal */}
