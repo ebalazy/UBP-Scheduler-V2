@@ -301,7 +301,7 @@ export default function SettingsModal({ onClose }) {
                         </div>
                     </div>
                     <div className="text-center mt-4">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-600">v2.2.4 (Robust Read)</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-600">v2.3.0 (Smart Planner)</p>
                     </div>
                 </div>
             </div>
