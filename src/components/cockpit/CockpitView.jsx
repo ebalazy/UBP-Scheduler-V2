@@ -190,9 +190,9 @@ export default function CockpitView({ mrpData }) {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 p-6 font-mono">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 font-mono transition-colors">
             {/* 1. Morning True-Up (Header) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 items-center bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 items-center bg-white dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center space-x-3">
                     <div className="bg-blue-600/20 p-2 rounded-lg">
                         <ClockIcon className="h-8 w-8 text-blue-400" />
@@ -204,11 +204,11 @@ export default function CockpitView({ mrpData }) {
                 </div>
 
                 {lines.map(line => (
-                    <div key={line.id} className="flex items-center space-x-2 bg-gray-900 p-2 rounded border border-gray-700">
-                        <span className={`text-xs font-bold uppercase w-12 text-${line.color}-400`}>{line.id} Act:</span>
+                    <div key={line.id} className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">
+                        <span className={`text-xs font-bold uppercase w-12 text-${line.color}-600 dark:text-${line.color}-400`}>{line.id} Act:</span>
                         <input
                             type="text"
-                            className="bg-transparent border-none focus:ring-0 text-right w-20 font-bold text-white placeholder-gray-600"
+                            className="bg-transparent border-none focus:ring-0 text-right w-20 font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600"
                             placeholder="60k"
                             value={morningTrueUp[line.id]}
                             onChange={e => handleTrueUp(line.id, e.target.value)}
@@ -232,16 +232,16 @@ export default function CockpitView({ mrpData }) {
                     const statusClass = getStatusColor(hours);
 
                     return (
-                        <div key={line.id} className="relative bg-gray-800 rounded-2xl border border-gray-700 p-6 overflow-hidden">
+                        <div key={line.id} className="relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 overflow-hidden shadow-sm">
                             {/* Background Pulse for Critical */}
                             {hours < 4 && <div className="absolute inset-0 bg-red-900/10 pointer-events-none"></div>}
 
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                                 {/* Line Identity */}
                                 <div className="md:col-span-3 flex flex-col">
-                                    <h2 className="text-2xl font-bold text-white">{line.name}</h2>
-                                    <span className="text-sm text-gray-400 mt-1">Run: {line.current_sku}</span>
-                                    <div className="mt-4 flex items-center space-x-2 text-xs text-gray-500 bg-gray-900 w-fit px-2 py-1 rounded">
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{line.name}</h2>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">Run: {line.current_sku}</span>
+                                    <div className="mt-4 flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 w-fit px-2 py-1 rounded">
                                         <TruckIcon className="h-4 w-4" />
                                         <span>Burn: 1 Truck / {line.burn_rate_minutes}m</span>
                                     </div>
@@ -249,23 +249,23 @@ export default function CockpitView({ mrpData }) {
 
                                 {/* Gauge / Hours of Coverage */}
                                 <div className="md:col-span-3 flex flex-col items-center justify-center">
-                                    <div className={`text-5xl font-black ${statusClass} rounded-full w-32 h-32 flex items-center justify-center border-4 bg-gray-900`}>
+                                    <div className={`text-5xl font-black ${statusClass} rounded-full w-32 h-32 flex items-center justify-center border-4 bg-gray-50 dark:bg-gray-900`}>
                                         {hours}h
                                     </div>
                                     <span className="text-xs text-gray-400 mt-2 uppercase tracking-wide">Coverage</span>
                                 </div>
 
                                 {/* Next Deliveries (Mock Timeline) */}
-                                <div className="md:col-span-6 border-l border-gray-700 pl-6">
+                                <div className="md:col-span-6 border-l border-gray-200 dark:border-gray-700 pl-6">
                                     <h4 className="text-xs font-bold text-gray-500 uppercase mb-3">Inbound Schedule</h4>
                                     <div className="flex space-x-3 overflow-x-auto pb-2">
                                         {/* Mock slots */}
                                         {[1, 2, 3].map((i) => (
-                                            <div key={i} className="flex-shrink-0 bg-gray-900 border border-gray-600 rounded p-3 min-w-[120px]">
-                                                <div className="text-xs text-blue-400 font-bold mb-1">
+                                            <div key={i} className="flex-shrink-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded p-3 min-w-[120px]">
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 font-bold mb-1">
                                                     {['08:00', '10:00', '12:00'][i - 1]}
                                                 </div>
-                                                <div className="text-sm font-bold text-white">PO #900{i}</div>
+                                                <div className="text-sm font-bold text-gray-900 dark:text-white">PO #900{i}</div>
                                                 <div className="text-[10px] text-gray-500 mt-1">ETA: On Time</div>
                                             </div>
                                         ))}
@@ -281,7 +281,7 @@ export default function CockpitView({ mrpData }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
                 {/* 3. SAP Zipper */}
-                <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-2">
                             <ClipboardDocumentCheckIcon className="h-6 w-6 text-purple-400" />
@@ -291,7 +291,7 @@ export default function CockpitView({ mrpData }) {
                     </div>
 
                     <textarea
-                        className="w-full h-32 bg-gray-900 border border-gray-600 rounded-lg p-3 text-sm text-gray-300 font-mono focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none"
+                        className="w-full h-32 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg p-3 text-sm text-gray-900 dark:text-gray-300 font-mono focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none"
                         placeholder="Paste list of PO numbers here..."
                         value={sapInput}
                         onChange={(e) => setSapInput(e.target.value)}
@@ -323,9 +323,9 @@ export default function CockpitView({ mrpData }) {
                     {generatedSchedule && (
                         <div className="mt-2 text-xs font-mono">
                             <div className="mb-2 text-gray-400 font-bold">Ref: Part# DD 1855526</div>
-                            <div className="overflow-x-auto rounded border border-gray-700">
-                                <table className="w-full text-left text-gray-300">
-                                    <thead className="bg-gray-900 text-gray-400 border-b border-gray-700">
+                            <div className="overflow-x-auto rounded border border-gray-200 dark:border-gray-700">
+                                <table className="w-full text-left text-gray-700 dark:text-gray-300">
+                                    <thead className="bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                                         <tr>
                                             <th className="p-2">Load #</th>
                                             <th className="p-2">Del. Date</th>
@@ -335,15 +335,15 @@ export default function CockpitView({ mrpData }) {
                                             <th className="p-2">PO #</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-800 bg-gray-800/50">
+                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-800/50">
                                         {generatedSchedule.map((slot, i) => (
-                                            <tr key={i} className="hover:bg-gray-800">
+                                            <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                                                 <td className="p-2">{i + 1}</td>
                                                 <td className="p-2">{new Date().toLocaleDateString()}</td>
                                                 <td className="p-2 text-blue-400 font-bold">{slot.time}</td>
                                                 <td className="p-2">{slot.line === 'L1' ? '20 oz. Clear' : '12 oz. Can'}</td>
                                                 <td className="p-2">UBP</td>
-                                                <td className="p-2 font-bold text-white">{slot.po}</td>
+                                                <td className="p-2 font-bold text-gray-900 dark:text-white">{slot.po}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -354,7 +354,7 @@ export default function CockpitView({ mrpData }) {
                 </div>
 
                 {/* 4. Yard Status */}
-                <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-2">
                             <ExclamationTriangleIcon className="h-6 w-6 text-yellow-500" />
@@ -364,7 +364,7 @@ export default function CockpitView({ mrpData }) {
                     </div>
 
                     <div className="flex items-center justify-center mb-6">
-                        <div className="relative w-full bg-gray-900 rounded-full h-6 overflow-hidden">
+                        <div className="relative w-full bg-gray-100 dark:bg-gray-900 rounded-full h-6 overflow-hidden">
                             <div
                                 className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-500"
                                 style={{ width: `${(yard.used_slots / yard.total_slots) * 100}%` }}
@@ -374,11 +374,11 @@ export default function CockpitView({ mrpData }) {
 
                     <div className="flex justify-between text-center">
                         <div>
-                            <div className="text-3xl font-black text-white">{yard.used_slots}</div>
+                            <div className="text-3xl font-black text-gray-900 dark:text-white">{yard.used_slots}</div>
                             <div className="text-xs text-gray-500 uppercase">Occupied</div>
                         </div>
                         <div>
-                            <div className="text-3xl font-black text-gray-600">{yard.total_slots - yard.used_slots}</div>
+                            <div className="text-3xl font-black text-gray-400 dark:text-gray-600">{yard.total_slots - yard.used_slots}</div>
                             <div className="text-xs text-gray-500 uppercase">Available</div>
                         </div>
                         <div>
