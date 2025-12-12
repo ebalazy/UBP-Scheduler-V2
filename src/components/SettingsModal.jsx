@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
-import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
+import { SunIcon, MoonIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 export default function SettingsModal({ onClose }) {
     const {
@@ -13,9 +14,21 @@ export default function SettingsModal({ onClose }) {
         csvMapping,
         updateCsvMapping,
         resetDefaults,
+        resetDefaults,
         theme,
-        setTheme
+        setTheme,
+        addBottleDefinition,
+        deleteBottleDefinition
     } = useSettings();
+
+    const [newSkuName, setNewSkuName] = useState('');
+
+    const handleAddSku = () => {
+        if (newSkuName.trim()) {
+            addBottleDefinition(newSkuName.trim());
+            setNewSkuName('');
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex justify-center bg-black bg-opacity-50 overflow-y-auto px-4 py-6 backdrop-blur-sm">
@@ -150,8 +163,29 @@ export default function SettingsModal({ onClose }) {
                         <div className="space-y-6">
                             {bottleSizes.map(size => (
                                 <div key={size} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
-                                    <h4 className="font-bold text-md text-gray-800 dark:text-white mb-3 border-b dark:border-gray-600 pb-2">{size} Configuration</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="flex justify-between items-center mb-3 border-b dark:border-gray-600 pb-2">
+                                        <h4 className="font-bold text-md text-gray-800 dark:text-white">{size} Configuration</h4>
+                                        <button
+                                            onClick={() => {
+                                                if (confirm(`Delete ${size}? This cannot be undone.`)) deleteBottleDefinition(size);
+                                            }}
+                                            className="text-red-400 hover:text-red-600 p-1"
+                                            title="Delete Product"
+                                        >
+                                            <TrashIcon className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Run Rate (cph)</label>
+                                            <input
+                                                type="number"
+                                                inputMode="numeric"
+                                                value={bottleDefinitions[size].productionRate || 0}
+                                                onChange={(e) => updateBottleDefinition(size, 'productionRate', e.target.value)}
+                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
+                                            />
+                                        </div>
                                         <div>
                                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Bottles / Case</label>
                                             <input
