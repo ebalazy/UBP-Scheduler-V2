@@ -287,6 +287,26 @@ export function SettingsProvider({ children }) {
         }));
     };
 
+    const addBottleDefinition = (name) => {
+        if (!name) return;
+        setBottleDefinitions(prev => {
+            if (prev[name]) return prev;
+            // Clone structure from 20oz default
+            return {
+                ...prev,
+                [name]: { ...DEFAULTS.bottleDefinitions['20oz'] }
+            };
+        });
+    };
+
+    const deleteBottleDefinition = (name) => {
+        setBottleDefinitions(prev => {
+            const copy = { ...prev };
+            delete copy[name];
+            return copy;
+        });
+    };
+
     const resetDefaults = () => {
         setBottleDefinitions(DEFAULTS.bottleDefinitions);
         setSafetyStockLoads(DEFAULTS.safetyStockLoads);
@@ -321,7 +341,13 @@ export function SettingsProvider({ children }) {
         updateCsvMapping,
         updateSchedulerSetting, // Exported
         resetDefaults,
-        bottleSizes: staticBottleSizes
+        updateBottleDefinition,
+        addBottleDefinition, // Exported
+        deleteBottleDefinition, // Exported
+        updateCsvMapping,
+        updateSchedulerSetting, // Exported
+        resetDefaults,
+        bottleSizes: Object.keys(bottleDefinitions) // Dynamic
     }), [
         bottleDefinitions,
         safetyStockLoads,
