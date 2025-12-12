@@ -22,14 +22,7 @@
   }
 }
 
-/* Global Dark Mode Fallback */
-:root.dark body,
-:root.dark #main-app-wrapper {
-  background-color: #111827 !important;
-  /* gray-900 */
-  color: #f3f4f6 !important;
-  /* gray-100 */
-}
+/* Global Dark Mode Fallback Removed - Relying on Tailwind 'selector' strategy */
 
 /* PRINT STYLES */
 @media print {
