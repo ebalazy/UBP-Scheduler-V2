@@ -61,6 +61,12 @@ export default function App() {
 function AuthenticatedApp({ user }) {
   const [activeTab, setActiveTab] = useState('mrp'); // 'mrp' | 'scheduler'
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { theme } = useSettings();
+
+  useEffect(() => {
+    console.log(`[AuthenticatedApp] Current Theme: ${theme}`);
+    console.log(`[AuthenticatedApp] HTML Class List: ${document.documentElement.classList}`);
+  }, [theme]);
 
   const mrp = useMRP();
   const scheduler = useScheduler();
