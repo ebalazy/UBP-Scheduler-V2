@@ -420,7 +420,8 @@ export function useMRP() {
 
     return {
         formState: {
-            isSaving, // Exposed
+            isSaving,
+            saveError, // Exposed
             selectedSize,
             monthlyDemand,
             monthlyInbound,

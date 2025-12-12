@@ -3,7 +3,7 @@ import { Cog6ToothIcon, UserCircleIcon, ArrowRightOnRectangleIcon, PrinterIcon, 
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './auth/AuthModal';
 
-export default function Header({ onOpenSettings, isSaving }) {
+export default function Header({ onOpenSettings, isSaving, saveError }) {
     const { user, signOut } = useAuth();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -43,10 +43,10 @@ export default function Header({ onOpenSettings, isSaving }) {
 
                     {/* Sync Status - Always Show */}
                     {user ? (
-                        <div className="flex items-center text-sm font-medium transition-colors" title={isOnline ? "Synced to Cloud" : "Offline Mode"}>
-                            <CloudIcon className={`h-6 w-6 mr-1 ${isSaving ? 'text-blue-500 animate-pulse' : isOnline ? 'text-green-500' : 'text-gray-400'}`} />
-                            <span className={`hidden md:inline ${isSaving ? 'text-blue-600 font-bold' : isOnline ? 'text-green-600' : 'text-gray-500'}`}>
-                                {isSaving ? 'Saving...' : isOnline ? 'All Saved' : 'Offline'}
+                        <div className="flex items-center text-sm font-medium transition-colors" title={saveError || (isOnline ? "Synced to Cloud" : "Offline Mode")}>
+                            <CloudIcon className={`h-6 w-6 mr-1 ${isSaving ? 'text-blue-500 animate-pulse' : saveError ? 'text-red-500' : isOnline ? 'text-green-500' : 'text-gray-400'}`} />
+                            <span className={`hidden md:inline ${isSaving ? 'text-blue-600 font-bold' : saveError ? 'text-red-600 font-bold' : isOnline ? 'text-green-600' : 'text-gray-500'}`}>
+                                {isSaving ? 'Saving...' : saveError ? 'Sync Error' : isOnline ? 'All Saved' : 'Offline'}
                             </span>
                         </div>
                     ) : (

@@ -234,9 +234,12 @@ export const useSupabaseSync = () => {
             date: date,
             entry_type: type,
             value: value
-        }, { onConflict: 'product_id, date, entry_type' });
+        }, { onConflict: 'product_id,date,entry_type' });
 
-        if (error) console.error("Save failed", error);
+        if (error) {
+            console.error("Save failed", error);
+            throw error;
+        }
     };
 
     const saveProductionSetting = async (userId, skuName, field, value) => {

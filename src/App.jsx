@@ -52,7 +52,7 @@ function AuthenticatedApp({ user }) {
 
   return (
     <div id="main-app-wrapper" className="min-h-screen flex flex-col transition-colors duration-200">
-      <Header onOpenSettings={() => setIsSettingsOpen(true)} isSaving={mrp.formState.isSaving} />
+      <Header onOpenSettings={() => setIsSettingsOpen(true)} isSaving={mrp.formState.isSaving} saveError={mrp.formState.saveError} />
 
       {/* Risk Banner - Always configured based on Scheduler data */}
       <RiskBanner
