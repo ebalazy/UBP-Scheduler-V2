@@ -26,6 +26,10 @@ export default function App() {
     }
   }, [user, bottleSizes, uploadLocalData]);
 
+  useEffect(() => {
+    document.title = `UBP Planner v${import.meta.env.PACKAGE_VERSION}`;
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
