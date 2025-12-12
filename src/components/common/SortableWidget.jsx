@@ -22,7 +22,7 @@ export default function SortableWidget({ id, children }) {
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 group relative">
+        <div ref={setNodeRef} style={style} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 group relative transition-colors duration-200">
             {/* Drag Handle - Only visible on hover or active */}
             <div
                 {...attributes}

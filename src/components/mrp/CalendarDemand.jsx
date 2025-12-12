@@ -93,25 +93,25 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
     };
 
     return (
-        <div className="bg-white p-4 rounded-lg shadow h-full flex flex-col">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-gray-100 rounded text-gray-600">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow h-full flex flex-col transition-colors">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
+                <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300">
                     &lt; Prev
                 </button>
                 <div className="text-center">
-                    <h3 className="font-bold text-gray-800">{monthLabel}</h3>
-                    <p className="text-xs text-blue-600 font-medium">
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100">{monthLabel}</h3>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                         {totalMonthlyDemand.toLocaleString()} Cases
-                        {totalEstTrucks > 0 && <span className="text-gray-400 ml-1">(~{totalEstTrucks} Trucks)</span>}
+                        {totalEstTrucks > 0 && <span className="text-gray-400 dark:text-gray-500 ml-1">(~{totalEstTrucks} Trucks)</span>}
                     </p>
                 </div>
-                <button onClick={() => changeMonth(1)} className="p-1 hover:bg-gray-100 rounded text-gray-600">
+                <button onClick={() => changeMonth(1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300">
                     Next &gt;
                 </button>
             </div>
 
             {/* Day Header (Desktop Only) */}
-            <div className="hidden md:grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500 mb-2">
+            <div className="hidden md:grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">
                 <div>SUN</div>
                 <div>MON</div>
                 <div>TUE</div>
@@ -125,7 +125,7 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
             <div className="flex flex-col space-y-2 md:space-y-0 md:grid md:grid-cols-7 md:gap-1 flex-1">
                 {days.map((day, idx) => {
                     // Padding slots (Desktop only)
-                    if (!day) return <div key={`pad-${idx}`} className="hidden md:block bg-gray-50/50 rounded" />;
+                    if (!day) return <div key={`pad-${idx}`} className="hidden md:block bg-gray-50/50 dark:bg-gray-800/50 rounded" />;
 
                     const isToday = new Date().toISOString().split('T')[0] === day.dateStr;
                     const hasDemand = day.val > 0;
@@ -138,9 +138,9 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                             key={day.dateStr}
                             className={`
                                 relative rounded border transition-all
-                                ${isToday ? 'border-blue-400 bg-blue-50' : 'border-gray-100'}
-                                ${hasDemand || hasTrucks || hasActual ? 'bg-white' : 'bg-gray-50'}
-                                ${isPush ? 'ring-2 ring-red-400 ring-opacity-50' : ''}
+                                ${isToday ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500' : 'border-gray-100 dark:border-gray-700'}
+                                ${hasDemand || hasTrucks || hasActual ? 'bg-white dark:bg-gray-700' : 'bg-gray-50 dark:bg-gray-800'}
+                                ${isPush ? 'ring-2 ring-red-400 ring-opacity-50 dark:ring-red-500' : ''}
                                 
                                 /* Desktop Styles */
                                 md:p-1 md:min-h-[90px] md:flex-col md:justify-between
@@ -151,7 +151,7 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                         >
                             {/* Date Label */}
                             <div className="flex flex-col md:items-start w-16 md:w-auto">
-                                <span className={`text-sm md:text-[10px] ${isToday ? 'text-blue-600 font-bold' : 'text-gray-500 font-medium'}`}>
+                                <span className={`text-sm md:text-[10px] ${isToday ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500 dark:text-gray-400 font-medium'}`}>
                                     {day.date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
                                 </span>
                                 {/* Mobile-only Month label on first of month? Optional */}
@@ -162,14 +162,16 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
 
                                 {/* Plan Input */}
                                 <div className="flex items-center space-x-1">
-                                    <span className="text-[10px] text-gray-400 w-3 md:inline hidden">P:</span>
-                                    <span className="text-[10px] text-gray-400 md:hidden font-bold">Plan</span>
+                                    <span className="text-[10px] text-gray-400 dark:text-gray-500 w-3 md:inline hidden">P:</span>
+                                    <span className="text-[10px] text-gray-400 dark:text-gray-500 md:hidden font-bold">Plan</span>
                                     <input
                                         type="text"
                                         inputMode="numeric"
                                         className={`
-                                            w-12 md:w-full text-center text-sm md:text-xs p-1 md:p-0 border rounded md:border-0 bg-white md:bg-transparent focus:ring-1 focus:ring-blue-200 font-medium
-                                            ${hasDemand ? 'text-gray-900 border-gray-300' : 'text-gray-300 border-gray-200'}
+                                            w-12 md:w-full text-center text-sm md:text-xs p-1 md:p-0 border rounded md:border-0 md:bg-transparent focus:ring-1 focus:ring-blue-200 font-medium
+                                            ${hasDemand
+                                                ? 'text-gray-900 dark:text-white border-gray-300 bg-white dark:bg-gray-600'
+                                                : 'text-gray-300 dark:text-gray-600 border-gray-200 bg-white dark:bg-gray-800/50'}
                                         `}
                                         placeholder="-"
                                         value={day.val ? day.val.toLocaleString() : ''}
@@ -188,8 +190,10 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                                         type="text"
                                         inputMode="numeric"
                                         className={`
-                                            w-12 md:w-full text-center text-sm md:text-xs p-1 md:p-0 border rounded md:border-0 bg-white md:bg-transparent focus:ring-1 focus:ring-blue-200 font-bold
-                                            ${hasActual ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-gray-300 border-gray-200'}
+                                            w-12 md:w-full text-center text-sm md:text-xs p-1 md:p-0 border rounded md:border-0 md:bg-transparent focus:ring-1 focus:ring-blue-200 font-bold
+                                            ${hasActual
+                                                ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/50 border-blue-200 dark:border-blue-800'
+                                                : 'text-gray-300 dark:text-gray-600 border-gray-200 bg-white dark:bg-gray-800/50'}
                                         `}
                                         placeholder="-"
                                         value={hasActual ? day.actual.toLocaleString() : ''}
@@ -207,16 +211,16 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                                 {/* Inbound Trucks Input */}
                                 <div className={`
                                     flex items-center justify-center transition-all duration-500
-                                    md:mt-1 md:border-t md:border-gray-100 md:pt-1 md:w-full
-                                    ${hasTrucks ? (isPush ? 'bg-red-50 animate-pulse rounded p-1 md:p-0' : 'bg-green-50 animate-pulse rounded p-1 md:p-0') : ''}
+                                    md:mt-1 md:border-t md:border-gray-100 dark:md:border-gray-600 md:pt-1 md:w-full
+                                    ${hasTrucks ? (isPush ? 'bg-red-50 dark:bg-red-900/30 animate-pulse rounded p-1 md:p-0' : 'bg-green-50 dark:bg-green-900/30 animate-pulse rounded p-1 md:p-0') : ''}
                                 `}>
-                                    <span className="text-xs md:text-[9px] mr-1 text-gray-400">🚛</span>
+                                    <span className="text-xs md:text-[9px] mr-1 text-gray-400 dark:text-gray-500">🚛</span>
                                     <input
                                         type="text"
                                         inputMode="numeric"
                                         className={`
                                             w-6 text-center text-sm md:text-[10px] p-0 border-0 bg-transparent focus:ring-0 font-bold
-                                            ${hasTrucks ? (isPush ? 'text-red-600' : 'text-green-600') : 'text-gray-300'}
+                                            ${hasTrucks ? (isPush ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400') : 'text-gray-300 dark:text-gray-600'}
                                         `}
                                         placeholder="0"
                                         value={day.trucks > 0 ? day.trucks : ''}
@@ -231,8 +235,8 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                                 {day.endInvCases !== null && (
                                     <div className={`
                                         text-[10px] md:text-[9px] text-center md:mt-auto md:pt-1 font-mono
-                                        ${day.isSafetyRisk ? 'text-red-500 font-bold' :
-                                            day.isOverflow ? 'text-orange-500 font-bold' : 'text-gray-400'}
+                                        ${day.isSafetyRisk ? 'text-red-500 dark:text-red-400 font-bold' :
+                                            day.isOverflow ? 'text-orange-500 dark:text-orange-400 font-bold' : 'text-gray-400 dark:text-gray-500'}
                                     `}>
                                         {day.endInvCases.toLocaleString()}
                                         <span className="md:hidden ml-1">cs</span>

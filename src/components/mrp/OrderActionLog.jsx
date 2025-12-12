@@ -40,11 +40,11 @@ export default function OrderActionLog({ plannedOrders, leadTimeDays }) {
     if (!actions.length && !upcoming.length) return null;
 
     return (
-        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-            <h3 className="font-bold text-gray-800 text-lg mb-3 flex items-center">
-                <CalendarDaysIcon className="h-5 w-5 mr-2 text-blue-600" />
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700 transition-colors">
+            <h3 className="font-bold text-gray-800 dark:text-gray-200 text-lg mb-3 flex items-center">
+                <CalendarDaysIcon className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
                 Purchasing Advice
-                <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
                     {leadTimeDays} Day Lead Time
                 </span>
             </h3>
@@ -61,8 +61,8 @@ export default function OrderActionLog({ plannedOrders, leadTimeDays }) {
                     <div
                         key={action.orderDate}
                         className={`p-3 rounded border flex justify-between items-center ${action.isLate
-                                ? 'bg-red-50 border-red-200 text-red-800'
-                                : 'bg-blue-50 border-blue-200 text-blue-800'
+                            ? 'bg-red-50 border-red-200 text-red-800'
+                            : 'bg-blue-50 border-blue-200 text-blue-800'
                             }`}
                     >
                         <div className="flex items-center">

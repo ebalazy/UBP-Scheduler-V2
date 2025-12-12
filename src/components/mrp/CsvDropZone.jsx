@@ -131,9 +131,9 @@ export default function CsvDropZone({ onUpdateInventory, currentSku }) {
         <div
             className={`
                 relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 cursor-pointer
-                ${isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'}
-                ${uploadStatus === 'error' ? 'border-red-300 bg-red-50' : ''}
-                ${uploadStatus === 'success' ? 'border-green-500 bg-green-50' : ''}
+                ${isDragging ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700'}
+                ${uploadStatus === 'error' ? 'border-red-300 dark:border-red-500/50 bg-red-50 dark:bg-red-900/20' : ''}
+                ${uploadStatus === 'success' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : ''}
             `}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
