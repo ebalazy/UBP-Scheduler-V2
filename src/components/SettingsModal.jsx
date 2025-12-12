@@ -221,6 +221,9 @@ export default function SettingsModal({ onClose }) {
                         Done
                     </button>
                 </div>
+                <div className="text-center mt-2">
+                    <p className="text-[10px] text-gray-400 dark:text-gray-600">v2.1.2 (Theme Fix Loaded)</p>
+                </div>
             </div>
         </div>
     );
