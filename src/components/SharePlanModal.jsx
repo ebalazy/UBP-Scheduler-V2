@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
+import { useSettings } from '../context/SettingsContext';
 import { XMarkIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 export default function SharePlanModal({ isOpen, onClose, selectedSize, monthlyDemand, monthlyInbound, monthlyProductionActuals }) {
+    const { bottleDefinitions } = useSettings();
     const [copied, setCopied] = useState(false);
 
     const planText = useMemo(() => {
@@ -42,7 +44,8 @@ export default function SharePlanModal({ isOpen, onClose, selectedSize, monthlyD
         }
 
         // Format Text
-        let text = `📅 PRODUCTION PLAN: ${selectedSize}\nGenerated: ${today.toLocaleDateString()}\n\n`;
+        const skuInfo = bottleDefinitions[selectedSize]?.skuNumber ? ` (Item: ${bottleDefinitions[selectedSize].skuNumber})` : '';
+        let text = `📅 PRODUCTION PLAN: ${selectedSize}${skuInfo}\nGenerated: ${today.toLocaleDateString()}\n\n`;
 
         let currentWeek = -1;
 
@@ -62,7 +65,7 @@ export default function SharePlanModal({ isOpen, onClose, selectedSize, monthlyD
         if (next4Weeks.length === 0) text += "No activity scheduled for the next 4 weeks.";
 
         return text;
-    }, [isOpen, selectedSize, monthlyDemand, monthlyInbound, monthlyProductionActuals]);
+    }, [isOpen, selectedSize, monthlyDemand, monthlyInbound, monthlyProductionActuals, bottleDefinitions]);
 
     const handleCopy = async () => {
         try {
