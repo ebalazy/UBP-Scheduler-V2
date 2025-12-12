@@ -50,6 +50,7 @@ export function useMRP() {
     const [monthlyDemand, setMonthlyDemand] = useState(() => init('monthlyDemand', {}, true));
     const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => init('monthlyProductionActuals', {}, true));
     const [monthlyInbound, setMonthlyInbound] = useState(() => init('monthlyInbound', {}, true));
+    const [truckManifest, setTruckManifest] = useState(() => init('truckManifest', {}, true));
     // productionRate is now derived from settings
     const [downtimeHours, setDowntimeHours] = useState(() => user ? 0 : Number(loadLocalState('downtimeHours', 0)));
     const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => user ? 0 : Number(loadLocalState('currentInventoryPallets', 0)));
@@ -99,6 +100,7 @@ export function useMRP() {
             setMonthlyDemand(loadLocalState('monthlyDemand', {}, true));
             setMonthlyProductionActuals(loadLocalState('monthlyProductionActuals', {}, true));
             setMonthlyInbound(loadLocalState('monthlyInbound', {}, true));
+            setTruckManifest(loadLocalState('truckManifest', {}, true));
             setProductionRate(Number(loadLocalState('productionRate', 0)));
             setDowntimeHours(Number(loadLocalState('downtimeHours', 0)));
             // ... (other setters if needed, but react usually handles re-render if key changes)
@@ -117,6 +119,7 @@ export function useMRP() {
                         setMonthlyDemand(data.monthlyDemand || {});
                         setMonthlyProductionActuals(data.monthlyProductionActuals || {});
                         setMonthlyInbound(data.monthlyInbound || {});
+                        setTruckManifest(data.truckManifest || {});
                         // Update Settings Context
                         if (data.productionRate) updateBottleDefinition(selectedSize, 'productionRate', data.productionRate);
                         setDowntimeHours(data.downtimeHours);
@@ -131,6 +134,7 @@ export function useMRP() {
                                 setMonthlyDemand(retry.monthlyDemand || {});
                                 setMonthlyProductionActuals(retry.monthlyProductionActuals || {});
                                 setMonthlyInbound(retry.monthlyInbound || {});
+                                setTruckManifest(retry.truckManifest || {});
                                 if (retry.productionRate) updateBottleDefinition(selectedSize, 'productionRate', retry.productionRate);
                                 setDowntimeHours(retry.downtimeHours);
                                 setIsAutoReplenish(retry.isAutoReplenish);
@@ -484,6 +488,7 @@ export function useMRP() {
             selectedSize,
             monthlyDemand,
             monthlyInbound,
+            truckManifest,
             monthlyProductionActuals,
             productionRate,
             downtimeHours,
@@ -499,7 +504,22 @@ export function useMRP() {
             setSelectedSize,
             updateDateDemand,
             updateDateActual,
+            updateDateActual,
             updateDateInbound,
+            updateTruckManifest: (date, trucks) => {
+                // trucks: Array of { id, po, carrier, time, status }
+                const newManifest = { ...truckManifest, [date]: trucks };
+                // Filter out empty arrays to keep state clean?
+                if (!trucks || trucks.length === 0) delete newManifest[date];
+
+                setTruckManifest(newManifest);
+                saveLocalState('truckManifest', newManifest, true);
+                // Trigger Cloud Save (needs new entry_type support in useSupabaseSync logic later, or simple JSON blob)
+                // For now, let's piggyback or skipping cloud specifically for detailed manifest rows until schema update?
+                // Actually, let's try to save it as a special PlanningEntry if possible, or just fail silently in cloud for now.
+                // We will implement `saveTruckManifest` in useSupabase in next step.
+                if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'truck_manifest_json', JSON.stringify(trucks)));
+            },
             setProductionRate: (v) => {
                 const val = Number(v);
                 // setProductionRate(val); // Removed local state

@@ -7,6 +7,7 @@ import {
     CalendarDaysIcon
 } from '@heroicons/react/24/outline';
 import MorningReconciliationModal from '../mrp/MorningReconciliationModal';
+import DockManifestParams from './DockManifestParams';
 
 export default function LogisticsView({ state, setters, results }) {
     const [isRecModalOpen, setIsRecModalOpen] = useState(false);
@@ -107,8 +108,8 @@ export default function LogisticsView({ state, setters, results }) {
 
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
                     {/* Today */}
-                    <div className="p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <div className="flex items-center">
+                    <div className="p-6 transition-colors">
+                        <div className="flex items-center mb-4">
                             <div className={`w-3 h-12 rounded-full mr-4 ${todayTrucks > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                             <div>
                                 <p className="text-2xl font-bold text-gray-900 dark:text-white">TODAY</p>
@@ -116,24 +117,29 @@ export default function LogisticsView({ state, setters, results }) {
                                     {new Date().toLocaleDateString()}
                                 </p>
                             </div>
-                        </div>
-                        <div className="text-right">
-                            {todayTrucks > 0 ? (
-                                <>
-                                    <span className="block text-4xl font-black text-slate-800 dark:text-white">
-                                        {todayTrucks}
+                            <div className="ml-auto text-right">
+                                {todayTrucks > 0 ? (
+                                    <span className="text-sm font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full uppercase">
+                                        {todayTrucks} Left to Receive
                                     </span>
-                                    <span className="text-xs font-bold text-green-600 uppercase">Trucks Arriving</span>
-                                </>
-                            ) : (
-                                <span className="text-gray-400 font-medium">No Deliveries Scheduled</span>
-                            )}
+                                ) : null}
+                            </div>
+                        </div>
+
+                        {/* Manifest Widget */}
+                        <div className="pl-7">
+                            <DockManifestParams
+                                date={todayStr}
+                                totalRequired={todayTrucks} // From Auto-Calc
+                                manifest={state.truckManifest?.[todayStr] || []}
+                                onUpdate={setters.updateTruckManifest}
+                            />
                         </div>
                     </div>
 
                     {/* Tomorrow */}
-                    <div className="p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors opacity-90">
-                        <div className="flex items-center">
+                    <div className="p-6 transition-colors opacity-95">
+                        <div className="flex items-center mb-4">
                             <div className={`w-3 h-12 rounded-full mr-4 ${tomorrowTrucks > 0 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
                             <div>
                                 <p className="text-xl font-bold text-gray-700 dark:text-gray-300">TOMORROW</p>
@@ -142,17 +148,15 @@ export default function LogisticsView({ state, setters, results }) {
                                 </p>
                             </div>
                         </div>
-                        <div className="text-right">
-                            {tomorrowTrucks > 0 ? (
-                                <>
-                                    <span className="block text-3xl font-bold text-slate-700 dark:text-gray-300">
-                                        {tomorrowTrucks}
-                                    </span>
-                                    <span className="text-xs font-bold text-blue-600 uppercase">Trucks Planned</span>
-                                </>
-                            ) : (
-                                <span className="text-gray-400 font-medium">No Deliveries Scheduled</span>
-                            )}
+
+                        {/* Manifest Widget */}
+                        <div className="pl-7">
+                            <DockManifestParams
+                                date={tomorrowStr}
+                                totalRequired={tomorrowTrucks}
+                                manifest={state.truckManifest?.[tomorrowStr] || []}
+                                onUpdate={setters.updateTruckManifest}
+                            />
                         </div>
                     </div>
                 </div>
