@@ -175,7 +175,17 @@ export default function SettingsModal({ onClose }) {
                                             <TrashIcon className="h-4 w-4" />
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Material / SKU #</label>
+                                            <input
+                                                type="text"
+                                                value={bottleDefinitions[size].skuNumber || ''}
+                                                onChange={(e) => updateBottleDefinition(size, 'skuNumber', e.target.value)}
+                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
+                                                placeholder="e.g. 10005432"
+                                            />
+                                        </div>
                                         <div>
                                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Run Rate (cph)</label>
                                             <input
