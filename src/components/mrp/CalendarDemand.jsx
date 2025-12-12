@@ -177,7 +177,21 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                                         value={day.val ? day.val.toLocaleString() : ''}
                                         onChange={(e) => {
                                             const raw = e.target.value.replace(/,/g, '');
-                                            if (!isNaN(raw)) updateDateDemand(day.dateStr, raw);
+                                            if (!isNaN(raw)) {
+                                                const val = Number(raw);
+                                                updateDateDemand(day.dateStr, raw);
+
+                                                // Auto-Calculate Inbound Trucks (User Request)
+                                                if (specs && specs.bottlesPerTruck && specs.bottlesPerCase) {
+                                                    if (val > 0) {
+                                                        const casesPerTruck = specs.bottlesPerTruck / specs.bottlesPerCase;
+                                                        const trucksNeeded = Math.ceil(val / casesPerTruck);
+                                                        updateDateInbound(day.dateStr, trucksNeeded);
+                                                    } else {
+                                                        updateDateInbound(day.dateStr, 0);
+                                                    }
+                                                }
+                                            }
                                         }}
                                     />
                                 </div>
