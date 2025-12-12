@@ -93,7 +93,10 @@ export default function CockpitView({ mrpData, schedulerData }) {
         ]);
     }, [line1Data]);
 
-    const [yard, setYard] = useState(MOCK_DATA.yard_status);
+    const yardData = mrpData?.formState?.yardInventory || { count: 0 };
+    // Use effective count if override is active, but here we just show raw inventory for now
+    const yardUsed = yardData.effectiveCount !== undefined ? yardData.effectiveCount : yardData.count;
+    const yardTotal = 50; // Hardcoded capacity for now
     const [sapInput, setSapInput] = useState("");
     const [morningTrueUp, setMorningTrueUp] = useState({ L1: "", L2: "" });
 
@@ -375,18 +378,18 @@ export default function CockpitView({ mrpData, schedulerData }) {
                         <div className="relative w-full bg-gray-100 dark:bg-gray-900 rounded-full h-6 overflow-hidden">
                             <div
                                 className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-500"
-                                style={{ width: `${(yard.used_slots / yard.total_slots) * 100}%` }}
+                                style={{ width: `${Math.min(100, (yardUsed / yardTotal) * 100)}%` }}
                             ></div>
                         </div>
                     </div>
 
                     <div className="flex justify-between text-center">
                         <div>
-                            <div className="text-3xl font-black text-gray-900 dark:text-white">{yard.used_slots}</div>
+                            <div className="text-3xl font-black text-gray-900 dark:text-white">{yardUsed}</div>
                             <div className="text-xs text-gray-500 uppercase">Occupied</div>
                         </div>
                         <div>
-                            <div className="text-3xl font-black text-gray-400 dark:text-gray-600">{yard.total_slots - yard.used_slots}</div>
+                            <div className="text-3xl font-black text-gray-400 dark:text-gray-600">{Math.max(0, yardTotal - yardUsed)}</div>
                             <div className="text-xs text-gray-500 uppercase">Available</div>
                         </div>
                         <div>
