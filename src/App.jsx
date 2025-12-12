@@ -52,7 +52,7 @@ function AuthenticatedApp({ user }) {
 
   return (
     <div id="main-app-wrapper" className="min-h-screen flex flex-col transition-colors duration-200">
-      <Header onOpenSettings={() => setIsSettingsOpen(true)} />
+      <Header onOpenSettings={() => setIsSettingsOpen(true)} isSaving={mrp.formState.isSaving} />
 
       {/* Risk Banner - Always configured based on Scheduler data */}
       <RiskBanner
@@ -70,8 +70,8 @@ function AuthenticatedApp({ user }) {
             <button
               onClick={() => setActiveTab('mrp')}
               className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'mrp'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
                 }`}
             >
               <Boxes className="w-4 h-4" />
@@ -82,8 +82,8 @@ function AuthenticatedApp({ user }) {
             <button
               onClick={() => setActiveTab('scheduler')}
               className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'scheduler'
-                  ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
                 }`}
             >
               <CalendarClock className="w-4 h-4" />
@@ -94,8 +94,8 @@ function AuthenticatedApp({ user }) {
             <button
               onClick={() => setActiveTab('master')}
               className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'master'
-                  ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
                 }`}
             >
               <Crown className="w-4 h-4" />
@@ -109,8 +109,8 @@ function AuthenticatedApp({ user }) {
             <button
               onClick={() => setActiveTab('cockpit')}
               className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'cockpit'
-                  ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-md ring-1 ring-black/20'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-md ring-1 ring-black/20'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
                 }`}
             >
               <Gauge className="w-4 h-4" />

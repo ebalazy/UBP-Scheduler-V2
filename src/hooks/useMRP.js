@@ -327,15 +327,27 @@ export function useMRP() {
         }
     };
 
+
+    // --- Actions ---
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Wrapper for Save
+    const saveWithStatus = async (fn) => {
+        setIsSaving(true);
+        try { await fn(); }
+        catch (e) { console.error("Save Error", e); }
+        finally {
+            // Small artificial delay to let user see "Saving..."
+            setTimeout(() => setIsSaving(false), 500);
+        }
+    };
+
     const updateDateDemand = (date, value) => {
         const val = Number(value);
         const newDemand = { ...monthlyDemand, [date]: val };
-
         setMonthlyDemand(newDemand);
         saveLocalState('monthlyDemand', newDemand, true);
-
-        if (user) savePlanningEntry(user.id, selectedSize, date, 'demand_plan', val);
-
+        if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'demand_plan', val));
         if (isAutoReplenish && calculations) runAutoReplenishment(newDemand, monthlyProductionActuals);
     };
 
@@ -344,34 +356,30 @@ export function useMRP() {
         const newActuals = { ...monthlyProductionActuals };
         if (val === undefined) delete newActuals[date];
         else newActuals[date] = val;
-
         setMonthlyProductionActuals(newActuals);
         saveLocalState('monthlyProductionActuals', newActuals, true);
-
-        if (user) savePlanningEntry(user.id, selectedSize, date, 'production_actual', val || 0);
-
+        if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'production_actual', val || 0));
         if (isAutoReplenish && calculations) runAutoReplenishment(monthlyDemand, newActuals);
     };
 
     const updateDateInbound = (date, value) => {
         const val = Number(value);
         const newInbound = { ...monthlyInbound, [date]: val };
-
         setMonthlyInbound(newInbound);
         saveLocalState('monthlyInbound', newInbound, true);
-
-        if (user) savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', val);
+        if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', val));
     };
 
-    // Auto-Replenish Shared Logic
+    // Auto-Replenish Shared Logic -- (Optimized to batch save??) 
+    // For now we assume runAutoReplenishment triggers multiple saves. 
+    // We should probably optimize this, but "Saving..." indicator will just stay on, which is fine.
     const runAutoReplenishment = (demandMap, actualMap) => {
         const specs = bottleDefinitions[selectedSize];
         const localSafetyTarget = safetyStockLoads * specs.bottlesPerTruck;
-        let runningBalance = calculations.initialInventory; // Approximation
+        let runningBalance = calculations.initialInventory;
         const today = new Date();
         const next60Days = {};
 
-        // Recalculate basic logic for next 60 days
         for (let i = 0; i < 60; i++) {
             const d = new Date(today);
             d.setDate(today.getDate() + i);
@@ -398,18 +406,21 @@ export function useMRP() {
         saveLocalState('monthlyInbound', newInbound, true);
 
         if (user) {
-            // Batch save?? We need a batch upsert for optimal perf, but single calls work for now.
-            // Or only save the CHANGED days?
-            Object.entries(next60Days).forEach(([date, trucks]) => {
-                if (trucks > 0 || monthlyInbound[date] > 0) { // Only save if relevant
-                    savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
-                }
+            saveWithStatus(async () => {
+                const promises = Object.entries(next60Days).map(([date, trucks]) => {
+                    if (trucks > 0 || monthlyInbound[date] > 0) {
+                        return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
+                    }
+                    return Promise.resolve();
+                });
+                await Promise.all(promises);
             });
         }
     };
 
     return {
         formState: {
+            isSaving, // Exposed
             selectedSize,
             monthlyDemand,
             monthlyInbound,
@@ -433,13 +444,13 @@ export function useMRP() {
                 const val = Number(v);
                 setProductionRate(val);
                 saveLocalState('productionRate', val);
-                if (user) saveProductionSetting(user.id, selectedSize, 'production_rate', val);
+                if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'production_rate', val));
             },
             setDowntimeHours: (v) => {
                 const val = Number(v);
                 setDowntimeHours(val);
                 saveLocalState('downtimeHours', val);
-                if (user) saveProductionSetting(user.id, selectedSize, 'downtime_hours', val);
+                if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'downtime_hours', val));
             },
             setCurrentInventoryPallets: (v) => { const val = Number(v); setCurrentInventoryPallets(val); saveLocalState('currentInventoryPallets', val); },
             setIncomingTrucks: (v) => { const val = Number(v); setIncomingTrucks(val); saveLocalState('incomingTrucks', val); },
@@ -448,12 +459,12 @@ export function useMRP() {
             setIsAutoReplenish: (v) => {
                 setIsAutoReplenish(v);
                 saveLocalState('isAutoReplenish', v, true);
-                if (user) saveProductionSetting(user.id, selectedSize, 'is_auto_replenish', v);
+                if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'is_auto_replenish', v));
             },
             setInventoryAnchor: (v) => {
                 setInventoryAnchor(v);
                 saveLocalState('inventoryAnchor', v, true);
-                if (user) saveInventoryAnchor(user.id, selectedSize, v);
+                if (user) saveWithStatus(() => saveInventoryAnchor(user.id, selectedSize, v));
             }
         },
         results: calculations
