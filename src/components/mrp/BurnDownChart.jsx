@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useSettings } from '../../context/SettingsContext';
 
 export default function BurnDownChart({ currentInventoryBottles, weeklyDemandBottles, safetyStockBottles }) {
+    const { theme } = useSettings();
+    const isDark = theme === 'dark';
 
     const data = useMemo(() => {
         if (!currentInventoryBottles) return [];
@@ -28,12 +31,15 @@ export default function BurnDownChart({ currentInventoryBottles, weeklyDemandBot
 
     if (!data.length) return <div className="h-64 flex items-center justify-center text-gray-400">No Data to Display</div>;
 
-    // Determine intersection point (roughly) for color coding?
-    // For now, simpler: Line is Blue. Safety Stock is Red dashed.
+    // Theme Colors
+    const axisColor = isDark ? '#9CA3AF' : '#6B7280'; // gray-400 : gray-500
+    const gridColor = isDark ? '#374151' : '#E5E7EB'; // gray-700 : gray-200
+    const tooltipBg = isDark ? '#1F2937' : '#FFFFFF'; // gray-800 : white
+    const tooltipColor = isDark ? '#F3F4F6' : '#111827'; // gray-100 : gray-900
 
     return (
-        <div className="w-full h-80 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Inventory Burn Down (14 Days)</h3>
+        <div className="w-full h-80 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
+            <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Inventory Burn Down (14 Days)</h3>
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                     data={data}
@@ -44,25 +50,33 @@ export default function BurnDownChart({ currentInventoryBottles, weeklyDemandBot
                         bottom: 5,
                     }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                     <XAxis
                         dataKey="day"
-                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        tick={{ fontSize: 12, fill: axisColor }}
                         axisLine={false}
                         tickLine={false}
                         interval={2}
                     />
                     <YAxis
-                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        tick={{ fontSize: 12, fill: axisColor }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                     />
                     <Tooltip
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                        contentStyle={{
+                            backgroundColor: tooltipBg,
+                            borderRadius: '8px',
+                            border: isDark ? '1px solid #374151' : 'none',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                            color: tooltipColor
+                        }}
+                        itemStyle={{ color: tooltipColor }}
+                        labelStyle={{ color: axisColor }}
                         formatter={(value) => value.toLocaleString()}
                     />
-                    <Legend />
+                    <Legend wrapperStyle={{ color: axisColor }} />
                     <Line
                         type="monotone"
                         dataKey="inventory"

@@ -18,13 +18,13 @@ export default function SettingsModal({ onClose }) {
     } = useSettings();
 
     return (
-        <div className="fixed inset-0 z-50 flex justify-center bg-black bg-opacity-50 overflow-y-auto px-4 py-6">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl relative h-fit my-auto p-6">
+        <div className="fixed inset-0 z-50 flex justify-center bg-black bg-opacity-50 overflow-y-auto px-4 py-6 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl relative h-fit my-auto p-6 border dark:border-gray-700 transition-colors">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">Master Settings</h2>
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Master Settings</h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700 font-bold text-xl"
+                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-bold text-xl"
                     >
                         &times;
                     </button>
@@ -62,9 +62,9 @@ export default function SettingsModal({ onClose }) {
                     </div>
 
                     {/* Global Planning Rules */}
-                    <div className="bg-blue-50 p-4 rounded-md border border-blue-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md border border-blue-100 dark:border-blue-800 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-blue-900 mb-2">
+                            <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
                                 Global Safety Stock (Full Loads)
                             </label>
                             <input
@@ -73,14 +73,14 @@ export default function SettingsModal({ onClose }) {
                                 pattern="[0-9]*"
                                 value={safetyStockLoads}
                                 onChange={(e) => setSafetyStockLoads(Number(e.target.value))}
-                                className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
+                                className="mt-1 block w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
                             />
-                            <p className="text-xs text-blue-700 mt-1">
+                            <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
                                 Minimum inventory target (Trucks).
                             </p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-blue-900 mb-2">
+                            <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
                                 Inbound Lead Time (Days)
                             </label>
                             <input
@@ -89,52 +89,52 @@ export default function SettingsModal({ onClose }) {
                                 pattern="[0-9]*"
                                 value={leadTimeDays}
                                 onChange={(e) => setLeadTimeDays(Number(e.target.value))}
-                                className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
+                                className="mt-1 block w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
                             />
-                            <p className="text-xs text-blue-700 mt-1">
+                            <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
                                 Days from Order to Delivery.
                             </p>
                         </div>
                     </div>
 
-                    <hr className="border-gray-200" />
+                    <hr className="border-gray-200 dark:border-gray-700" />
 
                     {/* CSV Mapping Settings */}
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-700 mb-4">CSV Integration Mappings</h3>
-                        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">CSV Integration Mappings</h3>
+                        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 uppercase">Status Column Header</label>
+                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status Column Header</label>
                                 <input
                                     type="text"
                                     value={csvMapping.statusColumn}
                                     onChange={(e) => updateCsvMapping('statusColumn', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                                     placeholder="e.g. Trailer State"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 uppercase">"Full" Keyword</label>
+                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">"Full" Keyword</label>
                                 <input
                                     type="text"
                                     value={csvMapping.fullValue}
                                     onChange={(e) => updateCsvMapping('fullValue', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                                     placeholder="e.g. Loaded"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 uppercase">SKU/Product Column</label>
+                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">SKU/Product Column</label>
                                 <input
                                     type="text"
                                     value={csvMapping.skuColumn}
                                     onChange={(e) => updateCsvMapping('skuColumn', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                                     placeholder="e.g. Commodity"
                                 />
                             </div>
                             <div className="col-span-1 md:col-span-3">
-                                <p className="text-xs text-gray-500 italic">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 italic">
                                     The importer will look for rows where <strong>{csvMapping.statusColumn}</strong> contains "<strong>{csvMapping.fullValue}</strong>"
                                     {csvMapping.skuColumn ? <span> and <strong>{csvMapping.skuColumn}</strong> contains the active bottle size (e.g. "20oz").</span> : '.'}
                                 </p>
@@ -142,58 +142,58 @@ export default function SettingsModal({ onClose }) {
                         </div>
                     </div>
 
-                    <hr className="border-gray-200" />
+                    <hr className="border-gray-200 dark:border-gray-700" />
 
                     {/* Bottle Definitions */}
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-700 mb-4">Bottle Definitions</h3>
+                        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Bottle Definitions</h3>
                         <div className="space-y-6">
                             {bottleSizes.map(size => (
-                                <div key={size} className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                                    <h4 className="font-bold text-md text-gray-800 mb-3 border-b pb-2">{size} Configuration</h4>
+                                <div key={size} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+                                    <h4 className="font-bold text-md text-gray-800 dark:text-white mb-3 border-b dark:border-gray-600 pb-2">{size} Configuration</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-500 uppercase">Bottles / Case</label>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Bottles / Case</label>
                                             <input
                                                 type="number"
                                                 inputMode="numeric"
                                                 pattern="[0-9]*"
                                                 value={bottleDefinitions[size].bottlesPerCase}
                                                 onChange={(e) => updateBottleDefinition(size, 'bottlesPerCase', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
+                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-500 uppercase">Bottles / Truck</label>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Bottles / Truck</label>
                                             <input
                                                 type="number"
                                                 inputMode="numeric"
                                                 pattern="[0-9]*"
                                                 value={bottleDefinitions[size].bottlesPerTruck}
                                                 onChange={(e) => updateBottleDefinition(size, 'bottlesPerTruck', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
+                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-500 uppercase">Cases / Truck</label>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cases / Truck</label>
                                             <input
                                                 type="number"
                                                 inputMode="numeric"
                                                 pattern="[0-9]*"
                                                 value={bottleDefinitions[size].casesPerTruck}
                                                 onChange={(e) => updateBottleDefinition(size, 'casesPerTruck', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
+                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-500 uppercase">Cases / Pallet</label>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cases / Pallet</label>
                                             <input
                                                 type="number"
                                                 inputMode="numeric"
                                                 pattern="[0-9]*"
                                                 value={bottleDefinitions[size].casesPerPallet || 0}
                                                 onChange={(e) => updateBottleDefinition(size, 'casesPerPallet', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
+                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
                                             />
                                         </div>
                                     </div>
@@ -203,14 +203,14 @@ export default function SettingsModal({ onClose }) {
                     </div>
                 </div>
 
-                <div className="mt-8 flex justify-between items-center bg-gray-50 -mx-6 -mb-6 p-4 rounded-b-lg border-t">
+                <div className="mt-8 flex justify-between items-center bg-gray-50 dark:bg-gray-800 -mx-6 -mb-6 p-4 rounded-b-lg border-t dark:border-gray-700">
                     <button
                         onClick={() => {
                             if (confirm('Are you sure you want to reset all settings to factory defaults?')) {
                                 resetDefaults();
                             }
                         }}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
                     >
                         Reset to Factory Defaults
                     </button>
