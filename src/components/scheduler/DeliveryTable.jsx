@@ -163,7 +163,7 @@ export default function DeliveryTable({ schedule, truckSchedule, onUpdatePO, onD
             </div>
 
             {/* Shift Breakdown (Legacy) */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden opacity-80 border dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border dark:border-gray-700">
                 <h3 className="bg-gray-800 dark:bg-gray-900 text-white p-4 font-bold text-lg">Shift Verification (Load Balancing)</h3>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -176,7 +176,7 @@ export default function DeliveryTable({ schedule, truckSchedule, onUpdatePO, onD
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             {schedule.map((shift, idx) => (
-                                <tr key={idx} className={idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'}>
+                                <tr key={idx} className={idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700/30'}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100 border-r dark:border-gray-700">
                                         {shift.name}
                                     </td>
@@ -193,7 +193,7 @@ export default function DeliveryTable({ schedule, truckSchedule, onUpdatePO, onD
                                                 ))}
                                             </div>
                                         ) : (
-                                            <span className="text-gray-400 italic">No deliveries</span>
+                                            <span className="text-gray-400 dark:text-gray-500 italic">No deliveries</span>
                                         )}
                                     </td>
                                 </tr>
