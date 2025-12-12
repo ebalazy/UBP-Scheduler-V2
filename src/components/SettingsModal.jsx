@@ -14,7 +14,7 @@ export default function SettingsModal({ onClose }) {
         csvMapping,
         updateCsvMapping,
         resetDefaults,
-        resetDefaults,
+
         theme,
         setTheme,
         addBottleDefinition,
