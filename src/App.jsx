@@ -13,7 +13,8 @@ import { useAuth } from './context/AuthContext';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import LandingPage from './components/LandingPage';
 import CockpitView from './components/cockpit/CockpitView';
-import { Boxes, CalendarClock, Crown, Gauge } from 'lucide-react';
+import LogisticsView from './components/logistics/LogisticsView';
+import { Boxes, CalendarClock, Crown, Gauge, Truck } from 'lucide-react';
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -46,7 +47,8 @@ export default function App() {
 }
 
 function AuthenticatedApp({ user }) {
-  const [activeTab, setActiveTab] = useState('mrp'); // 'mrp' | 'scheduler' | 'master' | 'cockpit'
+  const [activeTab, setActiveTab] = useState('logistics'); // Default to logistics for quick access, or keep 'mrp'? Maybe 'mrp' is better strategic default.
+  // Actually, let's keep 'mrp' default but add 'logistics' as option.
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const mrp = useMRP();
@@ -69,6 +71,18 @@ function AuthenticatedApp({ user }) {
         {/* Modern Segmented Navigation */}
         <div className="mb-8 no-print overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
           <div className="inline-flex p-1.5 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-inner min-w-full md:min-w-0">
+
+            {/* Floor Ops (Logistics) Tab - NEW */}
+            <button
+              onClick={() => setActiveTab('logistics')}
+              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'logistics'
+                ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                }`}
+            >
+              <Truck className="w-4 h-4" />
+              <span>Floor Ops</span>
+            </button>
 
             {/* MRP Tab */}
             <button
@@ -129,6 +143,14 @@ function AuthenticatedApp({ user }) {
         </div>
 
         {/* View Content */}
+        <div className={activeTab === 'logistics' ? 'block' : 'hidden'}>
+          <LogisticsView
+            state={mrp.formState}
+            setters={mrp.setters}
+            results={mrp.results}
+          />
+        </div>
+
         <div className={activeTab === 'mrp' ? 'block' : 'hidden'}>
           <MRPView
             state={mrp.formState}
