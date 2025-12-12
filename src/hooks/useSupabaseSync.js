@@ -20,6 +20,7 @@ export const useSupabaseSync = () => {
             .select('id')
             .eq('user_id', userId)
             .eq('name', skuName)
+            .limit(1)
             .maybeSingle();
 
         if (existing) return existing.id;
@@ -153,8 +154,10 @@ export const useSupabaseSync = () => {
             .from('products')
             .select('*')
             .eq('user_id', userId)
+            .eq('user_id', userId)
             .eq('name', skuName)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
         if (pErr || !product) return null; // New SKU or error
 

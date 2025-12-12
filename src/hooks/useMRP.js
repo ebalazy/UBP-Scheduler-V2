@@ -139,6 +139,7 @@ export function useMRP() {
                     }
                 } catch (e) {
                     console.error("Failed to load cloud state", e);
+                    setSaveError("Data Load Failed");
                 }
             };
             loadCloud();
