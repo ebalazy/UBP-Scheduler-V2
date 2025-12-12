@@ -149,7 +149,7 @@ function AuthenticatedApp({ user }) {
         <div className={activeTab === 'cockpit' ? 'block' : 'hidden'}>
           {/* Negative margins to expand cockpit to container edges */}
           <div className="-mx-4 md:-mx-6 -my-4 md:-my-6">
-            <CockpitView mrpData={mrp} />
+            <CockpitView mrpData={mrp} schedulerData={scheduler} />
           </div>
         </div>
       </main>
