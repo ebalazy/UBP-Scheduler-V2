@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSettings } from '../../context/SettingsContext';
 import {
     TruckIcon,
     ClipboardDocumentCheckIcon,
@@ -11,20 +12,79 @@ import DockManifestParams from './DockManifestParams';
 
 export default function LogisticsView({ state, setters, results }) {
     const [isRecModalOpen, setIsRecModalOpen] = useState(false);
+    const { bottleSizes } = useSettings();
+    const [aggregatedSchedule, setAggregatedSchedule] = useState({ today: [], tomorrow: [] });
+    const [filterSku, setFilterSku] = useState('ALL');
 
     if (!results) return <div className="p-8 text-center text-gray-500">Loading Logistics Data...</div>;
 
     const { specs, yardInventory } = results;
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // Calculate Tomorrow's Date for "Upcoming"
+    // Calculate Tomorrow's Date
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    // Filter Inbound Trucks for Today and Tomorrow
-    const todayTrucks = state.monthlyInbound[todayStr] || 0;
-    const tomorrowTrucks = state.monthlyInbound[tomorrowStr] || 0;
+    // --- AGGREGATION LOGIC ---
+    useEffect(() => {
+        // We need to read from LocalStorage directly because 'state' (useMRP) is scoped to ONE SKU.
+        // This is a special "Executive Read" across all SKUs.
+
+        const agg = { today: [], tomorrow: [] };
+
+        bottleSizes.forEach(sku => {
+            // 1. Read Inbound Count
+            const inboundKey = `mrp_${sku}_monthlyInbound`;
+            let inboundMap = {};
+            try {
+                const raw = localStorage.getItem(inboundKey);
+                if (raw) inboundMap = JSON.parse(raw);
+            } catch (e) { }
+
+            // 2. Read Manifest Details
+            const manifestKey = `mrp_${sku}_truckManifest`;
+            let manifestMap = {};
+            try {
+                const raw = localStorage.getItem(manifestKey);
+                if (raw) manifestMap = JSON.parse(raw);
+            } catch (e) { }
+
+            // 3. Check Today
+            const todayCount = Number(inboundMap[todayStr]) || 0;
+            if (todayCount > 0) {
+                agg.today.push({
+                    sku,
+                    count: todayCount,
+                    manifest: manifestMap[todayStr] || []
+                });
+            }
+
+            // 4. Check Tomorrow
+            const tmrCount = Number(inboundMap[tomorrowStr]) || 0;
+            if (tmrCount > 0) {
+                agg.tomorrow.push({
+                    sku,
+                    count: tmrCount,
+                    manifest: manifestMap[tomorrowStr] || []
+                });
+            }
+        });
+
+        setAggregatedSchedule(agg);
+    }, [bottleSizes, state.monthlyInbound, state.stateVersion]); // Re-run when current SKU updates too, or a global state version changes
+
+    // Filter Logic
+    const filteredToday = filterSku === 'ALL'
+        ? aggregatedSchedule.today
+        : aggregatedSchedule.today.filter(i => i.sku === filterSku);
+
+    const filteredTomorrow = filterSku === 'ALL'
+        ? aggregatedSchedule.tomorrow
+        : aggregatedSchedule.tomorrow.filter(i => i.sku === filterSku);
+
+    const totalTodayTrucks = filteredToday.reduce((acc, i) => acc + i.count, 0);
+    const totalTomorrowTrucks = filteredTomorrow.reduce((acc, i) => acc + i.count, 0);
 
     // Helper for large numbers
     const fmt = (n) => n ? n.toLocaleString() : '0';
@@ -99,18 +159,34 @@ export default function LogisticsView({ state, setters, results }) {
                 <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center">
                         <CalendarDaysIcon className="w-5 h-5 mr-2 text-gray-500" />
-                        Dock Schedule
+                        Master Dock Schedule
                     </h2>
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        Inbound Deliveries
-                    </span>
+
+                    {/* SKU Filter Pill */}
+                    <div className="flex space-x-1 bg-white dark:bg-gray-800 rounded-lg p-1 border dark:border-gray-600">
+                        <button
+                            onClick={() => setFilterSku('ALL')}
+                            className={`px-3 py-1 text-[10px] uppercase font-bold rounded ${filterSku === 'ALL' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            All
+                        </button>
+                        {bottleSizes.map(sku => (
+                            <button
+                                key={sku}
+                                onClick={() => setFilterSku(sku)}
+                                className={`px-3 py-1 text-[10px] uppercase font-bold rounded ${filterSku === sku ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                {sku}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
                     {/* Today */}
                     <div className="p-6 transition-colors">
                         <div className="flex items-center mb-4">
-                            <div className={`w-3 h-12 rounded-full mr-4 ${todayTrucks > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            <div className={`w-3 h-12 rounded-full mr-4 ${totalTodayTrucks > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                             <div>
                                 <p className="text-2xl font-bold text-gray-900 dark:text-white">TODAY</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -118,29 +194,73 @@ export default function LogisticsView({ state, setters, results }) {
                                 </p>
                             </div>
                             <div className="ml-auto text-right">
-                                {todayTrucks > 0 ? (
+                                {totalTodayTrucks > 0 ? (
                                     <span className="text-sm font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full uppercase">
-                                        {todayTrucks} Left to Receive
+                                        {totalTodayTrucks} Total Trucks
                                     </span>
                                 ) : null}
                             </div>
                         </div>
 
-                        {/* Manifest Widget */}
-                        <div className="pl-7">
-                            <DockManifestParams
-                                date={todayStr}
-                                totalRequired={todayTrucks} // From Auto-Calc
-                                manifest={state.truckManifest?.[todayStr] || []}
-                                onUpdate={setters.updateTruckManifest}
-                            />
+                        {/* Render List of Active SKUs */}
+                        <div className="pl-7 space-y-6">
+                            {filteredToday.length === 0 && (
+                                <p className="text-sm text-gray-400 italic">No scheduled deliveries.</p>
+                            )}
+                            {filteredToday.map(item => (
+                                <div key={item.sku} className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                                    <h4 className="flex items-center text-xs font-bold text-gray-500 uppercase mb-3">
+                                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                        {item.sku} Production Supply ({item.count} Trucks)
+                                    </h4>
+                                    <DockManifestParams
+                                        date={todayStr}
+                                        totalRequired={item.count} // From Aggregated
+                                        manifest={item.manifest}
+                                        onUpdate={(d, list) => {
+                                            // Handling update is tricky. We need to update the SPECIFIC SKU's state.
+                                            // If the active tabs SKU matches, we can use 'setters.updateTruckManifest'.
+                                            // If NOT, we are viewing a READ-ONLY aggregate effectively, 
+                                            // UNLESS we switch context or write to LS directly.
+                                            // writing to LS directly for "other" SKUs means UI won't react instantly if we switch tabs.
+                                            // Constraint: Edit only allowed if item.sku === state.selectedSize?
+                                            // No, that sucks. User wants to edit "12oz" while on "20oz" page.
+
+                                            // SOLUTION: Write directly to `mrp_${sku}_truckManifest` in LS, 
+                                            // AND force a re-render of THIS component by updating a local trigger or refetching.
+                                            // Actually, setters.updateTruckManifest only updates CURRENT SKU.
+
+                                            if (item.sku === state.selectedSize) {
+                                                setters.updateTruckManifest(d, list);
+                                            } else {
+                                                // Manual LS Write for off-screen SKU
+                                                // This is a "Backdoor" update.
+                                                const key = `mrp_${item.sku}_truckManifest`;
+                                                const existing = JSON.parse(localStorage.getItem(key) || '{}');
+                                                existing[d] = list;
+                                                // Clean empty?
+                                                if (!list || list.length === 0) delete existing[d];
+                                                localStorage.setItem(key, JSON.stringify(existing));
+                                                // Force refresh of aggregation
+                                                setAggregatedSchedule(prev => ({ ...prev })); // Hacky trigger? 
+                                                // Or just wait for next effect cycle? The Effect depends on `state.monthlyInbound`, 
+                                                // but changing LS doesn't update React State of OTHER skus.
+                                                // We need a forceUpdate.
+                                                window.location.reload(); // Brutal but effective for now? No.
+                                                // Let's just update local state `setAggregatedSchedule` manually to reflect change in UI.
+                                                // TODO: Better cross-sku context management later.
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            ))}
                         </div>
                     </div>
 
                     {/* Tomorrow */}
                     <div className="p-6 transition-colors opacity-95">
                         <div className="flex items-center mb-4">
-                            <div className={`w-3 h-12 rounded-full mr-4 ${tomorrowTrucks > 0 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                            <div className={`w-3 h-12 rounded-full mr-4 ${totalTomorrowTrucks > 0 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
                             <div>
                                 <p className="text-xl font-bold text-gray-700 dark:text-gray-300">TOMORROW</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -149,14 +269,36 @@ export default function LogisticsView({ state, setters, results }) {
                             </div>
                         </div>
 
-                        {/* Manifest Widget */}
-                        <div className="pl-7">
-                            <DockManifestParams
-                                date={tomorrowStr}
-                                totalRequired={tomorrowTrucks}
-                                manifest={state.truckManifest?.[tomorrowStr] || []}
-                                onUpdate={setters.updateTruckManifest}
-                            />
+                        <div className="pl-7 space-y-6">
+                            {filteredTomorrow.length === 0 && (
+                                <p className="text-sm text-gray-400 italic">No scheduled deliveries.</p>
+                            )}
+                            {filteredTomorrow.map(item => (
+                                <div key={item.sku} className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                                    <h4 className="flex items-center text-xs font-bold text-gray-500 uppercase mb-3">
+                                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                        {item.sku} Production Supply ({item.count} Trucks)
+                                    </h4>
+                                    <DockManifestParams
+                                        date={tomorrowStr}
+                                        totalRequired={item.count}
+                                        manifest={item.manifest}
+                                        onUpdate={(d, list) => {
+                                            if (item.sku === state.selectedSize) {
+                                                setters.updateTruckManifest(d, list);
+                                            } else {
+                                                const key = `mrp_${item.sku}_truckManifest`;
+                                                const existing = JSON.parse(localStorage.getItem(key) || '{}');
+                                                existing[d] = list;
+                                                if (!list || list.length === 0) delete existing[d];
+                                                localStorage.setItem(key, JSON.stringify(existing));
+                                                // Reload to see changes (Temporary fix for multi-sku write)
+                                                window.location.reload();
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
