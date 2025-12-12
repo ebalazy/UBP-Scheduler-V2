@@ -98,9 +98,15 @@ export default function MRPView({ state, setters, results }) {
                     ? `${stockoutDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`
                     : 'Stable';
 
-                // 3. PIPELINE (Inbound vs Outbound next 7 days)
-                // We need to sum up next 7 days of demand vs supply
-                // This is a quick approximation
+                // 3. REPLENISHMENT ACTION (Trucks to Order Today/Overdue)
+                // We sum up planned orders where the "Order By" date is Today or earlier.
+                const todayVal = new Date().setHours(0, 0, 0, 0);
+                const actionableTrucks = Object.entries(results.plannedOrders || {})
+                    .filter(([dateStr]) => new Date(dateStr).setHours(0, 0, 0, 0) <= todayVal)
+                    .reduce((sum, [_, order]) => sum + order.count, 0);
+
+                // Fallback: If not auto-planning, use the raw deficit count
+                const displayTrucks = state.isAutoReplenish ? actionableTrucks : results.trucksToOrder;
 
                 return (
                     <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 h-full items-stretch">
@@ -145,34 +151,40 @@ export default function MRPView({ state, setters, results }) {
                         </div>
 
                         {/* KPI 3: ACTION / PIPELINE */}
-                        <div className={`p-5 rounded-xl border flex flex-col justify-between shadow-sm transition-all ${trucksToOrder > 0
+                        <div className={`p-5 rounded-xl border flex flex-col justify-between shadow-sm transition-all ${displayTrucks > 0
                             ? 'bg-blue-600 border-blue-700 text-white'
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                            : (runwayStatus === 'CRITICAL' ? 'bg-red-50 border-red-200' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')
                             }`}>
                             <div className="flex justify-between items-center mb-2">
-                                <h3 className={`text-xs font-bold uppercase tracking-wider ${trucksToOrder > 0 ? 'text-blue-100' : 'text-gray-400'}`}>
+                                <h3 className={`text-xs font-bold uppercase tracking-wider ${displayTrucks > 0 ? 'text-blue-100' : 'text-gray-400'}`}>
                                     Replenishment
                                 </h3>
-                                {trucksToOrder > 0 && <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>}
+                                {displayTrucks > 0 && <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>}
                             </div>
 
-                            {trucksToOrder > 0 ? (
+                            {displayTrucks > 0 ? (
                                 <div>
                                     <div className="flex items-baseline space-x-2">
-                                        <span className="text-4xl font-black leading-none">{trucksToOrder}</span>
+                                        <span className="text-4xl font-black leading-none">{displayTrucks}</span>
                                         <span className="text-sm font-bold opacity-90">Trucks Needed</span>
                                     </div>
                                     <p className="text-xs opacity-80 mt-2 font-medium">
-                                        Order by {new Date().toLocaleDateString('en-US', { weekday: 'short' })} to avoid stockout.
+                                        {state.isAutoReplenish ? 'Planned orders due today.' : 'Deficit based on target.'}
                                     </p>
                                 </div>
                             ) : (
                                 <div>
                                     <div className="flex items-baseline space-x-2">
-                                        <span className="text-3xl font-bold leading-none text-gray-800 dark:text-white">Standby</span>
+                                        {runwayStatus === 'CRITICAL' ? (
+                                            <span className="text-2xl font-bold leading-none text-red-600">Expedite!</span>
+                                        ) : (
+                                            <span className="text-3xl font-bold leading-none text-gray-800 dark:text-white">Standby</span>
+                                        )}
                                     </div>
                                     <p className="text-xs text-gray-500 mt-2">
-                                        Inventory sufficient for demand.
+                                        {runwayStatus === 'CRITICAL'
+                                            ? 'Stockout imminent. Review schedule.'
+                                            : 'No immediate orders due.'}
                                     </p>
                                 </div>
                             )}
@@ -260,47 +272,35 @@ export default function MRPView({ state, setters, results }) {
             case 'demand':
                 return (
                     <div className="h-full flex flex-col">
-                        <div className="flex justify-end mb-2 space-x-2">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`px-2 py-1 text-xs rounded border ${viewMode === 'grid' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
-                            >
-                                Spreadsheet
-                            </button>
-                            <button
-                                onClick={() => setViewMode('calendar')}
-                                className={`px-2 py-1 text-xs rounded border ${viewMode === 'calendar' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
-                            >
-                                Calendar
-                            </button>
-                        </div>
-                        {viewMode === 'calendar' ? (
-                            <CalendarDemand
-                                monthlyDemand={state.monthlyDemand || {}}
-                                updateDateDemand={setters.updateDateDemand}
-                                monthlyInbound={state.monthlyInbound || {}}
-                                updateDateInbound={setters.updateDateInbound}
-                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
-                                updateDateActual={setters.updateDateActual}
-                                specs={results?.specs}
-                                trucksToCancel={results?.trucksToCancel}
-                                dailyLedger={results?.dailyLedger}
-                                safetyTarget={results?.safetyTarget}
-                            />
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+                        >
+                            Spreadsheet
+                        </button>
+                        <button
+                            onClick={() => setViewMode('calendar')}
+                            monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                            updateDateActual={setters.updateDateActual}
+                            specs={results?.specs}
+                            trucksToCancel={results?.trucksToCancel}
+                            dailyLedger={results?.dailyLedger}
+                            safetyTarget={results?.safetyTarget}
+                        />
                         ) : (
-                            <PlanningGrid
-                                monthlyDemand={state.monthlyDemand || {}}
-                                updateDateDemand={setters.updateDateDemand}
-                                monthlyInbound={state.monthlyInbound || {}}
-                                updateDateInbound={setters.updateDateInbound}
-                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
-                                updateDateActual={setters.updateDateActual}
-                                specs={results?.specs}
-                                safetyTarget={results?.safetyTarget}
-                                dailyLedger={results?.dailyLedger}
-                            />
+                        <PlanningGrid
+                            monthlyDemand={state.monthlyDemand || {}}
+                            updateDateDemand={setters.updateDateDemand}
+                            monthlyInbound={state.monthlyInbound || {}}
+                            updateDateInbound={setters.updateDateInbound}
+                            monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                            updateDateActual={setters.updateDateActual}
+                            specs={results?.specs}
+                            safetyTarget={results?.safetyTarget}
+                            dailyLedger={results?.dailyLedger}
+                        />
                         )}
-                    </div>
+                    </div >
                 );
             case 'production':
                 return (
