@@ -108,6 +108,29 @@ export default function CockpitView() {
         setGeneratedSchedule(schedule);
     };
 
+    const handleCopyTable = () => {
+        if (!generatedSchedule) return;
+
+        // Build Tab-Separated String for Excel/Email
+        const headers = ['Load #', 'Del. Date', 'Del. Time', 'Description', 'Bill to', 'PO #'];
+        const rows = generatedSchedule.map((slot, i) => [
+            i + 1,
+            new Date().toLocaleDateString(),
+            slot.time,
+            slot.line === 'L1' ? '20 oz. Clear' : '12 oz. Can',
+            'UBP',
+            slot.po
+        ]);
+
+        const tsv = [
+            headers.join('\t'),
+            ...rows.map(r => r.join('\t'))
+        ].join('\n');
+
+        navigator.clipboard.writeText(tsv);
+        alert("Table copied to clipboard! Ready to paste into Excel or Email.");
+    };
+
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100 p-6 font-mono">
             {/* 1. Morning True-Up (Header) */}
@@ -216,11 +239,60 @@ export default function CockpitView() {
                         onChange={(e) => setSapInput(e.target.value)}
                     />
 
-                    <div className="mt-4 flex justify-end">
-                        <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                    {/* Controls */}
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center space-x-2">
+                            <span className="text-xs text-gray-500">Auto-detects POs</span>
+                            {generatedSchedule && (
+                                <button
+                                    onClick={handleCopyTable}
+                                    className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded font-bold text-xs transition-colors flex items-center"
+                                >
+                                    <ClipboardDocumentCheckIcon className="h-4 w-4 mr-1" />
+                                    Copy
+                                </button>
+                            )}
+                        </div>
+                        <button
+                            onClick={handleGenerateSchedule}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors shadow-lg shadow-purple-900/20"
+                        >
                             Generate Schedule
                         </button>
                     </div>
+
+                    {/* Results Output (Supplier Table Format) */}
+                    {generatedSchedule && (
+                        <div className="mt-2 text-xs font-mono">
+                            <div className="mb-2 text-gray-400 font-bold">Ref: Part# DD 1855526</div>
+                            <div className="overflow-x-auto rounded border border-gray-700">
+                                <table className="w-full text-left text-gray-300">
+                                    <thead className="bg-gray-900 text-gray-400 border-b border-gray-700">
+                                        <tr>
+                                            <th className="p-2">Load #</th>
+                                            <th className="p-2">Del. Date</th>
+                                            <th className="p-2">Del. Time</th>
+                                            <th className="p-2">Description</th>
+                                            <th className="p-2">Bill to</th>
+                                            <th className="p-2">PO #</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-800 bg-gray-800/50">
+                                        {generatedSchedule.map((slot, i) => (
+                                            <tr key={i} className="hover:bg-gray-800">
+                                                <td className="p-2">{i + 1}</td>
+                                                <td className="p-2">{new Date().toLocaleDateString()}</td>
+                                                <td className="p-2 text-blue-400 font-bold">{slot.time}</td>
+                                                <td className="p-2">{slot.line === 'L1' ? '20 oz. Clear' : '12 oz. Can'}</td>
+                                                <td className="p-2">UBP</td>
+                                                <td className="p-2 font-bold text-white">{slot.po}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* 4. Yard Status */}

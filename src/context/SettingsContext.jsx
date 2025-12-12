@@ -116,6 +116,7 @@ export function SettingsProvider({ children }) {
                     if (profile.lead_time_days !== null) setLeadTimeDays(profile.lead_time_days);
                     if (profile.safety_stock_loads !== null) setSafetyStockLoads(profile.safety_stock_loads);
                     if (profile.dashboard_layout) setDashboardLayout(profile.dashboard_layout);
+                    if (profile.theme) setTheme(profile.theme);
                 }
             });
         }
@@ -139,6 +140,26 @@ export function SettingsProvider({ children }) {
     useEffect(() => {
         localStorage.setItem('csvMapping', JSON.stringify(csvMapping));
     }, [csvMapping]);
+
+    const [theme, setTheme] = useState(() => {
+        try {
+            return localStorage.getItem('theme') || 'light';
+        } catch (e) {
+            return 'light';
+        }
+    });
+
+    // Theme Effect: Apply class to <html/>
+    useEffect(() => {
+        const root = window.document.documentElement;
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
+        localStorage.setItem('theme', theme);
+        if (user) saveUserProfile(user.id, { theme });
+    }, [theme, user]);
 
     const [schedulerSettings, setSchedulerSettings] = useState(() => {
         try {
@@ -285,6 +306,8 @@ export function SettingsProvider({ children }) {
         csvMapping,
         dashboardLayout,
         schedulerSettings, // Exported
+        theme, // Exported
+        setTheme, // Exported
         setDashboardLayout,
         setSafetyStockLoads: (v) => {
             const val = Number(v);

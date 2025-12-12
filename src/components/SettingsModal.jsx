@@ -1,4 +1,5 @@
 import { useSettings } from '../context/SettingsContext';
+import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 
 export default function SettingsModal({ onClose }) {
     const {
@@ -11,7 +12,9 @@ export default function SettingsModal({ onClose }) {
         setLeadTimeDays,
         csvMapping,
         updateCsvMapping,
-        resetDefaults
+        resetDefaults,
+        theme,
+        setTheme
     } = useSettings();
 
     return (
@@ -28,6 +31,36 @@ export default function SettingsModal({ onClose }) {
                 </div>
 
                 <div className="space-y-6">
+                    {/* Appearance */}
+                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 className="font-bold text-gray-800 dark:text-gray-200">Appearance</h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Choose your interface theme.</p>
+                        </div>
+                        <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-lg">
+                            <button
+                                onClick={() => setTheme('light')}
+                                className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${theme === 'light'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    }`}
+                            >
+                                <SunIcon className="w-4 h-4" />
+                                <span>Light</span>
+                            </button>
+                            <button
+                                onClick={() => setTheme('dark')}
+                                className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${theme === 'dark'
+                                    ? 'bg-gray-600 text-white shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    }`}
+                            >
+                                <MoonIcon className="w-4 h-4" />
+                                <span>Dark</span>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Global Planning Rules */}
                     <div className="bg-blue-50 p-4 rounded-md border border-blue-100 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
