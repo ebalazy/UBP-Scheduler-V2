@@ -11,12 +11,12 @@ export default function MasterScheduleView({ masterLedger, loading }) {
     const getSkuColor = (sku) => {
         // Simple hash to color or manual map
         const colors = {
-            '20oz': 'bg-blue-100 text-blue-800 border-blue-200',
-            '12oz': 'bg-purple-100 text-purple-800 border-purple-200',
-            '2L': 'bg-green-100 text-green-800 border-green-200',
-            '1L': 'bg-orange-100 text-orange-800 border-orange-200'
+            '20oz': 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700',
+            '12oz': 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-700',
+            '2L': 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700',
+            '1L': 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-700'
         };
-        return colors[sku] || 'bg-gray-100 text-gray-800 border-gray-200';
+        return colors[sku] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     };
 
     if (loading) {
@@ -30,18 +30,18 @@ export default function MasterScheduleView({ masterLedger, loading }) {
 
     if (sortedDates.length === 0) {
         return (
-            <div className="text-center p-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                <h3 className="text-gray-400 font-bold mb-2">No Active Production</h3>
-                <p className="text-gray-400 text-sm">Add demand or trucks to individual SKU plans to see them here.</p>
+            <div className="text-center p-10 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
+                <h3 className="text-gray-400 dark:text-gray-500 font-bold mb-2">No Active Production</h3>
+                <p className="text-gray-400 dark:text-gray-500 text-sm">Add demand or trucks to individual SKU plans to see them here.</p>
             </div>
         );
     }
 
     return (
         <div className="space-y-4">
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Master Schedule</h1>
-                <p className="text-sm text-gray-500">Global view of all production lines and logistics.</p>
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Master Schedule</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Global view of all production lines and logistics.</p>
             </div>
 
             <div className="space-y-4">
@@ -54,15 +54,15 @@ export default function MasterScheduleView({ masterLedger, loading }) {
                         if (activities.length === 0) return null;
 
                         return (
-                            <div key={dateStr} className={`bg-white rounded-lg shadow-sm border p-4 ${isToday ? 'border-blue-300 ring-1 ring-blue-100' : 'border-gray-200'}`}>
-                                <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+                            <div key={dateStr} className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 ${isToday ? 'border-blue-300 ring-1 ring-blue-100 dark:ring-blue-900' : 'border-gray-200 dark:border-gray-700'}`}>
+                                <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100 dark:border-gray-700">
                                     <div className="flex flex-col">
-                                        <span className={`text-lg font-bold ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                                        <span className={`text-lg font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
                                             {dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                         </span>
-                                        <span className="text-xs text-gray-400 font-mono">{dateStr}</span>
+                                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">{dateStr}</span>
                                     </div>
-                                    {isToday && <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded">TODAY</span>}
+                                    {isToday && <span className="text-xs font-bold bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">TODAY</span>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -80,7 +80,7 @@ export default function MasterScheduleView({ masterLedger, loading }) {
 
                                             {/* Truck Badge */}
                                             {act.trucks > 0 && (
-                                                <div className="flex items-center space-x-1 bg-white bg-opacity-60 px-2 py-1 rounded border border-black/5">
+                                                <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 bg-opacity-60 px-2 py-1 rounded border border-black/5 dark:border-white/10">
                                                     <span className="text-base">🚛</span>
                                                     <span className="font-bold text-sm">{act.trucks}</span>
                                                 </div>
@@ -95,28 +95,28 @@ export default function MasterScheduleView({ masterLedger, loading }) {
 
 
                 {/* Desktop View: Table */}
-                <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                     {/* Header Row */}
-                    <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 grid grid-cols-12 gap-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <div className="bg-gray-50 dark:bg-gray-900 px-6 py-3 border-b border-gray-200 dark:border-gray-700 grid grid-cols-12 gap-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         <div className="col-span-3 md:col-span-2">Date</div>
                         <div className="col-span-9 md:col-span-10">Production & Logistics</div>
                     </div>
 
                     {/* Rows */}
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
                         {sortedDates.map(dateStr => {
                             const activities = masterLedger[dateStr] || [];
                             const dateObj = new Date(dateStr);
                             const isToday = new Date().toISOString().split('T')[0] === dateStr;
 
                             return (
-                                <div key={dateStr} className={`group grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 transition-colors ${isToday ? 'bg-blue-50/30' : ''}`}>
+                                <div key={dateStr} className={`group grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isToday ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}`}>
                                     {/* Date Column */}
                                     <div className="col-span-3 md:col-span-2 flex flex-col justify-center">
-                                        <span className={`text-sm font-bold ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                                        <span className={`text-sm font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
                                             {dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                         </span>
-                                        <span className="text-xs text-gray-400 font-mono mt-1">{dateStr}</span>
+                                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono mt-1">{dateStr}</span>
                                     </div>
 
                                     {/* Activity Column */}
@@ -139,7 +139,7 @@ export default function MasterScheduleView({ masterLedger, loading }) {
 
                                                     {/* Separator if both exist */}
                                                     {((act.demand > 0 || act.actual > 0) && act.trucks > 0) && (
-                                                        <span className="text-gray-300">|</span>
+                                                        <span className="text-gray-300 dark:text-gray-600">|</span>
                                                     )}
 
                                                     {/* Logistics */}
