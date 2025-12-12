@@ -93,7 +93,7 @@ function AuthenticatedApp({ user }) {
                 }`}
             >
               <Boxes className="w-4 h-4" />
-              <span>Inventory & MRP</span>
+              <span>Materials</span>
             </button>
 
             {/* Scheduler Tab */}

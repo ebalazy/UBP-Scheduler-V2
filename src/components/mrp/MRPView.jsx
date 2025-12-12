@@ -89,101 +89,115 @@ export default function MRPView({ state, setters, results }) {
                     </div>
                 );
             case 'kpis': {
-                // Helper for Colors
-                const getDosColor = (dos) => {
-                    if (dos <= (leadTimeDays || 2)) return 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/40 dark:border-red-800 dark:text-red-300';
-                    if (dos <= 7) return 'bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:border-yellow-800 dark:text-yellow-300';
-                    return 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/40 dark:border-green-800 dark:text-green-300';
-                };
-
-                const daysOfSupply = results.daysOfSupply !== undefined ? results.daysOfSupply : 30;
-                const dosFormatted = daysOfSupply >= 30 ? '30+' : daysOfSupply.toFixed(1);
-                const dosColorClass = getDosColor(daysOfSupply);
-
-                // Inventory in Pallets (Floor + Yard)
+                // --- RISK-CENTRIC KPI LOGIC ---
                 const palletsPerTruck = (specs.bottlesPerTruck / specs.bottlesPerCase) / (specs.casesPerPallet || 1);
+                // Total Pallets (Floor + Yard)
                 const totalOnHandPallets = Math.round(results.calculatedPallets + (results.yardInventory.effectiveCount * palletsPerTruck));
-                const targetPallets = Math.round(safetyTarget / specs.bottlesPerCase / (specs.casesPerPallet || 1));
 
-                // Actionable Insights Logic
-                const gapPallets = totalOnHandPallets - targetPallets;
-                const gapStatus = gapPallets < 0 ? 'Short' : 'Long';
-                const healthColor = gapPallets < -100 ? 'text-red-500' : gapPallets > 200 ? 'text-orange-500' : 'text-green-500';
+                // 1. RUNWAY HORIZON (Days until stockout)
+                // Use the configured lead time or default 2 days
+                // If we have daysOfSupply, use that.
+                const daysOfSupply = results.daysOfSupply !== undefined ? results.daysOfSupply : 0;
+                const criticalThreshold = leadTimeDays || 2;
+                const warningThreshold = criticalThreshold + 2;
+
+                let runwayStatus = 'Healthy';
+                let runwayColor = 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-800 dark:text-emerald-300';
+
+                if (daysOfSupply <= criticalThreshold) {
+                    runwayStatus = 'CRITICAL';
+                    runwayColor = 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/40 dark:border-red-800 dark:text-red-300 animate-pulse';
+                } else if (daysOfSupply <= warningThreshold) {
+                    runwayStatus = 'Warning';
+                    runwayColor = 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/40 dark:border-amber-800 dark:text-amber-300';
+                }
+
+                // 2. HEALTH CHECK (Main Status)
                 const stockoutDateObj = results.firstStockoutDate ? new Date(results.firstStockoutDate) : null;
                 const stockoutLabel = stockoutDateObj
-                    ? `Empty by ${stockoutDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}`
-                    : 'No stockouts projected';
+                    ? `${stockoutDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`
+                    : 'Stable';
+
+                // 3. PIPELINE (Inbound vs Outbound next 7 days)
+                // We need to sum up next 7 days of demand vs supply
+                // This is a quick approximation
 
                 return (
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-center">
-                        {/* Card 1: Days of Supply (Coverage) */}
-                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${dosColorClass}`}>
-                            <div className="flex justify-between items-start">
-                                <p className="text-xs uppercase font-bold opacity-80">Coverage</p>
-                                <span className="text-2xl">⏳</span>
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 h-full items-stretch">
+
+                        {/* KPI 1: MATERIALS HEALTH (The "Traffic Light") */}
+                        <div className={`p-5 rounded-xl border-2 shadow-sm flex flex-col justify-between ${runwayColor}`}>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-xs font-bold uppercase tracking-wider opacity-90">Coverage Health</h3>
+                                {runwayStatus === 'CRITICAL' && <span className="text-xl">🚨</span>}
+                                {runwayStatus === 'Healthy' && <span className="text-xl">✅</span>}
                             </div>
                             <div>
-                                <div className="flex items-baseline gap-2">
-                                    <p className="text-4xl font-mono font-bold">{dosFormatted}</p>
-                                    <span className="text-sm font-bold opacity-70">Days</span>
+                                <div className="text-3xl font-black tracking-tight">{runwayStatus}</div>
+                                <div className="text-sm font-medium opacity-80 mt-1">
+                                    {runwayStatus === 'CRITICAL'
+                                        ? `Empty by ${stockoutLabel}`
+                                        : runwayStatus === 'Warning'
+                                            ? 'Approaching Safety Stock Limit'
+                                            : 'Inventory Levels Optimal'}
                                 </div>
-                                <p className="text-xs font-bold opacity-80 mt-1">{stockoutLabel}</p>
                             </div>
                         </div>
 
-                        {/* Card 2: Current Inventory (Pallets) */}
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between h-32 transition-colors">
-                            <div className="flex justify-between items-start">
-                                <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold">On Hand</p>
-                                <span className={`text-xs font-bold px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 ${healthColor}`}>
-                                    {gapStatus}: {Math.abs(gapPallets)} plts
-                                </span>
-                            </div>
-                            <div>
-                                <div className="flex items-baseline space-x-2">
-                                    <p className="text-4xl font-mono font-bold text-gray-700 dark:text-white">{fmt(totalOnHandPallets)}</p>
-                                    <span className="text-sm text-gray-400">Pallets</span>
+                        {/* KPI 2: RUNWAY (Days Remaining) */}
+                        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-between">
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Runway</h3>
+                                <div className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                                    Target: {safetyTarget ? Math.round(safetyTarget / (specs.bottlesPerCase * (specs.casesPerPallet || 1))) : '-'} plts
                                 </div>
-                                <p className="text-xs text-gray-400 mt-1">Target: {fmt(targetPallets)} Pallets</p>
+                            </div>
+                            <div className="flex items-end space-x-3">
+                                <div className="text-4xl font-mono font-bold text-gray-800 dark:text-white leading-none">
+                                    {daysOfSupply >= 30 ? '30+' : daysOfSupply.toFixed(1)}
+                                </div>
+                                <div className="text-sm font-medium text-gray-400 mb-1">Days</div>
+                            </div>
+                            <div className="mt-3 text-xs font-medium text-gray-500 flex justify-between items-center border-t pt-2 dark:border-gray-700">
+                                <span>Current On-Hand</span>
+                                <span className="font-bold text-gray-700 dark:text-gray-300">{fmt(totalOnHandPallets)} Pallets</span>
                             </div>
                         </div>
 
-                        {/* Card 3: Action (Direct Command) */}
-                        <div className={`p-6 rounded-lg border-2 flex flex-col justify-between h-32 ${trucksToOrder > 0 ? 'bg-red-500 border-red-600 text-white shadow-lg transform scale-105 transition-transform' :
-                            trucksToCancel > 0 ? 'bg-orange-100 border-orange-300 text-orange-800 dark:bg-orange-900/40 dark:border-orange-800 dark:text-orange-200' :
-                                'bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
+                        {/* KPI 3: ACTION / PIPELINE */}
+                        <div className={`p-5 rounded-xl border flex flex-col justify-between shadow-sm transition-all ${trucksToOrder > 0
+                                ? 'bg-blue-600 border-blue-700 text-white'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                             }`}>
-                            <div className="flex justify-between items-start">
-                                <p className="text-xs uppercase font-bold opacity-90">Recommendation</p>
-                                {trucksToOrder > 0 && <span className="text-2xl animate-pulse">🚨</span>}
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className={`text-xs font-bold uppercase tracking-wider ${trucksToOrder > 0 ? 'text-blue-100' : 'text-gray-400'}`}>
+                                    Replenishment
+                                </h3>
+                                {trucksToOrder > 0 && <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>}
                             </div>
 
-                            <div>
-                                {trucksToOrder > 0 ? (
-                                    <>
-                                        <div className="flex items-baseline gap-2">
-                                            <p className="text-3xl font-black uppercase leading-none">ORDER {trucksToOrder}</p>
-                                            <span className="text-xs font-bold opacity-80">Trucks</span>
-                                        </div>
-                                        <p className="text-xs font-bold opacity-90 mt-1">
-                                            {stockoutDateObj && daysOfSupply < (leadTimeDays || 2)
-                                                ? 'IMMEDIATE ACTION NEEDED'
-                                                : 'To Restore Safety Stock'}
-                                        </p>
-                                    </>
-                                ) : trucksToCancel > 0 ? (
-                                    <>
-                                        <p className="text-3xl font-black uppercase leading-none">PUSH {trucksToCancel}</p>
-                                        <p className="text-xs font-bold opacity-80 mt-1">Reduce Overstock</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p className="text-3xl font-bold uppercase leading-none">On Track</p>
-                                        <p className="text-xs opacity-60 mt-1">Inventory Optimized</p>
-                                    </>
-                                )}
-                            </div>
+                            {trucksToOrder > 0 ? (
+                                <div>
+                                    <div className="flex items-baseline space-x-2">
+                                        <span className="text-4xl font-black leading-none">{trucksToOrder}</span>
+                                        <span className="text-sm font-bold opacity-90">Trucks Needed</span>
+                                    </div>
+                                    <p className="text-xs opacity-80 mt-2 font-medium">
+                                        Order by {new Date().toLocaleDateString('en-US', { weekday: 'short' })} to avoid stockout.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div className="flex items-baseline space-x-2">
+                                        <span className="text-3xl font-bold leading-none text-gray-800 dark:text-white">Standby</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Inventory sufficient for demand.
+                                    </p>
+                                </div>
+                            )}
                         </div>
+
                     </div>
                 );
             }
