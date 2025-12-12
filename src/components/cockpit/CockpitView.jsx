@@ -33,7 +33,7 @@ const MOCK_DATA = {
     }
 };
 
-export default function CockpitView({ mrpData }) {
+export default function CockpitView({ mrpData, schedulerData }) {
     // Derive Line 1 Data from MRP Context
     const line1Data = useMemo(() => {
         if (!mrpData?.results) return MOCK_DATA.lines[0];
@@ -258,17 +258,25 @@ export default function CockpitView({ mrpData }) {
                                 {/* Next Deliveries (Mock Timeline) */}
                                 <div className="md:col-span-6 border-l border-gray-200 dark:border-gray-700 pl-6">
                                     <h4 className="text-xs font-bold text-gray-500 uppercase mb-3">Inbound Schedule</h4>
-                                    <div className="flex space-x-3 overflow-x-auto pb-2">
-                                        {/* Mock slots */}
-                                        {[1, 2, 3].map((i) => (
-                                            <div key={i} className="flex-shrink-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded p-3 min-w-[120px]">
-                                                <div className="text-xs text-blue-600 dark:text-blue-400 font-bold mb-1">
-                                                    {['08:00', '10:00', '12:00'][i - 1]}
+                                    <div className="flex space-x-3 overflow-x-auto pb-2 scrollbar-none">
+                                        {/* Real Schedule from Logistics */}
+                                        {schedulerData?.results?.truckSchedule?.length > 0 ? (
+                                            schedulerData.results.truckSchedule.map((truck) => (
+                                                <div key={truck.id} className="flex-shrink-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded p-3 min-w-[120px]">
+                                                    <div className="text-xs text-blue-600 dark:text-blue-400 font-bold mb-1">
+                                                        {truck.time}
+                                                    </div>
+                                                    <div className="text-sm font-bold text-gray-900 dark:text-white truncate" title={truck.po || "No PO"}>
+                                                        {truck.po ? (truck.po.length > 10 ? 'PO...' + truck.po.slice(-4) : truck.po) : "No PO"}
+                                                    </div>
+                                                    <div className="text-[10px] text-gray-500 mt-1">Load #{truck.id}</div>
                                                 </div>
-                                                <div className="text-sm font-bold text-gray-900 dark:text-white">PO #900{i}</div>
-                                                <div className="text-[10px] text-gray-500 mt-1">ETA: On Time</div>
+                                            ))
+                                        ) : (
+                                            <div className="text-xs text-gray-400 italic p-2 border border-dashed border-gray-300 rounded">
+                                                No trucks scheduled
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
                             </div>
