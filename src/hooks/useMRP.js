@@ -388,9 +388,24 @@ export function useMRP() {
         const localSafetyTarget = safetyStockLoads * specs.bottlesPerTruck;
         let runningBalance = calculations.initialInventory;
         const today = new Date();
+        const startOffset = leadTimeDays || 2; // Respect lead time (48h)
         const next60Days = {};
 
-        for (let i = 0; i < 60; i++) {
+        // 1. Simulator: Walk through locked period (0 to leadTime-1)
+        for (let i = 0; i < startOffset; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            const ds = d.toISOString().split('T')[0];
+            const act = actualMap[ds];
+            const plan = demandMap[ds];
+            const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase;
+            // Use EXISTING Inbound (Locked)
+            const existingTrucks = monthlyInbound[ds] || 0;
+            runningBalance = runningBalance + (existingTrucks * specs.bottlesPerTruck) - dDem;
+        }
+
+        // 2. Planner: Walk from LeadTime onwards
+        for (let i = startOffset; i < 60; i++) {
             const d = new Date(today);
             d.setDate(today.getDate() + i);
             const ds = d.toISOString().split('T')[0];
