@@ -272,35 +272,48 @@ export default function MRPView({ state, setters, results }) {
             case 'demand':
                 return (
                     <div className="h-full flex flex-col">
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-                        >
-                            Spreadsheet
-                        </button>
-                        <button
-                            onClick={() => setViewMode('calendar')}
-                            monthlyProductionActuals={state.monthlyProductionActuals || {}}
-                            updateDateActual={setters.updateDateActual}
-                            specs={results?.specs}
-                            trucksToCancel={results?.trucksToCancel}
-                            dailyLedger={results?.dailyLedger}
-                            safetyTarget={results?.safetyTarget}
-                        />
+                        <div className="flex gap-2 mb-2">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+                            >
+                                Spreadsheet
+                            </button>
+                            <button
+                                onClick={() => setViewMode('calendar')}
+                                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${viewMode === 'calendar' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+                            >
+                                Calendar
+                            </button>
+                        </div>
+
+                        {viewMode === 'calendar' ? (
+                            <CalendarDemand
+                                monthlyDemand={state.monthlyDemand || {}}
+                                updateDateDemand={setters.updateDateDemand}
+                                monthlyInbound={state.monthlyInbound || {}}
+                                updateDateInbound={setters.updateDateInbound}
+                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                                updateDateActual={setters.updateDateActual}
+                                specs={results?.specs}
+                                trucksToCancel={results?.trucksToCancel}
+                                dailyLedger={results?.dailyLedger}
+                                safetyTarget={results?.safetyTarget}
+                            />
                         ) : (
-                        <PlanningGrid
-                            monthlyDemand={state.monthlyDemand || {}}
-                            updateDateDemand={setters.updateDateDemand}
-                            monthlyInbound={state.monthlyInbound || {}}
-                            updateDateInbound={setters.updateDateInbound}
-                            monthlyProductionActuals={state.monthlyProductionActuals || {}}
-                            updateDateActual={setters.updateDateActual}
-                            specs={results?.specs}
-                            safetyTarget={results?.safetyTarget}
-                            dailyLedger={results?.dailyLedger}
-                        />
+                            <PlanningGrid
+                                monthlyDemand={state.monthlyDemand || {}}
+                                updateDateDemand={setters.updateDateDemand}
+                                monthlyInbound={state.monthlyInbound || {}}
+                                updateDateInbound={setters.updateDateInbound}
+                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                                updateDateActual={setters.updateDateActual}
+                                specs={results?.specs}
+                                safetyTarget={results?.safetyTarget}
+                                dailyLedger={results?.dailyLedger}
+                            />
                         )}
-                    </div >
+                    </div>
                 );
             case 'production':
                 return (
