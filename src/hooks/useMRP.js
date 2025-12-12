@@ -69,6 +69,26 @@ export function useMRP() {
     });
     const [isAutoReplenish, setIsAutoReplenish] = useState(() => user ? true : loadLocalState('isAutoReplenish', true, true));
 
+    // --- Auto-Refresh on Focus ---
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    useEffect(() => {
+        const onTrigger = () => {
+            // Only auto-refresh if user is logged in (cloud mode) and app is visible
+            if (user && document.visibilityState === 'visible') {
+                console.log("App Focused/Visible: Refreshing Cloud Data...");
+                setRefreshTrigger(t => t + 1);
+            }
+        };
+
+        document.addEventListener('visibilitychange', onTrigger);
+        window.addEventListener('focus', onTrigger);
+        return () => {
+            document.removeEventListener('visibilitychange', onTrigger);
+            window.removeEventListener('focus', onTrigger);
+        };
+    }, [user]);
+
     // --- Cloud Sync Effect ---
     useEffect(() => {
         localStorage.setItem('mrp_selectedSize', selectedSize);
@@ -123,7 +143,7 @@ export function useMRP() {
             };
             loadCloud();
         }
-    }, [selectedSize, user]); // Re-run when User logs in or Size changes
+    }, [selectedSize, user, refreshTrigger]); // Re-run on Size change, Login, or Focus trigger
 
     // --- Calculations (Identical Logic) ---
     // Updated to use Actuals if present, otherwise Demand
