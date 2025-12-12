@@ -38,59 +38,62 @@ export function useMRP() {
         localStorage.setItem(fullKey, val);
     };
 
-    // --- State Definitions (Initialized with Local Data for Anon, Replaced if User) --
-    // We maintain the "Local First" init to avoid null errors, 
-    // but we'll overlay Cloud data if User exists.
+    // --- State Definitions ---
+    // For logged-in users, we start with EMPTY/Loading state to avoid "flashing" local stale data.
+    // For anon users, we initialize directly from LocalStorage.
 
-    // Monthly Demand (Date -> Cases)
-    const [monthlyDemand, setMonthlyDemand] = useState(() => loadLocalState('monthlyDemand', {}, true));
-    const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => loadLocalState('monthlyProductionActuals', {}, true));
-    const [monthlyInbound, setMonthlyInbound] = useState(() => loadLocalState('monthlyInbound', {}, true));
-    const [productionRate, setProductionRate] = useState(() => Number(loadLocalState('productionRate', 0)));
-    const [downtimeHours, setDowntimeHours] = useState(() => Number(loadLocalState('downtimeHours', 0)));
-    // Note: currentInventoryPallets is becoming obsolete in favor of Inventory Anchor?
-    // We'll keep it for legacy if needed/calculated.
-    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => Number(loadLocalState('currentInventoryPallets', 0)));
+    const init = (key, defaultVal, parse = false) => {
+        if (user) return defaultVal; // Return default (empty) if user exists, wait for fetch
+        return loadLocalState(key, defaultVal, parse);
+    };
+
+    const [monthlyDemand, setMonthlyDemand] = useState(() => init('monthlyDemand', {}, true));
+    const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => init('monthlyProductionActuals', {}, true));
+    const [monthlyInbound, setMonthlyInbound] = useState(() => init('monthlyInbound', {}, true));
+    const [productionRate, setProductionRate] = useState(() => user ? 0 : Number(loadLocalState('productionRate', 0)));
+    const [downtimeHours, setDowntimeHours] = useState(() => user ? 0 : Number(loadLocalState('downtimeHours', 0)));
+    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => user ? 0 : Number(loadLocalState('currentInventoryPallets', 0)));
     const [inventoryAnchor, setInventoryAnchor] = useState(() =>
-        loadLocalState('inventoryAnchor', { date: new Date().toISOString().split('T')[0], count: 0 }, true)
+        user ? { date: new Date().toISOString().split('T')[0], count: 0 } :
+            loadLocalState('inventoryAnchor', { date: new Date().toISOString().split('T')[0], count: 0 }, true)
     );
-    const [incomingTrucks, setIncomingTrucks] = useState(() => Number(loadLocalState('incomingTrucks', 0)));
+    const [incomingTrucks, setIncomingTrucks] = useState(() => user ? 0 : Number(loadLocalState('incomingTrucks', 0)));
     const [yardInventory, setYardInventory] = useState(() =>
-        loadLocalState('yardInventory', { count: 0, timestamp: null, fileName: null }, true)
+        user ? { count: 0, timestamp: null, fileName: null } :
+            loadLocalState('yardInventory', { count: 0, timestamp: null, fileName: null }, true)
     );
     const [manualYardOverride, setManualYardOverride] = useState(() => {
+        if (user) return null;
         const val = loadLocalState('manualYardOverride', null);
         return val ? Number(val) : null;
     });
-    const [isAutoReplenish, setIsAutoReplenish] = useState(() => loadLocalState('isAutoReplenish', true, true));
+    const [isAutoReplenish, setIsAutoReplenish] = useState(() => user ? true : loadLocalState('isAutoReplenish', true, true));
 
     // --- Cloud Sync Effect ---
     useEffect(() => {
         localStorage.setItem('mrp_selectedSize', selectedSize);
 
         if (!user) {
-            // Local Mode: Just reload local state when SKU changes
+            // Local Mode: Reload local state when SKU changes
+            console.log("Local Mode: Loading from LocalStorage");
             setMonthlyDemand(loadLocalState('monthlyDemand', {}, true));
             setMonthlyProductionActuals(loadLocalState('monthlyProductionActuals', {}, true));
             setMonthlyInbound(loadLocalState('monthlyInbound', {}, true));
             setProductionRate(Number(loadLocalState('productionRate', 0)));
             setDowntimeHours(Number(loadLocalState('downtimeHours', 0)));
-            setCurrentInventoryPallets(Number(loadLocalState('currentInventoryPallets', 0)));
+            // ... (other setters if needed, but react usually handles re-render if key changes)
+            // Actually, hooks don't re-run init logic on re-render, so we MUST use setters here for SKU switch.
             setInventoryAnchor(loadLocalState('inventoryAnchor', { date: new Date().toISOString().split('T')[0], count: 0 }, true));
-            setIncomingTrucks(Number(loadLocalState('incomingTrucks', 0)));
-            setYardInventory(loadLocalState('yardInventory', { count: 0, timestamp: null, fileName: null }, true));
-
-            const mo = loadLocalState('manualYardOverride', null);
-            setManualYardOverride(mo ? Number(mo) : null);
             setIsAutoReplenish(loadLocalState('isAutoReplenish', true, true));
         } else {
             // Cloud Mode: Fetch from Supabase
+            console.log(`Cloud Mode: Fetching for ${selectedSize}...`);
             const loadCloud = async () => {
                 try {
                     const data = await fetchMRPState(user.id, selectedSize);
 
                     if (data) {
-                        // We found data! Hydrate state.
+                        console.log("Cloud Data Recevied:", data.productionRate);
                         setMonthlyDemand(data.monthlyDemand || {});
                         setMonthlyProductionActuals(data.monthlyProductionActuals || {});
                         setMonthlyInbound(data.monthlyInbound || {});
@@ -98,24 +101,10 @@ export function useMRP() {
                         setDowntimeHours(data.downtimeHours);
                         setIsAutoReplenish(data.isAutoReplenish);
                         if (data.inventoryAnchor) setInventoryAnchor(data.inventoryAnchor);
-
-                        // Note: Yard Inventory, IncomingTrucks might be ephemeral or need new tables?
-                        // For now we don't have separate tables for yard snapshots except inventory_snapshots(latest).
-                        // Let's assume Yard Inventory persists in LocalStorage for now OR migrate it to 'inventory_snapshots' (location=yard).
-                        // The schema has 'location'='yard'.
-                        // But current `yardInventory` is an object { count, timestamp, filename }.
-                        // Supabase `inventory_snapshots` for yard could work.
-                        // I'll skip deep yard persistence for this exact step to minimize risk, 
-                        // falling back to local for Yard defaults.
                     } else {
-                        // No Data found for this SKU. 
-                        // Check if we should Auto-Migrate from LocalStorage?
-                        // If user is new to this SKU on Cloud, but has Local data...
-                        // We'll try migration ONCE.
-                        console.log("No cloud data found. Attempting migration...");
+                        console.log("No Cloud Data found. Attempting Migration...");
                         const result = await migrateLocalStorage(user, bottleSizes);
                         if (result.success) {
-                            // Retry fetch
                             const retry = await fetchMRPState(user.id, selectedSize);
                             if (retry) {
                                 setMonthlyDemand(retry.monthlyDemand || {});
