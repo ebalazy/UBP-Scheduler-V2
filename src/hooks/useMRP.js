@@ -330,12 +330,17 @@ export function useMRP() {
 
     // --- Actions ---
     const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState(null);
 
     // Wrapper for Save
     const saveWithStatus = async (fn) => {
         setIsSaving(true);
+        setSaveError(null);
         try { await fn(); }
-        catch (e) { console.error("Save Error", e); }
+        catch (e) {
+            console.error("Save Error", e);
+            setSaveError(e.message || "Save Failed");
+        }
         finally {
             // Small artificial delay to let user see "Saving..."
             setTimeout(() => setIsSaving(false), 500);

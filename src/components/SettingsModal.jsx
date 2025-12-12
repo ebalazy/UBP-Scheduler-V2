@@ -235,7 +235,7 @@ export default function SettingsModal({ onClose }) {
                         </div>
                     </div>
                     <div className="text-center mt-4">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-600">v2.2.0 (Realtime Sync)</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-600">v2.2.1 (Hotfix)</p>
                     </div>
                 </div>
             </div>
