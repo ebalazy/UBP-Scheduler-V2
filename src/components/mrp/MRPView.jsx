@@ -104,6 +104,16 @@ export default function MRPView({ state, setters, results }) {
                 const totalOnHandPallets = Math.round(results.calculatedPallets + (results.yardInventory.effectiveCount * palletsPerTruck));
                 const targetPallets = Math.round(safetyTarget / specs.bottlesPerCase / (specs.casesPerPallet || 1));
 
+                // Actionable Insights Logic
+                const gapPallets = totalOnHandPallets - targetPallets;
+                const gapStatus = gapPallets < 0 ? 'Short' : 'Long';
+                const healthColor = gapPallets < -100 ? 'text-red-500' : gapPallets > 200 ? 'text-orange-500' : 'text-green-500';
+
+                const stockoutDateObj = results.firstStockoutDate ? new Date(results.firstStockoutDate) : null;
+                const stockoutLabel = stockoutDateObj
+                    ? `Empty by ${stockoutDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}`
+                    : 'No stockouts projected';
+
                 return (
                     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-center">
                         {/* Card 1: Days of Supply (Coverage) */}
@@ -113,8 +123,11 @@ export default function MRPView({ state, setters, results }) {
                                 <span className="text-2xl">⏳</span>
                             </div>
                             <div>
-                                <p className="text-4xl font-mono font-bold">{dosFormatted}</p>
-                                <p className="text-xs opacity-70 mt-1 font-medium">Days of Supply</p>
+                                <div className="flex items-baseline gap-2">
+                                    <p className="text-4xl font-mono font-bold">{dosFormatted}</p>
+                                    <span className="text-sm font-bold opacity-70">Days</span>
+                                </div>
+                                <p className="text-xs font-bold opacity-80 mt-1">{stockoutLabel}</p>
                             </div>
                         </div>
 
@@ -122,7 +135,9 @@ export default function MRPView({ state, setters, results }) {
                         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between h-32 transition-colors">
                             <div className="flex justify-between items-start">
                                 <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold">On Hand</p>
-                                <span className="text-2xl">📦</span>
+                                <span className={`text-xs font-bold px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 ${healthColor}`}>
+                                    {gapStatus}: {Math.abs(gapPallets)} plts
+                                </span>
                             </div>
                             <div>
                                 <div className="flex items-baseline space-x-2">
@@ -146,18 +161,25 @@ export default function MRPView({ state, setters, results }) {
                             <div>
                                 {trucksToOrder > 0 ? (
                                     <>
-                                        <p className="text-3xl font-black uppercase leading-none">ORDER {trucksToOrder}</p>
-                                        <p className="text-sm font-bold opacity-90 mt-1">Trucks Required</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <p className="text-3xl font-black uppercase leading-none">ORDER {trucksToOrder}</p>
+                                            <span className="text-xs font-bold opacity-80">Trucks</span>
+                                        </div>
+                                        <p className="text-xs font-bold opacity-90 mt-1">
+                                            {stockoutDateObj && daysOfSupply < (leadTimeDays || 2)
+                                                ? 'IMMEDIATE ACTION NEEDED'
+                                                : 'To Restore Safety Stock'}
+                                        </p>
                                     </>
                                 ) : trucksToCancel > 0 ? (
                                     <>
                                         <p className="text-3xl font-black uppercase leading-none">PUSH {trucksToCancel}</p>
-                                        <p className="text-xs font-bold opacity-80 mt-1">Trucks Surplus</p>
+                                        <p className="text-xs font-bold opacity-80 mt-1">Reduce Overstock</p>
                                     </>
                                 ) : (
                                     <>
                                         <p className="text-3xl font-bold uppercase leading-none">On Track</p>
-                                        <p className="text-xs opacity-60 mt-1">No actions needed</p>
+                                        <p className="text-xs opacity-60 mt-1">Inventory Optimized</p>
                                     </>
                                 )}
                             </div>
