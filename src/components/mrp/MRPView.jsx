@@ -185,12 +185,12 @@ export default function MRPView({ state, setters, results }) {
             case 'inventory':
             case 'inputs': // Legacy Fallback
                 return (
-                    <div className="p-6 h-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 transition-colors">
-                        <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b pb-2 flex justify-between items-center bg-transparent">
-                            <span>🎛️ Inventory Controls</span>
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 transition-colors">
+                        <div className="flex justify-between items-center mb-4 border-b pb-2">
+                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Live Inventory</h2>
                             <label className="flex items-center cursor-pointer">
                                 <span className="text-xs mr-2 font-medium text-purple-600">
-                                    {state.isAutoReplenish ? '✨ Auto-Plan' : 'Manual'}
+                                    {state.isAutoReplenish ? 'Auto-Plan On' : 'Manual Plan'}
                                 </span>
                                 <div className="relative">
                                     <input
@@ -199,115 +199,62 @@ export default function MRPView({ state, setters, results }) {
                                         checked={state.isAutoReplenish || false}
                                         onChange={(e) => setters.setIsAutoReplenish(e.target.checked)}
                                     />
-                                    <div className={`block w-10 h-6 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
-                                    <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-4' : ''}`}></div>
+                                    <div className={`block w-8 h-5 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
+                                    <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-3' : ''}`}></div>
                                 </div>
                             </label>
-                        </h2 >
-                        <div className="space-y-5">
-                            {/* Floor Inventory */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Floor (Pallets)</label>
-                                {isEditingYard === 'floor' ? (
-                                    <div className="flex items-center space-x-1">
-                                        <input
-                                            type="number"
-                                            autoFocus
-                                            placeholder="Count"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    setters.setInventoryAnchor({
-                                                        date: new Date().toISOString().split('T')[0],
-                                                        count: Number(e.target.value)
-                                                    });
-                                                    setIsEditingYard(false);
-                                                }
-                                            }}
-                                            className="block w-20 rounded-md border-purple-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-lg"
-                                        />
-                                        <button
-                                            onClick={() => setIsEditingYard(false)}
-                                            className="text-xs text-gray-400 border border-gray-200 rounded p-1"
-                                        >Cancel</button>
-                                    </div>
-                                ) : (
-                                    <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 transition-colors">
-                                        <div>
-                                            <span className="text-xl font-bold text-gray-900 dark:text-gray-100 block leading-none">
-                                                {Math.round(results.calculatedPallets || 0)}
-                                            </span>
-                                            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Calculated</span>
-                                        </div>
-                                        <button
-                                            onClick={() => setIsEditingYard('floor')}
-                                            className="ml-2 text-xs bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 shadow-sm px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200"
-                                        >
-                                            Update
-                                        </button>
-                                    </div>
-                                )}
-                                {state.inventoryAnchor && (
-                                    <p className="text-[10px] text-gray-400 mt-1">
-                                        Last Count: {state.inventoryAnchor.count} on {state.inventoryAnchor.date}
-                                    </p>
-                                )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Floor Inventory (Read Only) */}
+                            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-100 dark:border-gray-600">
+                                <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Floor (Calc)</span>
+                                <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                                    {Math.round(results.calculatedPallets || 0)}
+                                </span>
+                                <span className="text-xs text-gray-400 ml-1">plts</span>
+                                <p className="text-[9px] text-gray-400 mt-1 truncate">
+                                    Anchor: {state.inventoryAnchor?.count || 0} ({state.inventoryAnchor?.date ? new Date(state.inventoryAnchor.date).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }) : '-'})
+                                </p>
                             </div>
 
-                            {/* Yard Inventory Section */}
-                            <div className="bg-blue-50 p-4 rounded-md border border-blue-100 relative">
-                                <div className="flex justify-between items-center mb-2">
-                                    <label className="block text-sm font-bold text-blue-900">Yard Inventory</label>
-                                    {state.yardInventory.timestamp && !isEditingYard && (
-                                        <span className="text-xs text-blue-600">
-                                            Last sync: {new Date(state.yardInventory.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                            {/* Yard Inventory (Editable) */}
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800 relative">
+                                <div className="flex justify-between items-start">
+                                    <span className="text-[10px] uppercase font-bold text-blue-400 block mb-1">Yard</span>
+                                    {!isEditingYard && (
+                                        <button onClick={() => setIsEditingYard(true)} className="text-blue-400 hover:text-blue-600">
+                                            <PencilSquareIcon className="h-3 w-3" />
+                                        </button>
                                     )}
                                 </div>
 
-                                {isEditingYard === true ? (
-                                    <div className="flex items-center space-x-2">
+                                {isEditingYard ? (
+                                    <div className="flex items-center space-x-1 mt-1">
                                         <input
                                             type="number"
                                             autoFocus
+                                            className="w-full text-sm p-1 rounded border-blue-300"
                                             value={state.manualYardOverride ?? state.yardInventory.count}
                                             onChange={(e) => setters.setManualYardOverride(e.target.value)}
-                                            className="block w-full rounded-md border-blue-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
+                                            onBlur={() => setIsEditingYard(false)}
+                                            onKeyDown={(e) => e.key === 'Enter' && setIsEditingYard(false)}
                                         />
-                                        <button
-                                            onClick={() => setIsEditingYard(false)}
-                                            className="p-2 text-blue-600 hover:bg-blue-100 rounded"
-                                        >
-                                            <XMarkIcon className="h-5 w-5" />
-                                        </button>
                                     </div>
                                 ) : (
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex items-baseline space-x-2">
-                                            <span className="text-2xl font-bold text-blue-800">
-                                                {yardInventory.effectiveCount}
-                                            </span>
-                                            <span className="text-sm text-blue-600">Full Loads</span>
-                                            {yardInventory.isOverridden && (
-                                                <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded border border-yellow-200">Manual</span>
-                                            )}
-                                        </div>
-                                        <button
-                                            onClick={() => setIsEditingYard(true)}
-                                            className="flex items-center text-xs text-blue-500 hover:text-blue-700 underline"
-                                        >
-                                            <PencilSquareIcon className="h-3 w-3 mr-1" />
-                                            Override
-                                        </button>
-                                    </div>
+                                    <>
+                                        <span className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                                            {yardInventory.effectiveCount}
+                                        </span>
+                                        <span className="text-xs text-blue-500 ml-1">loads</span>
+                                    </>
                                 )}
-                                {!isEditingYard && state.yardInventory.fileName && (
-                                    <p className="text-xs text-gray-500 mt-1 truncate">
-                                        Source: {state.yardInventory.fileName}
-                                    </p>
+                                {yardInventory.isOverridden && !isEditingYard && (
+                                    <span className="absolute bottom-2 right-2 text-[9px] text-yellow-600 bg-yellow-100 px-1 rounded">Manual</span>
                                 )}
                             </div>
                         </div>
-                    </div >
+                    </div>
                 );
             // Removed 'supply' (Legacy manual input)
             case 'demand':
@@ -357,13 +304,34 @@ export default function MRPView({ state, setters, results }) {
                 );
             case 'production':
                 return (
-                    <ProductionInputs
-                        productionRate={state.productionRate}
-                        setProductionRate={setters.setProductionRate}
-                        downtimeHours={state.downtimeHours}
-                        setDowntimeHours={setters.setDowntimeHours}
-                        lostProductionCases={results.lostProductionCases}
-                    />
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-800">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Production Settings</h3>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Rate (cph)</label>
+                                <input
+                                    type="number"
+                                    value={state.productionRate}
+                                    onChange={(e) => setters.setProductionRate(e.target.value)}
+                                    className="w-20 text-sm p-1 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-right"
+                                />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Downtime (hrs)</label>
+                                <input
+                                    type="number"
+                                    value={state.downtimeHours}
+                                    onChange={(e) => setters.setDowntimeHours(e.target.value)}
+                                    className="w-20 text-sm p-1 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-right"
+                                />
+                            </div>
+                            {/* Lost Cases Display */}
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-800">
+                                <span className="text-xs text-gray-400">Yield Loss</span>
+                                <span className="text-xs font-bold text-red-400">-{results.lostProductionCases} cs</span>
+                            </div>
+                        </div>
+                    </div>
                 );
             default:
                 return null;

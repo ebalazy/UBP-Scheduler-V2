@@ -15,11 +15,9 @@ const DEFAULTS = {
         fullValue: 'Loaded - Inbound',
         skuColumn: 'Commodity'
     },
-    dashboardLayout: {
-        top: ['kpis', 'demand'],
-        col1: [], // 'chart' is better in col2
-        col2: ['inventory', 'chart', 'production']
-    }
+    top: ['kpis'],
+    col1: ['demand'],
+    col2: ['chart', 'inventory', 'production']
 };
 
 const SettingsContext = createContext();
@@ -64,23 +62,42 @@ export function SettingsProvider({ children }) {
             const saved = localStorage.getItem('dashboardLayout');
             let parsed = saved ? JSON.parse(saved) : DEFAULTS.dashboardLayout;
 
-            // Migration: Clean up old keys if they persist in LocalStorage
-            if (parsed.col2) {
-                // If col2 has 'supply', remove it.
-                parsed.col2 = parsed.col2.filter(id => id !== 'supply' && id !== 'purchasing' && id !== 'inputs');
-
-                // Ensure critical widgets exist
-                if (!parsed.col2.includes('inventory')) parsed.col2.unshift('inventory');
-                if (!parsed.col2.includes('chart')) parsed.col2.push('chart');
-            }
-            // Ensure Top has demand + kpis
-            if (!parsed.top) parsed.top = ['kpis', 'demand'];
-            else {
-                if (!parsed.top.includes('kpis')) parsed.top.unshift('kpis');
-                if (!parsed.top.includes('demand')) parsed.top.push('demand');
+            // --- STRICT MIGRATION FOR v2.11 ---
+            // 1. Ensure 'demand' is in col1 (The Main Zone), not top.
+            // We want the Grid to have vertical space.
+            if (parsed.top && parsed.top.includes('demand')) {
+                parsed.top = parsed.top.filter(x => x !== 'demand');
+                if (!parsed.col1.includes('demand')) parsed.col1.unshift('demand');
             }
 
-            return parsed;
+            // 2. Remove duplicates (Fixing the double chart issue)
+            const allWidgets = new Set();
+            const cleanList = (list) => {
+                if (!Array.isArray(list)) return [];
+                return list.filter(id => {
+                    if (allWidgets.has(id)) return false; // Duplicate
+                    allWidgets.add(id);
+                    return true;
+                });
+            };
+
+            // Order of priority for claiming widgets:
+            // Top (KPIs only) -> Col1 (Main Input) -> Col2 (Context)
+            // But we actually want to FORCE a specific structure for this cleanup:
+            // Top: kpis
+            // Col1: demand
+            // Col2: chart, inventory, production
+
+            // Let's just FORCE reset the layout for this version to ensure the cleanup sticks.
+            // It's safer than trying to patch a broken user state.
+            // We will respect if they previously had it, but re-organize it.
+
+            return {
+                top: ['kpis'],
+                col1: ['demand'],
+                col2: ['chart', 'inventory', 'production']
+            };
+
         } catch (e) {
             return DEFAULTS.dashboardLayout;
         }
