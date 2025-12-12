@@ -228,18 +228,20 @@ export const useSupabaseSync = () => {
             .eq('entry_type', type)
             .maybeSingle();
 
-        let error = null;
-
         if (existing) {
-            // 2. Update
-            const res = await supabase
+            // 2. Update with Verification
+            const { data, error } = await supabase
                 .from('planning_entries')
                 .update({ value, user_id: userId })
-                .eq('id', existing.id);
-            error = res.error;
+                .eq('id', existing.id)
+                .select();
+
+            if (error) throw error;
+            if (!data || data.length === 0) throw new Error("Update 0 Rows (Check RLS)");
+
         } else {
-            // 3. Insert
-            const res = await supabase
+            // 3. Insert with Verification
+            const { data, error } = await supabase
                 .from('planning_entries')
                 .insert({
                     product_id: productId,
@@ -247,13 +249,11 @@ export const useSupabaseSync = () => {
                     date: date,
                     entry_type: type,
                     value: value
-                });
-            error = res.error;
-        }
+                })
+                .select();
 
-        if (error) {
-            console.error("Save failed", error);
-            throw error;
+            if (error) throw error;
+            if (!data || data.length === 0) throw new Error("Insert 0 Rows (Check RLS)");
         }
     };
 
