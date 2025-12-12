@@ -4,7 +4,7 @@ export default {
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
-    darkMode: 'class', // reliable strategy for v3/v4 compatibility
+    // darkMode removed; controlled by CSS @custom-variant
     theme: {
         extend: {},
     },

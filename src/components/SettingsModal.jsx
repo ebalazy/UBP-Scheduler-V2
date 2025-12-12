@@ -222,7 +222,7 @@ export default function SettingsModal({ onClose }) {
                     </button>
                 </div>
                 <div className="text-center mt-2">
-                    <p className="text-[10px] text-gray-400 dark:text-gray-600">v2.1.2 (Theme Fix Loaded)</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-600">v2.1.3 (Tailwind v4 Config Fix)</p>
                 </div>
             </div>
         </div>
