@@ -33,8 +33,66 @@ const MOCK_DATA = {
     }
 };
 
-export default function CockpitView() {
-    const [lines, setLines] = useState(MOCK_DATA.lines);
+export default function CockpitView({ mrpData }) {
+    // Derive Line 1 Data from MRP Context
+    const line1Data = useMemo(() => {
+        if (!mrpData?.results) return MOCK_DATA.lines[0];
+
+        const { formState, results } = mrpData;
+        const { productionRate } = formState; // Cases/Hr
+        const { specs, calculatedPallets } = results;
+
+        // Calculate Burn Rate (Minutes per Truck)
+        // Rate = Cases/Hr * Bottles/Case = Bottles/Hr
+        // Trucks/Hr = Bottles/Hr / Bottles/Truck
+        // Mins/Truck = 60 / Trucks/Hr
+        let burnRateMins = 0;
+        if (productionRate > 0 && specs) {
+            const bottlesPerHour = productionRate * specs.bottlesPerCase;
+            const trucksPerHour = bottlesPerHour / specs.bottlesPerTruck;
+            if (trucksPerHour > 0) burnRateMins = Math.round(60 / trucksPerHour);
+        }
+
+        return {
+            id: "L1",
+            name: "Production Line 1",
+            burn_rate_minutes: burnRateMins || 60, // Default if 0
+            inventory_pallets: Math.round(calculatedPallets || 0),
+            current_sku: formState.selectedSize,
+            color: "blue"
+        };
+    }, [mrpData]);
+
+    // Merge Real Line 1 with Mock Line 2
+    const currentLines = [
+        line1Data,
+        {
+            ...MOCK_DATA.lines[1],
+            name: "Line 2 (Offline)",
+            current_sku: "No Schedule",
+            inventory_pallets: 0,
+            burn_rate_minutes: 0,
+            color: "gray"
+        }
+    ];
+
+    const [lines, setLines] = useState(currentLines);
+
+    // Update local state when prop changes
+    useMemo(() => {
+        setLines([
+            line1Data,
+            {
+                ...MOCK_DATA.lines[1],
+                name: "Line 2 (Offline)",
+                current_sku: "Idle",
+                inventory_pallets: 0,
+                burn_rate_minutes: 0, // Infinite/Stop
+                color: "gray"
+            }
+        ]);
+    }, [line1Data]);
+
     const [yard, setYard] = useState(MOCK_DATA.yard_status);
     const [sapInput, setSapInput] = useState("");
     const [morningTrueUp, setMorningTrueUp] = useState({ L1: "", L2: "" });

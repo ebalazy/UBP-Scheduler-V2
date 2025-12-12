@@ -146,7 +146,7 @@ function AuthenticatedApp({ user }) {
         {/* Render Cockpit - Note: Cockpit has its own full-screen bg, so we might need to adjust container if active */}
         {activeTab === 'cockpit' && (
           <div className="absolute inset-0 z-10 top-[80px] bg-gray-900">
-            <CockpitView />
+            <CockpitView mrpData={mrp} />
           </div>
         )}
       </main>
