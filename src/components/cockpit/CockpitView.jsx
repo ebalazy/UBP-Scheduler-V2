@@ -60,6 +60,8 @@ export default function CockpitView() {
         return 'text-yellow-400 border-yellow-500/50';
     };
 
+    const [generatedSchedule, setGeneratedSchedule] = useState(null);
+
     const handleTrueUp = (lineId, val) => {
         setMorningTrueUp(prev => ({ ...prev, [lineId]: val }));
     };
@@ -68,6 +70,42 @@ export default function CockpitView() {
         // In a real app, this would recalculate inventory based on the delta
         // For visual demo, we'll just flash a success
         alert(`Updated ${lineId} actuals to ${morningTrueUp[lineId]}`);
+    };
+
+    const handleGenerateSchedule = () => {
+        // 1. Regex to find POs (assumes 10 digit, or starts with 45...)
+        // Let's grabs generic number strings > 4 digits for demo flexibility
+        const poRegex = /\b(45\d{8}|PO[0-9]{4,})\b|\b\d{5,10}\b/g;
+        const matches = sapInput.match(poRegex) || [];
+
+        if (matches.length === 0) {
+            alert("No PO numbers found in text! Try pasting 'PO 4500012345' or similar.");
+            return;
+        }
+
+        // 2. Round Robin Assignment logic
+        // Start at 08:00
+        let currentHour = 8;
+        let minute = 0;
+
+        const schedule = matches.map((po, index) => {
+            // Assign Line
+            const line = index % 2 === 0 ? 'L1' : 'L2';
+
+            // Format Time
+            const timeStr = `${currentHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+            // Increment Time (every 30 mins)
+            minute += 30;
+            if (minute >= 60) {
+                minute = 0;
+                currentHour++;
+            }
+
+            return { time: timeStr, po, line };
+        });
+
+        setGeneratedSchedule(schedule);
     };
 
     return (
