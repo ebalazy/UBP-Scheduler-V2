@@ -20,7 +20,7 @@ export default function Header({ onOpenSettings }) {
     }, []);
 
     return (
-        <header className="bg-white shadow relative z-10">
+        <header className="bg-white dark:bg-gray-800 shadow relative z-10 transition-colors duration-200">
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -30,7 +30,7 @@ export default function Header({ onOpenSettings }) {
                         <span className="text-2xl">🥤</span>
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900 leading-tight">
+                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
                             Beverage Scheduler
                             <span className="block text-xs text-blue-600 font-medium">UBP Co-Packer Edition</span>
                         </h1>

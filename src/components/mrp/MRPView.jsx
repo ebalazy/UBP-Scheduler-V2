@@ -56,7 +56,7 @@ export default function MRPView({ state, setters, results }) {
             case 'actions':
             case 'purchasing':
                 return (
-                    <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 transition-colors">
                         <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Purchasing Advice</h3>
                         <OrderActionLog
                             plannedOrders={results.plannedOrders}
@@ -66,7 +66,7 @@ export default function MRPView({ state, setters, results }) {
                 );
             case 'dropzone':
                 return (
-                    <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 transition-colors">
                         <CsvDropZone
                             onUpdateInventory={setters.setYardInventory}
                             currentSku={state.selectedSize}
@@ -75,7 +75,7 @@ export default function MRPView({ state, setters, results }) {
                 );
             case 'chart':
                 return (
-                    <div className="p-4 h-full">
+                    <div className="p-4 h-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 transition-colors">
                         <BurnDownChart
                             currentInventoryBottles={results.netInventory + weeklyDemandBottles}
                             weeklyDemandBottles={weeklyDemandBottles}
@@ -119,14 +119,14 @@ export default function MRPView({ state, setters, results }) {
                         </div>
 
                         {/* Card 2: Current Inventory (Pallets) */}
-                        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col justify-between h-32">
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between h-32 transition-colors">
                             <div className="flex justify-between items-start">
-                                <p className="text-gray-500 text-xs uppercase font-bold">On Hand</p>
+                                <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold">On Hand</p>
                                 <span className="text-2xl">📦</span>
                             </div>
                             <div>
                                 <div className="flex items-baseline space-x-2">
-                                    <p className="text-4xl font-mono font-bold text-gray-700">{fmt(totalOnHandPallets)}</p>
+                                    <p className="text-4xl font-mono font-bold text-gray-700 dark:text-white">{fmt(totalOnHandPallets)}</p>
                                     <span className="text-sm text-gray-400">Pallets</span>
                                 </div>
                                 <p className="text-xs text-gray-400 mt-1">Target: {fmt(targetPallets)} Pallets</p>
@@ -167,8 +167,8 @@ export default function MRPView({ state, setters, results }) {
             case 'inventory':
             case 'inputs': // Legacy Fallback
                 return (
-                    <div className="p-6 h-full">
-                        <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex justify-between items-center">
+                    <div className="p-6 h-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 transition-colors">
+                        <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b pb-2 flex justify-between items-center bg-transparent">
                             <span>🎛️ Inventory Controls</span>
                             <label className="flex items-center cursor-pointer">
                                 <span className="text-xs mr-2 font-medium text-purple-600">
@@ -213,16 +213,16 @@ export default function MRPView({ state, setters, results }) {
                                         >Cancel</button>
                                     </div>
                                 ) : (
-                                    <div className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-200">
+                                    <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 transition-colors">
                                         <div>
-                                            <span className="text-xl font-bold text-gray-900 block leading-none">
+                                            <span className="text-xl font-bold text-gray-900 dark:text-gray-100 block leading-none">
                                                 {Math.round(results.calculatedPallets || 0)}
                                             </span>
-                                            <span className="text-[10px] text-gray-500 uppercase">Calculated</span>
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Calculated</span>
                                         </div>
                                         <button
                                             onClick={() => setIsEditingYard('floor')}
-                                            className="ml-2 text-xs bg-white border border-gray-300 shadow-sm px-2 py-1 rounded hover:bg-gray-50 text-gray-700"
+                                            className="ml-2 text-xs bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 shadow-sm px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200"
                                         >
                                             Update
                                         </button>
@@ -293,10 +293,10 @@ export default function MRPView({ state, setters, results }) {
                 );
             case 'supply':
                 return (
-                    <div className="p-6 h-full border border-dashed border-gray-300 rounded-lg">
+                    <div className="p-6 h-full border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
                         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Manual Supply (Legacy)</h3>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Inbound (Trucks)</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Inbound (Trucks)</label>
                             <input
                                 type="number"
                                 inputMode="numeric"
@@ -405,9 +405,9 @@ export default function MRPView({ state, setters, results }) {
     return (
         <div className="space-y-6">
             {/* Header with Title and SKU Selector */}
-            <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-2">
+            <div className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-2 transition-colors">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Production & Inventory Planner</h1>
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Production & Inventory Planner</h1>
                     <div className="flex items-center space-x-2">
                         <p className="text-sm text-gray-500">Manage demand, inventory, and truck schedules.</p>
                     </div>
