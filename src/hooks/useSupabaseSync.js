@@ -242,23 +242,22 @@ export const useSupabaseSync = () => {
     const saveProductionSetting = async (userId, skuName, field, value) => {
         const productId = await ensureProduct(userId, skuName);
 
-        // We need to upsert the whole row or patch?
-        // Supabase upsert needs PK (product_id).
-        // If we only send one field, others might be null if new row?
-        // We should probably fetch existing first or send all?
-        // 'upsert' works if we don't overwrite others? No, it replaces row if not partial?
-        // Postgres `INSERT ... ON CONFLICT DO UPDATE SET ...`
-        // Supabase JS `upsert` handles this. We should pass just the PK and the field?
-        // If row exists, it updates. If we omit columns, do they stay? 
-        // No, standard SQL update doesn't touch omitted columns, but UPSERT (insert) requires all non-nulls.
-        // But `production_settings` has defaults?
+        // Robust Check: Handle potential duplicates gracefully by taking the first one
+        const { data } = await supabase
+            .from('production_settings')
+            .select('id')
+            .eq('product_id', productId)
+            .limit(1);
 
-        // Safer:
-        const { data } = await supabase.from('production_settings').select('*').eq('product_id', productId).maybeSingle();
-        const existing = data || {};
+        const existingId = data && data.length > 0 ? data[0].id : null;
 
-        const update = { ...existing, product_id: productId, [field]: value };
-        await supabase.from('production_settings').upsert(update);
+        const update = { product_id: productId, [field]: value };
+        if (existingId) {
+            update.id = existingId;
+        }
+
+        const { error } = await supabase.from('production_settings').upsert(update);
+        if (error) console.error("Error saving production setting:", error);
     };
 
     const saveInventoryAnchor = async (userId, skuName, anchor) => {
