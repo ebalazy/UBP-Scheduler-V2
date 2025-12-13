@@ -7,7 +7,7 @@ import {
     TrashIcon,
     PencilSquareIcon,
     ArrowRightCircleIcon,
-    // CheckCircleIcon // Removed as per instruction
+    CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -121,8 +121,8 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                             </div>
                         ) : (
                             orders.map((order, idx) => (
-                                <div key={idx} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-sm p-4 relative group hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-                                    {editingOrder === idx ? (
+                                <div key={order.id || idx} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-sm p-4 relative group hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                                    {editingId === order.id ? (
                                         // EDIT / MOVE MODE
                                         <div className="space-y-4">
                                             <div className="grid grid-cols-2 gap-4">
@@ -131,8 +131,8 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                     <input
                                                         type="text"
                                                         className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                        defaultValue={order.po}
-                                                        id={`edit-po-${idx}`}
+                                                        value={editForm.po || ''}
+                                                        onChange={e => setEditForm(prev => ({ ...prev, po: e.target.value }))}
                                                     />
                                                 </div>
                                                 <div>
@@ -140,8 +140,8 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                     <input
                                                         type="text"
                                                         className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                        defaultValue={order.supplier}
-                                                        id={`edit-sup-${idx}`}
+                                                        value={editForm.supplier || ''}
+                                                        onChange={e => setEditForm(prev => ({ ...prev, supplier: e.target.value }))}
                                                     />
                                                 </div>
                                             </div>
@@ -154,11 +154,14 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                         type="date"
                                                         className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white mt-1"
                                                         value={moveTargetDate}
-                                                        onChange={e => setMoveTargetDate(e.target.value)}
+                                                        onChange={e => {
+                                                            setMoveTargetDate(e.target.value);
+                                                            if (!movingId) setMovingId(order.id);
+                                                        }}
                                                     />
                                                 </div>
                                                 <button
-                                                    onClick={() => handleMove(idx, order)}
+                                                    onClick={confirmMove}
                                                     disabled={!moveTargetDate}
                                                     className="mt-5 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm disabled:opacity-50 hover:bg-blue-500 flex items-center"
                                                 >
@@ -169,19 +172,13 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
 
                                             <div className="flex justify-between border-t dark:border-gray-700 pt-3">
                                                 <button
-                                                    onClick={() => setEditingOrder(null)}
+                                                    onClick={() => setEditingId(null)}
                                                     className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                                                 >
                                                     Cancel
                                                 </button>
                                                 <button
-                                                    onClick={() => {
-                                                        handleSaveEdit(idx, {
-                                                            ...order,
-                                                            po: document.getElementById(`edit-po-${idx}`).value,
-                                                            supplier: document.getElementById(`edit-sup-${idx}`).value
-                                                        });
-                                                    }}
+                                                    onClick={saveEdit}
                                                     className="flex items-center text-sm font-bold text-green-600 hover:text-green-700"
                                                 >
                                                     <CheckCircleIcon className="w-5 h-5 mr-1" />
@@ -212,8 +209,8 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={() => {
-                                                        setEditingOrder(idx);
-                                                        setMoveTargetDate(addDays(date, 1)); // Default to tomorrow
+                                                        startEdit(order);
+                                                        startMove(order.id); // Initialize move state too just in case
                                                     }}
                                                     className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg dark:hover:bg-blue-900/30"
                                                     title="Edit or Reschedule"
@@ -221,7 +218,7 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                     <PencilSquareIcon className="w-5 h-5" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(idx)}
+                                                    onClick={() => handleDelete(order.id)}
                                                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg dark:hover:bg-red-900/30"
                                                     title="Cancel Delivery"
                                                 >
