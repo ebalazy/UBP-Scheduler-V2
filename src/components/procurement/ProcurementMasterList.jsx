@@ -1,9 +1,8 @@
-```
 import { useState, useMemo } from 'react';
 import { Dialog } from '@headlessui/react';
-import { 
-    XMarkIcon, 
-    TrashIcon, 
+import {
+    XMarkIcon,
+    TrashIcon,
     FunnelIcon,
     MagnifyingGlassIcon,
     TableCellsIcon,
@@ -16,8 +15,8 @@ import EditOrderModal from './EditOrderModal';
 export default function ProcurementMasterList({ isOpen, onClose }) {
     const { poManifest, deleteOrdersBulk } = useProcurement();
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedIds, setSelectedIds] = new Set());
-    
+    const [selectedIds, setSelectedIds] = useState(new Set());
+
     // Edit/Create State
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState(null);
@@ -77,7 +76,7 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
 
     const handleDeleteSelected = () => {
         if (selectedIds.size === 0) return;
-        if (!confirm(`Are you sure you want to PERMANENTLY delete ${ selectedIds.size } orders ? `)) return;
+        if (!confirm(`Are you sure you want to PERMANENTLY delete ${selectedIds.size} orders ? `)) return;
 
         const ordersToDelete = allOrders.filter(o => selectedIds.has(o.id));
         deleteOrdersBulk(ordersToDelete);
@@ -104,7 +103,7 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                             <button 
+                            <button
                                 onClick={handleCreate}
                                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-500 rounded-lg font-bold transition-colors shadow-sm"
                             >
@@ -177,10 +176,10 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                     </tr>
                                 ) : (
                                     filteredOrders.map(order => (
-                                        <tr key={order.id} className={`hover: bg - blue - 50 dark: hover: bg - gray - 800 transition - colors ${ selectedIds.has(order.id) ? 'bg-blue-50 dark:bg-blue-900/20' : '' } `}>
+                                        <tr key={order.id} className={`hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors ${selectedIds.has(order.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
                                             <td className="p-4">
-                                                <input 
-                                                    type="checkbox" 
+                                                <input
+                                                    type="checkbox"
                                                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                     checked={selectedIds.has(order.id)}
                                                     onChange={() => toggleSelect(order.id)}
@@ -204,7 +203,7 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                                 {order.carrier || '-'}
                                             </td>
                                             <td className="p-4">
-                                                <button 
+                                                <button
                                                     onClick={() => handleEdit(order)}
                                                     className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                                                     title="Edit Order"
@@ -218,7 +217,7 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                             </tbody>
                         </table>
                     </div>
-                    
+
                     {/* Footer */}
                     <div className="p-4 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 flex justify-between">
                         <span>Showing {filteredOrders.length} of {allOrders.length} orders</span>
@@ -228,7 +227,7 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                 </Dialog.Panel>
             </div>
 
-            <EditOrderModal 
+            <EditOrderModal
                 isOpen={isEditOpen}
                 onClose={() => setIsEditOpen(false)}
                 order={editingOrder}
@@ -236,4 +235,3 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
         </Dialog>
     );
 }
-```
