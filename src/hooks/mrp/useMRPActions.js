@@ -31,6 +31,7 @@ export function useMRPActions(state, calculationsResult) {
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState(null);
     const saveTimers = useRef({}); // Store active debounce timers
+    const localSaveTimers = useRef({}); // LocalStorage save timers
 
     // Wrapper for Save
     const saveWithStatus = async (fn) => {
@@ -46,7 +47,7 @@ export function useMRPActions(state, calculationsResult) {
         }
     };
 
-    // Debounce Helper
+    // Debounce Helper (Network)
     const scheduleSave = useCallback((key, fn, delay = 1000) => {
         if (saveTimers.current[key]) {
             clearTimeout(saveTimers.current[key]);
@@ -57,10 +58,22 @@ export function useMRPActions(state, calculationsResult) {
         }, delay);
     }, []);
 
+    // Debounce Helper (Local Storage)
+    const scheduleLocalSave = useCallback((key, fn, delay = 300) => {
+        if (localSaveTimers.current[key]) {
+            clearTimeout(localSaveTimers.current[key]);
+        }
+        localSaveTimers.current[key] = setTimeout(() => {
+            fn();
+            delete localSaveTimers.current[key];
+        }, delay);
+    }, []);
+
     // Cleanup timers on unmount
     useEffect(() => {
         return () => {
             Object.values(saveTimers.current).forEach(clearTimeout);
+            Object.values(localSaveTimers.current).forEach(clearTimeout);
         };
     }, []);
 
@@ -68,7 +81,9 @@ export function useMRPActions(state, calculationsResult) {
         const val = Number(value);
         const newDemand = { ...monthlyDemand, [date]: val };
         setMonthlyDemand(newDemand);
-        saveLocalState('monthlyDemand', newDemand, selectedSize, true);
+        scheduleLocalSave('monthlyDemand', () => {
+            saveLocalState('monthlyDemand', newDemand, selectedSize, true);
+        }, 500);
 
         if (user) {
             scheduleSave(
@@ -85,7 +100,9 @@ export function useMRPActions(state, calculationsResult) {
         if (val === undefined) delete newActuals[date];
         else newActuals[date] = val;
         setMonthlyProductionActuals(newActuals);
-        saveLocalState('monthlyProductionActuals', newActuals, selectedSize, true);
+        scheduleLocalSave('monthlyProductionActuals', () => {
+            saveLocalState('monthlyProductionActuals', newActuals, selectedSize, true);
+        }, 500);
 
         if (user) {
             scheduleSave(
@@ -100,7 +117,9 @@ export function useMRPActions(state, calculationsResult) {
         const val = Number(value);
         const newInbound = { ...monthlyInbound, [date]: val };
         setMonthlyInbound(newInbound);
-        saveLocalState('monthlyInbound', newInbound, selectedSize, true);
+        scheduleLocalSave('monthlyInbound', () => {
+            saveLocalState('monthlyInbound', newInbound, selectedSize, true);
+        }, 500);
 
         if (user) {
             scheduleSave(
