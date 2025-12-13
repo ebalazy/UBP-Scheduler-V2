@@ -59,8 +59,8 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                         Edit Manifest: {date}
                     </h3>
                     <div className="space-x-2">
-                        <button onClick={() => setIsEditing(false)} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
-                        <button onClick={handleSave} className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded shadow hover:bg-blue-500">
+                        <button type="button" onClick={() => setIsEditing(false)} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+                        <button type="button" onClick={handleSave} className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded shadow hover:bg-blue-500">
                             Save Changes
                         </button>
                     </div>
@@ -89,14 +89,24 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                             </div>
                             <div className="w-20">
                                 <label className="text-[10px] uppercase text-gray-400 font-bold">Time</label>
-                                <input
-                                    type="time"
+                                <select
                                     className="w-full text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none dark:text-white"
                                     value={item.time}
                                     onChange={e => handleChange(idx, 'time', e.target.value)}
-                                />
+                                >
+                                    <option value="">TBD</option>
+                                    {Array.from({ length: 48 }).map((_, i) => {
+                                        const h = Math.floor(i / 2);
+                                        const m = (i % 2) * 30;
+                                        const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                        const ampm = h >= 12 ? 'PM' : 'AM';
+                                        const h12 = h % 12 || 12;
+                                        const label = `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+                                        return <option key={timeStr} value={timeStr}>{label}</option>
+                                    })}
+                                </select>
                             </div>
-                            <button onClick={() => handleRemove(idx)} className="text-red-400 hover:text-red-600 p-1">
+                            <button type="button" onClick={() => handleRemove(idx)} className="text-red-400 hover:text-red-600 p-1">
                                 <TrashIcon className="w-4 h-4" />
                             </button>
                         </div>
