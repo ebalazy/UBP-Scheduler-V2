@@ -21,6 +21,8 @@ export default function ProductsView() {
                 .select(`
                     *,
                     production_settings (
+                        id,
+                        line_name,
                         production_rate
                     )
                 `)
@@ -94,9 +96,12 @@ export default function ProductsView() {
                                 <span className="text-xs font-mono text-gray-400">ID: {product.id.slice(0, 4)}...</span>
                             </div>
 
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{product.name}</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{product.name}</h3>
+                            {product.description && (
+                                <p className="text-xs text-gray-500 mb-4 line-clamp-2">{product.description}</p>
+                            )}
 
-                            <div className="space-y-3 text-sm">
+                            <div className="space-y-3 text-sm mt-4">
                                 <div className="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700/50">
                                     <span className="text-gray-500 flex items-center gap-2">
                                         <TruckIcon className="w-4 h-4" />
@@ -112,14 +117,23 @@ export default function ProductsView() {
                                     <span className="text-gray-500">Cases/Pallet</span>
                                     <span className="font-medium text-gray-700 dark:text-gray-200">{product.cases_per_pallet}</span>
                                 </div>
-                                <div className="flex justify-between pt-1">
-                                    <span className="text-gray-500 flex items-center gap-2">
-                                        <BoltIcon className="w-4 h-4 text-amber-500" />
-                                        Run Rate
+                                <div className="pt-2">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block flex items-center gap-1">
+                                        <BoltIcon className="w-3 h-3 text-amber-500" />
+                                        Run Rates (CPH)
                                     </span>
-                                    <span className="font-bold text-gray-900 dark:text-white">
-                                        {product.production_settings?.[0]?.production_rate?.toLocaleString() || '-'} <span className="text-xs font-normal text-gray-400">cph</span>
-                                    </span>
+                                    <div className="space-y-1">
+                                        {product.production_settings?.length > 0 ? (
+                                            product.production_settings.map((setting) => (
+                                                <div key={setting.id || setting.line_name} className="flex justify-between text-xs bg-gray-50 dark:bg-gray-700/50 px-2 py-1 rounded">
+                                                    <span className="text-gray-600 dark:text-gray-300 font-medium">{setting.line_name}</span>
+                                                    <span className="font-bold text-gray-900 dark:text-white">{setting.production_rate?.toLocaleString()}</span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-xs text-gray-400 italic">No rates configured</div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
