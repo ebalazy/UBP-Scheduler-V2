@@ -284,14 +284,18 @@ export const useSupabaseSync = () => {
             .eq('product_id', productId)
             .eq('location', location);
 
-        await supabase.from('inventory_snapshots').insert({
+        console.log(`Saving Snapshot (${location}):`, anchor);
+        const { error } = await supabase.from('inventory_snapshots').upsert({
             product_id: productId,
             user_id: userId,
             date: anchor.date,
             location: location,
             quantity_pallets: anchor.count,
             is_latest: true
-        });
+        }, { onConflict: 'product_id, date, location' });
+
+        if (error) console.error(`Snapshot Save Error (${location}):`, error);
+        else console.log(`Snapshot Saved (${location})`);
     }, [ensureProduct]);
 
     const fetchUserProfile = useCallback(async (userId) => {
