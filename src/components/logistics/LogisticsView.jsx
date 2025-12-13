@@ -304,6 +304,22 @@ export default function LogisticsView({ state, setters, results }) {
                                                 console.error("Failed to update manifest (Today) in LogicsticsView:", err);
                                                 alert("Error saving manifest. See console.");
                                             }
+
+                                            // --- CLEANUP LEGACY LOCAL STORAGE (Today) ---
+                                            try {
+                                                const legacyKey = `mrp_${item.sku}_truckManifest`;
+                                                const raw = localStorage.getItem(legacyKey);
+                                                if (raw) {
+                                                    const data = JSON.parse(raw);
+                                                    if (data[d]) {
+                                                        delete data[d];
+                                                        localStorage.setItem(legacyKey, JSON.stringify(data));
+                                                        console.log("Cleaned up legacy local manifest for (Today)", d);
+                                                    }
+                                                }
+                                            } catch (e) {
+                                                console.warn("Legacy cleanup failed (Today)", e);
+                                            }
                                         }}
                                     />
                                 </div>
@@ -370,6 +386,22 @@ export default function LogisticsView({ state, setters, results }) {
                                             } catch (err) {
                                                 console.error("Failed to update manifest in LogicsticsView:", err);
                                                 alert("Error saving manifest. See console.");
+                                            }
+
+                                            // --- CLEANUP LEGACY LOCAL STORAGE (Tomorrow) ---
+                                            try {
+                                                const legacyKey = `mrp_${item.sku}_truckManifest`;
+                                                const raw = localStorage.getItem(legacyKey);
+                                                if (raw) {
+                                                    const data = JSON.parse(raw);
+                                                    if (data[d]) {
+                                                        delete data[d];
+                                                        localStorage.setItem(legacyKey, JSON.stringify(data));
+                                                        console.log("Cleaned up legacy local manifest for (tomorrow)", d);
+                                                    }
+                                                }
+                                            } catch (e) {
+                                                console.warn("Legacy cleanup failed (tomorrow)", e);
                                             }
                                         }}
                                     />
