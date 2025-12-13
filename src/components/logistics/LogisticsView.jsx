@@ -75,6 +75,7 @@ export default function LogisticsView({ state, setters, results }) {
                 time: 'Any', // POs don't have time yet
                 carrier: po.carrier || po.supplier,
                 type: 'PO',
+                po: po.po, // Fix: Pass 'po' directly
                 details: `PO#${po.po} (${po.qty})`,
                 isGlobal: true // Flag to prevent editing in local view if needed?
             }));
@@ -106,6 +107,7 @@ export default function LogisticsView({ state, setters, results }) {
                 time: 'Any',
                 carrier: po.carrier || po.supplier,
                 type: 'PO',
+                po: po.po, // Fix: Pass 'po' directly
                 details: `PO#${po.po} (${po.qty})`,
                 isGlobal: true
             }));
