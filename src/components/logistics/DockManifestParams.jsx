@@ -29,7 +29,12 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
     // Editing State
     const [editList, setEditList] = useState(existingItems);
 
-    const handleSave = () => {
+    const handleSave = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        console.log("Handle Save Clicked", { date, editList });
         onUpdate(date, editList);
         setIsEditing(false);
     };
@@ -90,11 +95,11 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                             <div className="w-20">
                                 <label className="text-[10px] uppercase text-gray-400 font-bold">Time</label>
                                 <select
-                                    className="w-full text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none dark:text-white"
+                                    className="w-full text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none dark:text-gray-200 dark:bg-gray-800 rounded px-1"
                                     value={item.time}
                                     onChange={e => handleChange(idx, 'time', e.target.value)}
                                 >
-                                    <option value="">TBD</option>
+                                    <option value="" className="text-gray-500">TBD</option>
                                     {Array.from({ length: 48 }).map((_, i) => {
                                         const h = Math.floor(i / 2);
                                         const m = (i % 2) * 30;
@@ -102,7 +107,7 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                                         const ampm = h >= 12 ? 'PM' : 'AM';
                                         const h12 = h % 12 || 12;
                                         const label = `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
-                                        return <option key={timeStr} value={timeStr}>{label}</option>
+                                        return <option key={timeStr} value={timeStr} className="dark:bg-gray-800">{label}</option>
                                     })}
                                 </select>
                             </div>
