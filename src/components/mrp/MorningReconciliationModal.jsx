@@ -6,6 +6,7 @@ import {
     ArrowRightIcon,
     CheckCircleIcon
 } from '@heroicons/react/24/outline'; // Using Heroicons v2
+import { getLocalISOString } from '../../utils/dateUtils';
 
 export default function MorningReconciliationModal({
     isOpen,
@@ -57,8 +58,8 @@ export default function MorningReconciliationModal({
         }
 
         // 2. Save Inventory Anchor (Sets the "Now" baseline)
-        // We set the date to TODAY, so the ledger starts calculation from today.
-        const todayStr = new Date().toISOString().split('T')[0];
+        // We set the date to TODAY (Local), so the ledger starts calculation from today.
+        const todayStr = getLocalISOString();
         setters.setInventoryAnchor({
             date: todayStr,
             count: Number(floorCount)

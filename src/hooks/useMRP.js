@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseSync } from './useSupabaseSync';
+import { getLocalISOString, addDays } from '../utils/dateUtils';
 
 export function useMRP() {
     const { bottleDefinitions, safetyStockLoads, leadTimeDays, bottleSizes, updateBottleDefinition } = useSettings();
@@ -55,8 +56,8 @@ export function useMRP() {
     const [downtimeHours, setDowntimeHours] = useState(() => user ? 0 : Number(loadLocalState('downtimeHours', 0)));
     const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => user ? 0 : Number(loadLocalState('currentInventoryPallets', 0)));
     const [inventoryAnchor, setInventoryAnchor] = useState(() =>
-        user ? { date: new Date().toISOString().split('T')[0], count: 0 } :
-            loadLocalState('inventoryAnchor', { date: new Date().toISOString().split('T')[0], count: 0 }, true)
+        user ? { date: getLocalISOString(), count: 0 } :
+            loadLocalState('inventoryAnchor', { date: getLocalISOString(), count: 0 }, true)
     );
     const [incomingTrucks, setIncomingTrucks] = useState(() => user ? 0 : Number(loadLocalState('incomingTrucks', 0)));
     const [yardInventory, setYardInventory] = useState(() =>
@@ -105,7 +106,7 @@ export function useMRP() {
             setDowntimeHours(Number(loadLocalState('downtimeHours', 0)));
             // ... (other setters if needed, but react usually handles re-render if key changes)
             // Actually, hooks don't re-run init logic on re-render, so we MUST use setters here for SKU switch.
-            setInventoryAnchor(loadLocalState('inventoryAnchor', { date: new Date().toISOString().split('T')[0], count: 0 }, true));
+            setInventoryAnchor(loadLocalState('inventoryAnchor', { date: getLocalISOString(), count: 0 }, true));
             setIsAutoReplenish(loadLocalState('isAutoReplenish', true, true));
         } else {
             // Cloud Mode: Fetch from Supabase
@@ -154,7 +155,7 @@ export function useMRP() {
     // --- Calculations (Identical Logic) ---
     // Updated to use Actuals if present, otherwise Demand
     const totalScheduledCases = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalISOString();
         const allDates = new Set([...Object.keys(monthlyDemand), ...Object.keys(monthlyProductionActuals)]);
 
         return Array.from(allDates).reduce((acc, date) => {
@@ -177,9 +178,11 @@ export function useMRP() {
 
         const lostProductionCases = downtimeHours * productionRate;
         const effectiveScheduledCases = Math.max(0, totalScheduledCases - lostProductionCases);
-        const demandBottles = effectiveScheduledCases * specs.bottlesPerCase;
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
+        const demandBottles = effectiveScheduledCases * specs.bottlesPerCase * scrapFactor;
+
+        const todayStr = getLocalISOString();
         const scheduledInboundTrucks = Object.entries(monthlyInbound).reduce((acc, [date, val]) => {
             if (date >= todayStr) return acc + (Number(val) || 0);
             return acc;
@@ -205,9 +208,7 @@ export function useMRP() {
 
         if (diffDays > 0 && diffDays < 365) {
             for (let i = 0; i < diffDays; i++) {
-                const d = new Date(anchorDate);
-                d.setDate(anchorDate.getDate() + i);
-                const ds = d.toISOString().split('T')[0];
+                const ds = addDays(inventoryAnchor.date, i);
 
                 const actual = monthlyProductionActuals[ds];
                 const plan = monthlyDemand[ds];
@@ -232,15 +233,13 @@ export function useMRP() {
         let firstOverflowDate = null;
 
         for (let i = 0; i < 30; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() + i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = addDays(getLocalISOString(), i);
 
             const actual = monthlyProductionActuals[dateStr];
             const plan = monthlyDemand[dateStr];
             const dailyCases = (actual !== undefined && actual !== null) ? Number(actual) : Number(plan || 0);
 
-            const dailyDemand = dailyCases * specs.bottlesPerCase;
+            const dailyDemand = dailyCases * specs.bottlesPerCase * scrapFactor;
             const dailyTrucks = Number(monthlyInbound[dateStr]) || 0;
             const dailySupply = dailyTrucks * specs.bottlesPerTruck;
 
@@ -390,6 +389,7 @@ export function useMRP() {
         if (!calculations || !isAutoReplenish) return;
 
         const specs = bottleDefinitions[selectedSize];
+        const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
         const localSafetyTarget = safetyStockLoads * specs.bottlesPerTruck;
         let runningBalance = calculations.initialInventory;
         const today = new Date();
@@ -398,12 +398,10 @@ export function useMRP() {
 
         // 1. Simulator: Walk through locked period (0 to leadTime-1)
         for (let i = 0; i < startOffset; i++) {
-            const d = new Date(today);
-            d.setDate(today.getDate() + i);
-            const ds = d.toISOString().split('T')[0];
+            const ds = addDays(getLocalISOString(), i);
             const act = actualMap[ds];
             const plan = demandMap[ds];
-            const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase;
+            const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase * scrapFactor;
             // Use EXISTING Inbound (Locked)
             const existingTrucks = inboundMap[ds] || 0;
             runningBalance = runningBalance + (existingTrucks * specs.bottlesPerTruck) - dDem;
@@ -411,13 +409,11 @@ export function useMRP() {
 
         // 2. Planner: Walk from LeadTime onwards
         for (let i = startOffset; i < 60; i++) {
-            const d = new Date(today);
-            d.setDate(today.getDate() + i);
-            const ds = d.toISOString().split('T')[0];
+            const ds = addDays(getLocalISOString(), i);
 
             const act = actualMap[ds];
             const plan = demandMap[ds];
-            const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase;
+            const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase * scrapFactor;
 
             let dTrucks = 0;
             let bal = runningBalance - dDem;

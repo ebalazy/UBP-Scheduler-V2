@@ -240,6 +240,16 @@ export default function SettingsModal({ onClose }) {
                                                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
                                             />
                                         </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Scrap %</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                value={bottleDefinitions[size].scrapPercentage || 0}
+                                                onChange={(e) => updateBottleDefinition(size, 'scrapPercentage', e.target.value)}
+                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             ))}
