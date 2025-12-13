@@ -99,6 +99,21 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                     </div>
 
                     <div className="p-6 space-y-4">
+                        {/* SKU / Material - Moved to Top */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Material / SKU</label>
+                            <select
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                value={formData.sku}
+                                onChange={e => setFormData({ ...formData, sku: e.target.value })}
+                            >
+                                <option value="">-- Any / All --</option>
+                                {bottleSizes.map(size => (
+                                    <option key={size} value={size}>{size}</option>
+                                ))}
+                            </select>
+                        </div>
+
                         {/* PO Number */}
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">PO Number</label>
@@ -163,20 +178,7 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                             />
                         </div>
 
-                        {/* SKU / Material */}
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Material / SKU</label>
-                            <select
-                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                value={formData.sku}
-                                onChange={e => setFormData({ ...formData, sku: e.target.value })}
-                            >
-                                <option value="">-- Any / All --</option>
-                                {bottleSizes.map(size => (
-                                    <option key={size} value={size}>{size}</option>
-                                ))}
-                            </select>
-                        </div>
+
 
                         {/* Carrier */}
                         <div>
