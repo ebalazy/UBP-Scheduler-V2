@@ -272,36 +272,38 @@ export default function LogisticsView({ state, setters, results }) {
                                         totalRequired={item.count}
                                         manifest={item.manifest}
                                         onUpdate={(d, list) => {
-                                            // Convert to Global POs
-                                            const specs = results.specs;
-                                            const qtyPerTruck = specs?.bottlesPerTruck || 20000;
+                                            console.log("LogisticsView onUpdate (Today) Called", { d, listLength: list.length });
+                                            try {
+                                                const specs = results.specs;
+                                                const qtyPerTruck = specs?.bottlesPerTruck || 20000;
+                                                const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
 
-                                            // 1. Map UI items to PO Objects
-                                            const newOpsItems = list.map(uiItem => ({
-                                                id: uiItem.id || crypto.randomUUID(),
-                                                date: d,
-                                                po: uiItem.po || `TEMP-${Date.now()}`, // Fallback if empty, though user should enter it
-                                                sku: item.sku,
-                                                qty: qtyPerTruck, // Assume 1 Full Truck
-                                                supplier: uiItem.carrier || 'Unknown', // Map Carrier to Supplier for now, or just leave generic
-                                                carrier: uiItem.carrier,
-                                                time: uiItem.time,
-                                                status: 'scheduled',
-                                                isGlobal: true
-                                            }));
+                                                const newOpsItems = list.map(uiItem => ({
+                                                    id: uiItem.id || safeUUID(),
+                                                    date: d,
+                                                    po: uiItem.po || `TEMP-${Date.now()}`,
+                                                    sku: item.sku,
+                                                    qty: qtyPerTruck,
+                                                    supplier: uiItem.carrier || 'Unknown',
+                                                    carrier: uiItem.carrier,
+                                                    time: uiItem.time,
+                                                    status: 'scheduled',
+                                                    isGlobal: true
+                                                }));
 
-                                            // 2. Merge with EXISTING Global Order (Preserve other SKUs)
-                                            const currentDayManifest = poManifest[d]?.items || [];
-                                            const otherSkuItems = currentDayManifest.filter(i => i.sku !== item.sku);
+                                                const currentDayManifest = poManifest[d]?.items || [];
+                                                const otherSkuItems = Array.isArray(currentDayManifest)
+                                                    ? currentDayManifest.filter(i => i.sku !== item.sku)
+                                                    : [];
 
-                                            const combinedItems = [...otherSkuItems, ...newOpsItems];
+                                                const combinedItems = [...otherSkuItems, ...newOpsItems];
 
-                                            // 3. Update Context (Syncs to Cloud + State)
-                                            // We need to access updateDailyManifest from context
-                                            // But we only have 'poManifest' destructured. 
-                                            // We need to destructure 'updateDailyManifest' at top of component.
-                                            // See Step 2158 for context export.
-                                            setters.updateGlobalManifest(d, combinedItems);
+                                                console.log("Calling updateDailyManifest (Today)", { d, count: combinedItems.length });
+                                                updateDailyManifest(d, combinedItems);
+                                            } catch (err) {
+                                                console.error("Failed to update manifest (Today) in LogicsticsView:", err);
+                                                alert("Error saving manifest. See console.");
+                                            }
                                         }}
                                     />
                                 </div>
