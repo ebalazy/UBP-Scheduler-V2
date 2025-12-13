@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getLocalISOString, addDays, formatTime12h } from '../../utils/dateUtils';
+import { getLocalISOString, addDays } from '../../utils/dateUtils';
 import { useSettings } from '../../context/SettingsContext';
 import {
     TruckIcon,
