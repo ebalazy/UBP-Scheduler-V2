@@ -1,0 +1,215 @@
+import { useState } from 'react';
+import { Dialog } from '@headlessui/react';
+import {
+    XMarkIcon,
+    TruckIcon,
+    CalendarDaysIcon,
+    TrashIcon,
+    PencilSquareIcon,
+    ArrowRightCircleIcon,
+    CheckCircleIcon
+} from '@heroicons/react/24/outline';
+import { useProcurement } from '../../context/ProcurementContext';
+import { useSettings } from '../../context/SettingsContext';
+import { addDays, formatLocalDate } from '../../utils/dateUtils';
+
+export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [] }) {
+    const { updateDailyManifest, addOrdersBulk } = useProcurement();
+    const { specs } = useSettings();
+    const [selectedIds, setSelectedIds] = useState([]);
+
+    // Edit State
+    const [editingOrder, setEditingOrder] = useState(null); // The object being edited
+    const [moveTargetDate, setMoveTargetDate] = useState('');
+
+    // Actions
+    const handleDelete = (index) => {
+        if (!confirm('Are you sure you want to cancel this delivery?')) return;
+
+        const newItems = [...orders];
+        newItems.splice(index, 1);
+        updateDailyManifest(date, newItems);
+    };
+
+    const handleMove = (index, order) => {
+        if (!moveTargetDate) return;
+
+        // 1. Remove from current date
+        const newItems = [...orders];
+        newItems.splice(index, 1);
+        updateDailyManifest(date, newItems);
+
+        // 2. Add to new date
+        const movedOrder = { ...order, date: moveTargetDate }; // Update date prop
+        addOrdersBulk([movedOrder]);
+
+        setEditingOrder(null);
+        setMoveTargetDate('');
+    };
+
+    const handleSaveEdit = (index, updatedOrder) => {
+        const newItems = [...orders];
+        newItems[index] = updatedOrder;
+        updateDailyManifest(date, newItems);
+        setEditingOrder(null);
+    };
+
+    // Calculate Trucks (Generic heuristic if specs missing)
+    const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
+    const getTruckCount = (qty) => (qty / bottlesPerTruck).toFixed(1);
+
+    return (
+        <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+            <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+            <div className="fixed inset-0 flex items-center justify-center p-4">
+                <Dialog.Panel className="w-full max-w-3xl bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+
+                    {/* Header */}
+                    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                        <div>
+                            <Dialog.Title className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-white uppercase tracking-wide">
+                                <CalendarDaysIcon className="w-5 h-5 text-blue-500" />
+                                {new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                            </Dialog.Title>
+                            <p className="text-xs text-gray-500 mt-1">Found {orders.length} Scheduled Deliveries</p>
+                        </div>
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                            <XMarkIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6 overflow-y-auto space-y-4">
+                        {orders.length === 0 ? (
+                            <div className="text-center py-10 text-gray-400 italic bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                No deliveries scheduled for this day.
+                            </div>
+                        ) : (
+                            orders.map((order, idx) => (
+                                <div key={idx} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-sm p-4 relative group hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                                    {editingOrder === idx ? (
+                                        // EDIT / MOVE MODE
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-xs font-bold text-gray-500">PO Number</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                        defaultValue={order.po}
+                                                        id={`edit-po-${idx}`}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-bold text-gray-500">Supplier</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                        defaultValue={order.supplier}
+                                                        id={`edit-sup-${idx}`}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* MOVE ACTION */}
+                                            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg flex items-center gap-3">
+                                                <div className="flex-1">
+                                                    <label className="text-xs font-bold text-blue-700 dark:text-blue-300">Move to Date</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white mt-1"
+                                                        value={moveTargetDate}
+                                                        onChange={e => setMoveTargetDate(e.target.value)}
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={() => handleMove(idx, order)}
+                                                    disabled={!moveTargetDate}
+                                                    className="mt-5 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm disabled:opacity-50 hover:bg-blue-500 flex items-center"
+                                                >
+                                                    <ArrowRightCircleIcon className="w-5 h-5 mr-1" />
+                                                    Reschedule
+                                                </button>
+                                            </div>
+
+                                            <div className="flex justify-between border-t dark:border-gray-700 pt-3">
+                                                <button
+                                                    onClick={() => setEditingOrder(null)}
+                                                    className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        handleSaveEdit(idx, {
+                                                            ...order,
+                                                            po: document.getElementById(`edit-po-${idx}`).value,
+                                                            supplier: document.getElementById(`edit-sup-${idx}`).value
+                                                        });
+                                                    }}
+                                                    className="flex items-center text-sm font-bold text-green-600 hover:text-green-700"
+                                                >
+                                                    <CheckCircleIcon className="w-5 h-5 mr-1" />
+                                                    Save Changes
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // VIEW MODE
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-start gap-4">
+                                                <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                                                    <TruckIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                                                        PO #{order.po}
+                                                        <span className="ml-2 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 text-xs rounded-full">
+                                                            {getTruckCount(order.qty)} Trucks
+                                                        </span>
+                                                    </h3>
+                                                    <p className="text-sm text-gray-500">{order.supplier}</p>
+                                                    <p className="text-xs text-gray-400 mt-1">Qty: {Number(order.qty).toLocaleString()}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingOrder(idx);
+                                                        setMoveTargetDate(addDays(date, 1)); // Default to tomorrow
+                                                    }}
+                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg dark:hover:bg-blue-900/30"
+                                                    title="Edit or Reschedule"
+                                                >
+                                                    <PencilSquareIcon className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(idx)}
+                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg dark:hover:bg-red-900/30"
+                                                    title="Cancel Delivery"
+                                                >
+                                                    <TrashIcon className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        )}
+
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg flex gap-3 text-xs text-yellow-800 dark:text-yellow-200">
+                            <span className="text-lg">💡</span>
+                            <p>
+                                <strong>Schedule Exception Management</strong><br />
+                                Use this tool to handle cancellations or delays.
+                                Removing a PO here is permanent unless re-imported from SAP.
+                            </p>
+                        </div>
+                    </div>
+                </Dialog.Panel>
+            </div>
+        </Dialog>
+    );
+}

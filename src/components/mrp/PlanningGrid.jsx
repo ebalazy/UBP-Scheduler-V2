@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { formatLocalDate } from '../../utils/dateUtils';
 import { useProcurement } from '../../context/ProcurementContext';
+import ScheduleManagerModal from '../procurement/ScheduleManagerModal';
 
 export default function PlanningGrid({
     monthlyDemand, updateDateDemand,
@@ -11,6 +12,15 @@ export default function PlanningGrid({
     // We display 35 days (5 weeks) from today or selected start date
     const [startDate, setStartDate] = useState(new Date());
     const { poManifest } = useProcurement();
+
+    // Schedule Manager State
+    const [managerDate, setManagerDate] = useState(null); // '2023-10-25'
+    const [isManagerOpen, setIsManagerOpen] = useState(false);
+
+    const openManager = (dateStr) => {
+        setManagerDate(dateStr);
+        setIsManagerOpen(true);
+    };
 
     // Generate Date Range
     const dates = [];
@@ -185,8 +195,8 @@ export default function PlanningGrid({
                                         />
                                         {/* PO Indicator */}
                                         {poManifest[dateStr] && poManifest[dateStr].items.length > 0 && (
-                                            <div className="absolute top-0 right-0 m-0.5">
-                                                <div className="w-2.5 h-2.5 bg-blue-500 rounded-full ring-1 ring-white dark:ring-gray-800 flex items-center justify-center cursor-help" title={`${poManifest[dateStr].items.length} POs Linked`}>
+                                            <div className="absolute top-0 right-0 m-0.5" onClick={() => openManager(dateStr)}>
+                                                <div className="w-2.5 h-2.5 bg-blue-600 hover:bg-blue-500 hover:scale-125 transition-transform rounded-full ring-1 ring-white dark:ring-gray-800 flex items-center justify-center cursor-pointer shadow-sm" title={`${poManifest[dateStr].items.length} POs - Click to Manage`}>
                                                     <span className="text-[6px] text-white font-bold">{poManifest[dateStr].items.length}</span>
                                                 </div>
                                             </div>
@@ -317,6 +327,16 @@ export default function PlanningGrid({
             <div className="p-2 bg-gray-50 text-[10px] text-gray-400 text-center dark:bg-gray-800">
                 Values in Cases/Pallets as configured. showing 45 days.
             </div>
+
+            {/* Schedule Manager */}
+            {managerDate && (
+                <ScheduleManagerModal
+                    isOpen={isManagerOpen}
+                    onClose={() => setIsManagerOpen(false)}
+                    date={managerDate}
+                    orders={poManifest[managerDate]?.items || []}
+                />
+            )}
         </div>
     );
 }
