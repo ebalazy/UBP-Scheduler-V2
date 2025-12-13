@@ -290,78 +290,65 @@ export const useSupabaseSync = () => {
             user_id: userId,
             date: anchor.date,
             location: location,
-            quantity_pallets: anchor.count,
-            is_latest: true
-        }, { onConflict: 'product_id, date, location' });
+            const { error } = await supabase.from('inventory_snapshots').upsert({
+                product_id: productId,
+                user_id: userId,
+                date: anchor.date,
+                location: location,
+                quantity_pallets: anchor.count
+            }, { onConflict: 'product_id, date, location' });
 
-        if (error) console.error(`Snapshot Save Error (${location}):`, error);
-        else console.log(`Snapshot Saved (${location})`);
-    }, [ensureProduct]);
+            if(error) console.error(`Snapshot Save Error (${location}):`, error);
+            else console.log(`Snapshot Saved (${location})`);
+        }, [ensureProduct]);
 
-    const fetchUserProfile = useCallback(async (userId) => {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('lead_time_days, safety_stock_loads, dashboard_layout')
-            .eq('id', userId)
-            .maybeSingle();
-        if (error) console.error("Error fetching profile:", error);
-        return data;
-    }, []);
+        const fetchUserProfile = useCallback(async (userId) => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('lead_time_days, safety_stock_loads, dashboard_layout')
+                .eq('id', userId)
+                .maybeSingle();
+            if (error) console.error("Error fetching profile:", error);
+            return data;
+        }, []);
 
-    const saveUserProfile = useCallback(async (userId, updates) => {
-        const payload = { id: userId, ...updates, updated_at: new Date().toISOString() };
-        const { error } = await supabase.from('profiles').upsert(payload);
-        if (error) console.error("Error saving profile:", error);
-    }, []);
+        const saveUserProfile = useCallback(async (userId, updates) => {
+            const payload = { id: userId, ...updates, updated_at: new Date().toISOString() };
+            const { error } = await supabase.from('profiles').upsert(payload);
+            if (error) console.error("Error saving profile:", error);
+        }, []);
 
-    const uploadLocalData = useCallback(async (user, bottleSizes) => {
-        if (!user) return;
-        const { count, error } = await supabase
-            .from('products')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id);
+        const uploadLocalData = useCallback(async (user, bottleSizes) => {
+            if (!user) return;
+            const { count, error } = await supabase
+                .from('products')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id);
 
-        if (error) {
-            console.error("Migration Check Failed:", error);
-            return;
-        }
+            if (error) {
+                console.error("Migration Check Failed:", error);
+                return;
+            }
 
-        if (count === 0) {
-            await migrateLocalStorage(user, bottleSizes);
-        }
-    }, [migrateLocalStorage]);
+            if (count === 0) {
+                await migrateLocalStorage(user, bottleSizes);
+            }
+        }, [migrateLocalStorage]);
 
-    // --- ADAPTERS ---
-    const toAppModel = useCallback((row) => ({
-        id: row.id,
-        po: row.po_number,
-        qty: Number(row.quantity),
-        sku: row.sku || '',
-        supplier: row.supplier,
-        status: row.status,
-        date: row.date,
-        time: row.delivery_time || '',
-        carrier: row.carrier || ''
-    }), []);
+        // --- ADAPTERS ---
+        const toAppModel = useCallback((row) => ({
+            id: row.id,
+            po: row.po_number,
+            qty: Number(row.quantity),
+            sku: row.sku || '',
+            supplier: row.supplier,
+            status: row.status,
+            date: row.date,
+            time: row.delivery_time || '',
+            carrier: row.carrier || ''
+        }), []);
 
-    const toDbModel = useCallback((order, userId) => ({
-        po_number: order.po,
-        quantity: order.qty,
-        sku: order.sku,
-        supplier: order.supplier,
-        carrier: order.carrier,
-        status: order.status || 'planned',
-        date: order.date,
-        delivery_time: order.time,
-        user_id: userId
-    }), []);
-
-    const saveProcurementEntry = useCallback(async (order) => {
-        if (!order.po) return;
-        const user = (await supabase.auth.getUser()).data.user;
-        if (!user) return; // Should we pass user in?
-
-        const payload = {
+        const toDbModel = useCallback((order, userId) => ({
             po_number: order.po,
             quantity: order.qty,
             sku: order.sku,
@@ -370,66 +357,83 @@ export const useSupabaseSync = () => {
             status: order.status || 'planned',
             date: order.date,
             delivery_time: order.time,
-            user_id: user.id
-        };
+            user_id: userId
+        }), []);
 
-        const { data: existing } = await supabase
-            .from('procurement_orders')
-            .select('id')
-            .eq('po_number', order.po)
-            .maybeSingle();
+        const saveProcurementEntry = useCallback(async (order) => {
+            if (!order.po) return;
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return; // Should we pass user in?
 
-        if (existing) {
-            await supabase.from('procurement_orders').update(payload).eq('id', existing.id);
-        } else {
-            await supabase.from('procurement_orders').insert(payload);
-        }
-    }, []);
+            const payload = {
+                po_number: order.po,
+                quantity: order.qty,
+                sku: order.sku,
+                supplier: order.supplier,
+                carrier: order.carrier,
+                status: order.status || 'planned',
+                date: order.date,
+                delivery_time: order.time,
+                user_id: user.id
+            };
 
-    const deleteProcurementEntry = useCallback(async (poNumber) => {
-        await supabase.from('procurement_orders').delete().eq('po_number', poNumber);
-    }, []);
+            const { data: existing } = await supabase
+                .from('procurement_orders')
+                .select('id')
+                .eq('po_number', order.po)
+                .maybeSingle();
 
-    const fetchProcurementData = useCallback(async () => {
-        const { data, error } = await supabase
-            .from('procurement_orders')
-            .select('*')
-            .order('date', { ascending: true });
+            if (existing) {
+                await supabase.from('procurement_orders').update(payload).eq('id', existing.id);
+            } else {
+                await supabase.from('procurement_orders').insert(payload);
+            }
+        }, []);
 
-        if (error) {
-            console.error("Error fetching procurement:", error);
-            return {};
-        }
+        const deleteProcurementEntry = useCallback(async (poNumber) => {
+            await supabase.from('procurement_orders').delete().eq('po_number', poNumber);
+        }, []);
 
-        const manifest = {};
-        data.forEach(row => {
-            if (!manifest[row.date]) manifest[row.date] = { items: [] };
-            manifest[row.date].items.push({
-                id: row.id,
-                po: row.po_number,
-                qty: Number(row.quantity),
-                sku: row.sku || '',
-                supplier: row.supplier,
-                status: row.status,
-                date: row.date,
-                time: row.delivery_time || '',
-                carrier: row.carrier || ''
+        const fetchProcurementData = useCallback(async () => {
+            const { data, error } = await supabase
+                .from('procurement_orders')
+                .select('*')
+                .order('date', { ascending: true });
+
+            if (error) {
+                console.error("Error fetching procurement:", error);
+                return {};
+            }
+
+            const manifest = {};
+            data.forEach(row => {
+                if (!manifest[row.date]) manifest[row.date] = { items: [] };
+                manifest[row.date].items.push({
+                    id: row.id,
+                    po: row.po_number,
+                    qty: Number(row.quantity),
+                    sku: row.sku || '',
+                    supplier: row.supplier,
+                    status: row.status,
+                    date: row.date,
+                    time: row.delivery_time || '',
+                    carrier: row.carrier || ''
+                });
             });
-        });
-        return manifest;
-    }, []);
+            return manifest;
+        }, []);
 
-    return {
-        migrateLocalStorage,
-        uploadLocalData,
-        fetchMRPState,
-        fetchUserProfile,
-        savePlanningEntry,
-        saveProductionSetting,
-        saveInventoryAnchor,
-        saveUserProfile,
-        saveProcurementEntry,
-        deleteProcurementEntry,
-        fetchProcurementData
+        return {
+            migrateLocalStorage,
+            uploadLocalData,
+            fetchMRPState,
+            fetchUserProfile,
+            savePlanningEntry,
+            saveProductionSetting,
+            saveInventoryAnchor,
+            saveUserProfile,
+            saveProcurementEntry,
+            deleteProcurementEntry,
+            fetchProcurementData
+        };
     };
-};

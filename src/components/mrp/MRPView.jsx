@@ -352,8 +352,7 @@ export default function MRPView({ state, setters, results }) {
                                 user_id: user.id,
                                 date: date,
                                 location: 'yard',
-                                quantity_pallets: val,
-                                is_latest: true
+                                quantity_pallets: val
                             }, { onConflict: 'product_id, date, location' });
 
                             if (wErr) return alert("Write Error: " + wErr.message);
