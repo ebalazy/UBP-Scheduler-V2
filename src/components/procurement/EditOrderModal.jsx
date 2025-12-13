@@ -126,13 +126,18 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Time</label>
-                                <input
-                                    type="time"
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Time (Hour)</label>
+                                <select
                                     className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     value={formData.time}
                                     onChange={e => setFormData({ ...formData, time: e.target.value })}
-                                />
+                                >
+                                    <option value="">-- TBD --</option>
+                                    {Array.from({ length: 24 }).map((_, i) => {
+                                        const t = `${String(i).padStart(2, '0')}:00`;
+                                        return <option key={t} value={t}>{t}</option>;
+                                    })}
+                                </select>
                             </div>
                         </div>
 
