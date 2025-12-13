@@ -95,6 +95,28 @@ export function ProcurementProvider({ children }) {
         }
     };
 
+    const deleteOrdersBulk = (ordersToDelete) => {
+        // ordersToDelete = Array of { date, id, po }
+        setPoManifest(prev => {
+            const next = { ...prev };
+            ordersToDelete.forEach(o => {
+                if (next[o.date]?.items) {
+                    next[o.date].items = next[o.date].items.filter(i => i.id !== o.id);
+                    // Cleanup empty dates? optional
+                }
+            });
+            return next;
+        });
+
+        if (user) {
+            // Batch delete if multiple? Or loop. 
+            // SupabaseSync doesn't have batch delete yet, but we can loop.
+            ordersToDelete.forEach(o => {
+                if (o.po) deleteProcurementEntry(o.po);
+            });
+        }
+    };
+
     const clearManifest = () => setPoManifest({});
 
     // Initialize from Cloud
@@ -114,6 +136,7 @@ export function ProcurementProvider({ children }) {
         addOrdersBulk,
         removeOrder,
         updateOrder,
+        deleteOrdersBulk,
         clearManifest
     };
 

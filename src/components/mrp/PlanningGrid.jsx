@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { formatLocalDate } from '../../utils/dateUtils';
+import { formatLocalDate } from '../../utils/dateUtils';
 import { useProcurement } from '../../context/ProcurementContext';
 import ScheduleManagerModal from '../procurement/ScheduleManagerModal';
+import ProcurementMasterList from '../procurement/ProcurementMasterList';
 
 export default function PlanningGrid({
     monthlyDemand, updateDateDemand, updateDateDemandBulk,
@@ -16,6 +18,7 @@ export default function PlanningGrid({
     // Schedule Manager State
     const [managerDate, setManagerDate] = useState(null); // '2023-10-25'
     const [isManagerOpen, setIsManagerOpen] = useState(false);
+    const [isMasterListOpen, setIsMasterListOpen] = useState(false); // [NEW] Master List State
 
     const openManager = (dateStr) => {
         setManagerDate(dateStr);
@@ -68,8 +71,16 @@ export default function PlanningGrid({
                 <table className="min-w-max border-collapse">
                     <thead className="sticky top-0 z-10">
                         <tr>
-                            <th className="sticky left-0 min-w-[140px] bg-gray-100 dark:bg-gray-800 border-b border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-500 uppercase z-20 shadow-md">
-                                Metric
+                            <th className="sticky left-0 min-w-[140px] bg-gray-100 dark:bg-gray-800 border-b border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-500 uppercase z-20 shadow-md flex justify-between items-center group">
+                                <span>Metric</span>
+                                {/* Manage All Button (Visible on Hover in Metric) */}
+                                <button
+                                    onClick={() => setIsMasterListOpen(true)}
+                                    className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-[9px] rounded hover:bg-blue-200"
+                                    title="Open Global Procurement Manager"
+                                >
+                                    Items
+                                </button>
                             </th>
                             {dates.map(date => {
                                 const dateStr = formatLocalDate(date);
@@ -401,6 +412,12 @@ export default function PlanningGrid({
                     updateDateInbound={updateDateInbound}
                 />
             )}
+
+            {/* Global Master List */}
+            <ProcurementMasterList
+                isOpen={isMasterListOpen}
+                onClose={() => setIsMasterListOpen(false)}
+            />
         </div>
     );
 }
