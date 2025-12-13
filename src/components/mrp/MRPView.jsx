@@ -308,7 +308,7 @@ export default function MRPView({ state, setters, results }) {
                 <main className="lg:col-span-3 space-y-6">
 
                     {/* PLANNING GRID (The Ledger) */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden min-h-[600px]">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
                         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
                             <div className="flex items-center space-x-3">
                                 <h3 className="font-bold text-gray-800 dark:text-white flex items-center text-sm uppercase tracking-wide">
