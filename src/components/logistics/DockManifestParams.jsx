@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { formatTime12h } from '../../utils/dateUtils';
-import { formatTime12h } from '../../utils/dateUtils';
 import {
     TruckIcon,
     CalendarIcon,
