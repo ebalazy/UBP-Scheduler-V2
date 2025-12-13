@@ -208,11 +208,23 @@ export default function MRPView({ state, setters, results }) {
                                     type="number"
                                     autoFocus
                                     className="w-full text-sm p-1 rounded border-blue-300 focus:ring-2 focus:ring-blue-500"
-                                    value={state.manualYardOverride ?? state.yardInventory.count}
-                                    onChange={(e) => setters.setManualYardOverride(e.target.value)}
+                                    // Use local state if we want to debounce, but since the setter triggers a save, 
+                                    // we should only trigger setter on commit (blur/enter).
+                                    // Current issue: `setters.setManualYardOverride` calls `saveWithStatus` immediately.
+                                    // Change: Let's use a local distinct state for editing OR just use the setter if it's debounced?
+                                    // Better UX: Update value on Blur/Enter.
+                                    defaultValue={state.manualYardOverride ?? state.yardInventory.count}
+                                    onBlur={(e) => {
+                                        setters.setManualYardOverride(e.target.value);
+                                        setIsEditingYard(false);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            setters.setManualYardOverride(e.currentTarget.value);
+                                            setIsEditingYard(false);
+                                        }
+                                    }}
                                     onFocus={(e) => e.target.select()}
-                                    onBlur={() => setIsEditingYard(false)}
-                                    onKeyDown={(e) => e.key === 'Enter' && setIsEditingYard(false)}
                                 />
                             </div>
                         ) : (
