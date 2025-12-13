@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatTime12h } from '../../utils/dateUtils';
 import {
     TruckIcon,
     CalendarIcon,
@@ -140,7 +141,7 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                             {item.time && (
                                 <span className="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex items-center">
                                     <ClockIcon className="w-3 h-3 mr-1 text-gray-500" />
-                                    {item.time}
+                                    {formatTime12h(item.time)}
                                 </span>
                             )}
                         </div>
