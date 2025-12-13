@@ -35,15 +35,11 @@ export function useMRPActions(state, calculationsResult) {
 
     // Wrapper for Save
     const saveWithStatus = async (fn) => {
-        setIsSaving(true);
         setSaveError(null);
         try { await fn(); }
         catch (e) {
             console.error("Save Error", e);
             setSaveError(e.message || "Save Failed");
-        }
-        finally {
-            setTimeout(() => setIsSaving(false), 500);
         }
     };
 
