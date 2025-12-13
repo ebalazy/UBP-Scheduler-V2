@@ -52,21 +52,23 @@ export default function LogisticsView({ state, setters, results }) {
 
             // 3. Check Today
             const todayCount = Number(inboundMap[todayStr]) || 0;
-            if (todayCount > 0) {
+            const todayManifest = manifestMap[todayStr] || [];
+            if (todayCount > 0 || todayManifest.length > 0) {
                 agg.today.push({
                     sku,
                     count: todayCount,
-                    manifest: manifestMap[todayStr] || []
+                    manifest: todayManifest
                 });
             }
 
             // 4. Check Tomorrow
             const tmrCount = Number(inboundMap[tomorrowStr]) || 0;
-            if (tmrCount > 0) {
+            const tmrManifest = manifestMap[tomorrowStr] || [];
+            if (tmrCount > 0 || tmrManifest.length > 0) {
                 agg.tomorrow.push({
                     sku,
                     count: tmrCount,
-                    manifest: manifestMap[tomorrowStr] || []
+                    manifest: tmrManifest
                 });
             }
         });
