@@ -6,7 +6,6 @@ import {
     MagnifyingGlassIcon,
     TableCellsIcon,
     PencilSquareIcon,
-    PencilSquareIcon,
     PlusIcon,
     TagIcon
 } from '@heroicons/react/24/outline';
