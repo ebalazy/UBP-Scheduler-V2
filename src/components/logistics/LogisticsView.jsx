@@ -334,28 +334,33 @@ export default function LogisticsView({ state, setters, results }) {
                                         totalRequired={item.count}
                                         manifest={item.manifest}
                                         onUpdate={(d, list) => {
-                                            const specs = results.specs;
-                                            const qtyPerTruck = specs?.bottlesPerTruck || 20000;
+                                            try {
+                                                const specs = results.specs;
+                                                const qtyPerTruck = specs?.bottlesPerTruck || 20000;
 
-                                            const newOpsItems = list.map(uiItem => ({
-                                                id: uiItem.id || crypto.randomUUID(),
-                                                date: d,
-                                                po: uiItem.po || 'TBD',
-                                                sku: item.sku,
-                                                qty: qtyPerTruck,
-                                                supplier: uiItem.carrier || 'Unknown',
-                                                carrier: uiItem.carrier,
-                                                time: uiItem.time,
-                                                status: 'scheduled',
-                                                isGlobal: true
-                                            }));
+                                                const newOpsItems = list.map(uiItem => ({
+                                                    id: uiItem.id || crypto.randomUUID(),
+                                                    date: d,
+                                                    po: uiItem.po || 'TBD',
+                                                    sku: item.sku,
+                                                    qty: qtyPerTruck,
+                                                    supplier: uiItem.carrier || 'Unknown',
+                                                    carrier: uiItem.carrier,
+                                                    time: uiItem.time,
+                                                    status: 'scheduled',
+                                                    isGlobal: true
+                                                }));
 
-                                            const currentDayManifest = poManifest[d]?.items || [];
-                                            const otherSkuItems = currentDayManifest.filter(i => i.sku !== item.sku);
+                                                const currentDayManifest = poManifest[d]?.items || [];
+                                                const otherSkuItems = currentDayManifest.filter(i => i.sku !== item.sku);
 
-                                            const combinedItems = [...otherSkuItems, ...newOpsItems];
+                                                const combinedItems = [...otherSkuItems, ...newOpsItems];
 
-                                            updateDailyManifest(d, combinedItems);
+                                                updateDailyManifest(d, combinedItems);
+                                            } catch (err) {
+                                                console.error("Failed to update manifest:", err);
+                                                alert("Error saving manifest. Please check console.");
+                                            }
                                         }}
                                     />
                                 </div>

@@ -31,19 +31,12 @@ export function ProcurementProvider({ children }) {
             [date]: { items } // Replace items for that day
         }));
 
-        // Cloud Sync: This is tricky. 'items' is the absolute list for that day.
-        // But our Sync is per-PO upsert.
-        // If an item was REMOVED from 'items', we need to delete it from Cloud.
-        // Strategy: We can't easily diff here without reading old state.
-        // Better Strategy: The calling component (ScheduleManager) calls distinct 'add' or 'delete' actions?
-        // Ideally yes. But for now 'updateDailyManifest' is used for everything.
-        // Let's stick to LocalStorage for full state, and use 'add/delete' specific hooks?
-        // Actually, let's just loop and upsert 'items'. Deletions are hard.
-        // Wait, 'ScheduleManager' calls 'updateDailyManifest' after filter.
-        // Let's rely on the components to call 'saveProcurementEntry' separately?
-        // No, Context should handle it.
-
-        // IMPROVEMENT: We need explicit 'removeOrder' action in Context to handle Cloud Deletes.
+        if (user) {
+            // Cloud Sync: Persist each item
+            items.forEach(item => {
+                saveProcurementEntry(item);
+            });
+        }
     };
 
     const addOrdersBulk = (orders) => {
