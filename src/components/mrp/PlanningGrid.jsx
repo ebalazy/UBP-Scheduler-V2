@@ -390,6 +390,8 @@ export default function PlanningGrid({
                     onClose={() => setIsManagerOpen(false)}
                     date={managerDate}
                     orders={poManifest[managerDate]?.items || []}
+                    monthlyInbound={monthlyInbound}
+                    updateDateInbound={updateDateInbound}
                 />
             )}
         </div>

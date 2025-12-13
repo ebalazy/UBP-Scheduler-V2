@@ -7,51 +7,86 @@ import {
     TrashIcon,
     PencilSquareIcon,
     ArrowRightCircleIcon,
-    CheckCircleIcon
+    // CheckCircleIcon // Removed as per instruction
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
 import { addDays, formatLocalDate } from '../../utils/dateUtils';
 
-export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [] }) {
+export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound }) {
     const { updateDailyManifest, addOrdersBulk } = useProcurement();
     const { specs } = useSettings();
-    const [selectedIds, setSelectedIds] = useState([]);
 
     // Edit State
-    const [editingOrder, setEditingOrder] = useState(null); // The object being edited
+    const [editingId, setEditingId] = useState(null); // The ID of the order being edited
+    const [editForm, setEditForm] = useState({}); // Form data for the order being edited
     const [moveTargetDate, setMoveTargetDate] = useState('');
+    const [movingId, setMovingId] = useState(null); // The ID of the order being moved
 
     // Actions
-    const handleDelete = (index) => {
-        if (!confirm('Are you sure you want to cancel this delivery?')) return;
+    const handleDelete = (orderId) => {
+        if (!confirm('Are you sure you want to cancel this order?')) return;
 
-        const newItems = [...orders];
-        newItems.splice(index, 1);
-        updateDailyManifest(date, newItems);
+        // 1. Remove from PO Manifest
+        const newOrders = orders.filter(o => o.id !== orderId);
+        updateDailyManifest(date, newOrders);
+
+        // 2. Sync: Decrement Truck Count
+        if (updateDateInbound && monthlyInbound) {
+            const currentCount = Number(monthlyInbound[date] || 0);
+            if (currentCount > 0) {
+                updateDateInbound(date, currentCount - 1);
+            }
+        }
     };
 
-    const handleMove = (index, order) => {
-        if (!moveTargetDate) return;
+    const startMove = (orderId) => {
+        setMovingId(orderId);
+        // Default to tomorrow?
+        setMoveTargetDate(formatLocalDate(addDays(new Date(date + 'T00:00:00'), 1))); // Default to tomorrow
+    };
 
-        // 1. Remove from current date
-        const newItems = [...orders];
-        newItems.splice(index, 1);
-        updateDailyManifest(date, newItems);
+    const confirmMove = () => {
+        if (!moveTargetDate || !movingId) return;
 
-        // 2. Add to new date
-        const movedOrder = { ...order, date: moveTargetDate }; // Update date prop
-        addOrdersBulk([movedOrder]);
+        const orderToMove = orders.find(o => o.id === movingId);
+        if (!orderToMove) return;
 
-        setEditingOrder(null);
+        // 1. Add to New Date
+        addOrdersBulk([
+            { ...orderToMove, date: moveTargetDate } // Ensure date key alignment
+        ]);
+
+        // 2. Remove from Old Date
+        const newCurrentOrders = orders.filter(o => o.id !== movingId);
+        updateDailyManifest(date, newCurrentOrders);
+
+        // 3. Sync: Update Truck Counts
+        if (updateDateInbound && monthlyInbound) {
+            // Decrement Old
+            const oldCount = Number(monthlyInbound[date] || 0);
+            if (oldCount > 0) updateDateInbound(date, oldCount - 1);
+
+            // Increment New
+            const newCount = Number(monthlyInbound[moveTargetDate] || 0);
+            updateDateInbound(moveTargetDate, newCount + 1);
+        }
+
+        setMovingId(null);
         setMoveTargetDate('');
+        // onClose(); // Close to refresh view? Or just stay open? 
+        // Stay open to show updated list (item gone).
     };
 
-    const handleSaveEdit = (index, updatedOrder) => {
-        const newItems = [...orders];
-        newItems[index] = updatedOrder;
-        updateDailyManifest(date, newItems);
-        setEditingOrder(null);
+    const startEdit = (order) => {
+        setEditingId(order.id);
+        setEditForm({ ...order });
+    };
+
+    const saveEdit = () => {
+        const newOrders = orders.map(o => o.id === editingId ? { ...o, ...editForm } : o);
+        updateDailyManifest(date, newOrders);
+        setEditingId(null);
     };
 
     // Calculate Trucks (Generic heuristic if specs missing)
