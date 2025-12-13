@@ -166,8 +166,9 @@ export function SettingsProvider({ children }) {
             root.classList.remove('dark');
         }
         localStorage.setItem('theme', theme);
-        // Theme is not currently in the profiles schema, so we don't sync it to avoid 400 errors.
-        // if (user) saveUserProfile(user.id, { theme });
+
+        // Sync to Cloud (Requires 'theme' column in profiles table)
+        if (user) saveUserProfile(user.id, { theme });
     }, [theme, user]);
 
     const [schedulerSettings, setSchedulerSettings] = useState(() => {
@@ -263,8 +264,9 @@ export function SettingsProvider({ children }) {
                 ...dashboardLayout,
                 scheduler: schedulerSettings
             };
-            // Temporarily disabled due to 400 Bad Request (Possible Schema Mismatch)
-            // saveUserProfile(user.id, { dashboard_layout: merged });
+
+            // Sync to Cloud (Requires 'dashboard_layout' column in profiles table)
+            saveUserProfile(user.id, { dashboard_layout: merged });
         }
     }, [dashboardLayout, schedulerSettings, user]);
 
