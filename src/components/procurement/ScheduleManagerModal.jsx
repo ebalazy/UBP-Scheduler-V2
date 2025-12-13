@@ -7,7 +7,8 @@ import {
     TrashIcon,
     PencilSquareIcon,
     ArrowRightCircleIcon,
-    CheckCircleIcon
+    CheckCircleIcon,
+    ClockIcon
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -15,7 +16,7 @@ import { addDays, formatLocalDate } from '../../utils/dateUtils';
 
 export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound }) {
     const { updateDailyManifest, addOrdersBulk, removeOrder, updateOrder } = useProcurement();
-    const { specs } = useSettings();
+    const { specs, schedulerSettings } = useSettings();
 
     // Edit State
     const [editingId, setEditingId] = useState(null);
@@ -25,9 +26,47 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
 
     // Helpers
     // Business Rule: 1 PO = 1 Truck (Always)
-    const bottlesPerTruck = specs?.bottlesPerTruck || 20000; // still used for reference?
+    const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
     const getTruckCount = (qty) => "1.0"; // Always 1 truck
     const getTruckFloat = (qty) => 1.0;
+
+    // --- ESTIMATION LOGIC ---
+    const getEstimatedTime = (index) => {
+        if (!schedulerSettings || !specs) return 'TBD';
+
+        const rate = specs.productionRate || 0; // Cases per Hour
+        const capacity = specs.casesPerTruck || (specs.bottlesPerTruck / specs.bottlesPerCase);
+
+        if (!rate || rate <= 0) return 'TBD (Set Rate)';
+
+        const hoursPerTruck = capacity / rate;
+
+        // Parse Start Time
+        const [startH, startM] = (schedulerSettings.shiftStartTime || '00:00').split(':').map(Number);
+        const startDecimal = startH + (startM / 60);
+
+        // Calc Arrival: Start + (Index * Interval)
+        // Index is 0-based for calculation purposes? 
+        // Scheduler usually assumes Truck 1 arrives AT Start Time? Or after 1 interval?
+        // Let's assume Truck 1 arrives *after* producing 1 truck worth? Or Just-In-Time?
+        // Usually JIT means it arrives *before* needed.
+        // Let's stick to Scheduler View logic: 
+        // Scheduler: validArrival = currentHour + (hoursPerTruck * i)
+        // So Truck 1 (Index 0) arrives at Start Time.
+
+        const arrivalDecimal = startDecimal + (index * hoursPerTruck);
+        const normalized = arrivalDecimal % 24;
+
+        const h = Math.floor(normalized);
+        const m = Math.round((normalized - h) * 60);
+
+        // Format
+        const period = h >= 12 ? 'PM' : 'AM';
+        const displayH = h % 12 || 12;
+        const displayM = m.toString().padStart(2, '0');
+
+        return `${displayH}:${displayM} ${period}`;
+    };
 
     // Recalculate Daily Total based on active orders
     const syncTruckCount = (targetDate, newOrdersList) => {
@@ -130,22 +169,47 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                     {/* Content */}
                     <div className="p-6 overflow-y-auto space-y-4">
                         {orders.length === 0 ? (
-                            <div className="text-center py-10 bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                            <>
                                 {monthlyInbound && Number(monthlyInbound[date] || 0) > 0 ? (
-                                    <div className="space-y-2">
-                                        <TruckIcon className="w-12 h-12 text-green-400 mx-auto opacity-50" />
-                                        <p className="text-lg font-bold text-gray-600 dark:text-gray-300">
-                                            {Number(monthlyInbound[date])} Planned Trucks
-                                        </p>
-                                        <p className="text-sm text-gray-500 max-w-sm mx-auto">
-                                            These are calculated by Auto-Replenishment. <br />
-                                            Active POs have not been imported/created yet.
-                                        </p>
+                                    <div className="space-y-4">
+                                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                                            <span className="text-xl">ℹ️</span>
+                                            <span>
+                                                <strong>{Number(monthlyInbound[date])} Trucks Planned</strong> via Auto-Replenishment.
+                                                <br />Purchase Orders have not been imported yet.
+                                            </span>
+                                        </div>
+                                        {Array.from({ length: Math.round(Number(monthlyInbound[date])) }).map((_, i) => (
+                                            <div key={`planned-${i}`} className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 flex items-center justify-between opacity-75 grayscale">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg">
+                                                        <TruckIcon className="w-6 h-6 text-gray-400" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-bold text-gray-500 dark:text-gray-400 italic">
+                                                            Planned Load #{i + 1}
+                                                        </h3>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <div className="flex items-center text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+                                                                <ClockIcon className="w-3 h-3 mr-1" />
+                                                                Est. {getEstimatedTime(i)}
+                                                            </div>
+                                                            <span className="text-xs text-gray-400">Awaiting PO</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-xs font-bold text-gray-500 rounded-full">
+                                                    AUTO-PLAN
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : (
-                                    <div className="text-gray-400 italic">No deliveries scheduled for this day.</div>
+                                    <div className="text-center py-10 text-gray-400 italic bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                        No deliveries scheduled for this day.
+                                    </div>
                                 )}
-                            </div>
+                            </>
                         ) : (
                             orders.map((order, idx) => (
                                 <div key={order.id || idx} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-sm p-4 relative group hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
