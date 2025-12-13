@@ -105,7 +105,7 @@ export default function AuthModal({ isOpen, onClose }) {
                             disabled={loading}
                             className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-bold hover:bg-blue-500 transition-all disabled:opacity-50 shadow-lg shadow-blue-900/20"
                         >
-                            {loading ? 'Sign In' : 'Processing...'}
+                            {loading ? 'Processing...' : 'Sign In'}
                         </button>
                     </form>
 
