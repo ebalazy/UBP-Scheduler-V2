@@ -78,7 +78,9 @@ export function useMRPActions(state, calculationsResult) {
     }, []);
 
     const updateDateDemand = (date, value) => {
-        const val = Number(value);
+        // Allow raw value flow for decimals/empty string. 
+        // Only convert to Number for DB/Calculations if needed (Calculations handle strings)
+        const val = value;
         const newDemand = { ...monthlyDemand, [date]: val };
         setMonthlyDemand(newDemand);
         scheduleLocalSave('monthlyDemand', () => {
@@ -88,17 +90,19 @@ export function useMRPActions(state, calculationsResult) {
         if (user) {
             scheduleSave(
                 `demand-${date}`,
-                () => savePlanningEntry(user.id, selectedSize, date, 'demand_plan', val),
+                () => savePlanningEntry(user.id, selectedSize, date, 'demand_plan', Number(val)),
                 1000
             );
         }
     };
 
     const updateDateActual = (date, value) => {
-        const val = (value === '' || value === null) ? undefined : Number(value);
+        // Allow raw value flow
+        const val = (value === '' || value === null) ? undefined : value;
         const newActuals = { ...monthlyProductionActuals };
         if (val === undefined) delete newActuals[date];
         else newActuals[date] = val;
+
         setMonthlyProductionActuals(newActuals);
         scheduleLocalSave('monthlyProductionActuals', () => {
             saveLocalState('monthlyProductionActuals', newActuals, selectedSize, true);
@@ -107,14 +111,14 @@ export function useMRPActions(state, calculationsResult) {
         if (user) {
             scheduleSave(
                 `actual-${date}`,
-                () => savePlanningEntry(user.id, selectedSize, date, 'production_actual', val || 0),
+                () => savePlanningEntry(user.id, selectedSize, date, 'production_actual', Number(val || 0)),
                 1000
             );
         }
     };
 
     const updateDateInbound = (date, value) => {
-        const val = Number(value);
+        const val = value; // Allow raw string
         const newInbound = { ...monthlyInbound, [date]: val };
         setMonthlyInbound(newInbound);
         scheduleLocalSave('monthlyInbound', () => {
@@ -124,7 +128,7 @@ export function useMRPActions(state, calculationsResult) {
         if (user) {
             scheduleSave(
                 `inbound-${date}`,
-                () => savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', val),
+                () => savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', Number(val)),
                 1000
             );
         }
