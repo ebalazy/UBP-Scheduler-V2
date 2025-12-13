@@ -486,7 +486,6 @@ export default function LogisticsView({ state, setters, results }) {
                     </div>
                 </div>
 
-                {/* Modal */}
                 <MorningReconciliationModal
                     isOpen={isRecModalOpen}
                     onClose={() => setIsRecModalOpen(false)}
@@ -494,5 +493,6 @@ export default function LogisticsView({ state, setters, results }) {
                     setters={setters} // Pass all setters
                 />
             </div>
-            );
+        </div>
+    );
 }

@@ -153,8 +153,8 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                                 {item.carrier || item.supplier || "Pending Assignment"}
                             </span>
                             {item.time && (
-                                <span className="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex items-center">
-                                    <ClockIcon className="w-3 h-3 mr-1 text-gray-500" />
+                                <span className="ml-2 text-sm font-bold bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded flex items-center shadow-sm">
+                                    <ClockIcon className="w-4 h-4 mr-1" />
                                     {formatTime12h(item.time)}
                                 </span>
                             )}

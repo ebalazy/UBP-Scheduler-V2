@@ -1,7 +1,7 @@
 {
   "name": "ubp-scheduler-v2",
   "private": true,
-  "version": "2.22.55",
+  "version": "2.22.56",
   "type": "module",
   "scripts": {
     "dev": "vite",
