@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon, CalendarIcon, TruckIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
+import { useSettings } from '../../context/SettingsContext';
 
 export default function EditOrderModal({ isOpen, onClose, order, date }) {
     // If order is provided, we are Editing. If null, we are Creating.
     // If Creating, 'date' might be a default, or today.
 
     const { addOrdersBulk, updateOrder, moveOrder } = useProcurement();
+    const { bottleSizes } = useSettings();
 
     // Form State
     const [formData, setFormData] = useState({
@@ -15,7 +17,8 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
         date: '',
         qty: '',
         supplier: '',
-        carrier: ''
+        carrier: '',
+        sku: ''
     });
 
     useEffect(() => {
@@ -27,7 +30,8 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                     date: date || order.date, // 'date' prop overrides order.date? Usually they match.
                     qty: order.qty,
                     supplier: order.supplier,
-                    carrier: order.carrier || ''
+                    carrier: order.carrier || '',
+                    sku: order.sku || ''
                 });
             } else {
                 // Create Mode
@@ -36,7 +40,8 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                     date: date || new Date().toISOString().split('T')[0],
                     qty: '',
                     supplier: '',
-                    carrier: ''
+                    carrier: '',
+                    sku: ''
                 });
             }
         }
@@ -55,7 +60,8 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
             date: formData.date,
             qty: Number(formData.qty),
             supplier: formData.supplier || 'Unknown',
-            carrier: formData.carrier
+            carrier: formData.carrier,
+            sku: formData.sku
         };
 
         if (order) {
@@ -136,6 +142,21 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                                 value={formData.supplier}
                                 onChange={e => setFormData({ ...formData, supplier: e.target.value })}
                             />
+                        </div>
+
+                        {/* SKU / Material */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Material / SKU</label>
+                            <select
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                value={formData.sku}
+                                onChange={e => setFormData({ ...formData, sku: e.target.value })}
+                            >
+                                <option value="">-- Any / All --</option>
+                                {bottleSizes.map(size => (
+                                    <option key={size} value={size}>{size}</option>
+                                ))}
+                            </select>
                         </div>
 
                         {/* Carrier */}

@@ -161,6 +161,7 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                     </th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Date</th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">PO Number</th>
+                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">SKU</th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Supplier</th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Trucks</th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Carrier</th>
@@ -190,6 +191,15 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                             </td>
                                             <td className="p-4 text-sm font-mono text-gray-600 dark:text-gray-300">
                                                 {order.po}
+                                            </td>
+                                            <td className="p-4">
+                                                {order.sku ? (
+                                                    <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded text-xs font-bold">
+                                                        {order.sku}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs italic">Any</span>
+                                                )}
                                             </td>
                                             <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
                                                 {order.supplier}

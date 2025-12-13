@@ -14,7 +14,8 @@ export default function BulkImportModal({ isOpen, onClose }) {
         po: -1,
         date: -1,
         qty: -1,
-        supplier: -1
+        supplier: -1,
+        sku: -1
     });
 
     // 1. Parse Helper
@@ -114,7 +115,8 @@ export default function BulkImportModal({ isOpen, onClose }) {
                 po: cleanPO(row[mapping.po]),
                 date: parsedDate,
                 qty: cleanQty(row[mapping.qty]),
-                supplier: row[mapping.supplier] || 'Unknown'
+                supplier: row[mapping.supplier] || 'Unknown',
+                sku: row[mapping.sku] || '' // Optional SKU
             };
         }).filter(o => {
             if (o && o.po && o.date) {
@@ -186,6 +188,7 @@ export default function BulkImportModal({ isOpen, onClose }) {
                                         <option value="date">Date *</option>
                                         <option value="qty">Quantity</option>
                                         <option value="supplier">Supplier</option>
+                                        <option value="sku">Material / SKU</option>
                                     </select>
                                 </th>
                             ))}
