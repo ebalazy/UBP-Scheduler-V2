@@ -157,6 +157,15 @@ export const useSupabaseSync = () => {
                 .eq('location', 'floor')
                 .order('date', { ascending: false })
                 .limit(1)
+                .maybeSingle(),
+            supabase
+                .from('inventory_snapshots')
+                .select('*')
+                .eq('product_id', product.id)
+                .eq('location', 'yard')
+                .order('date', { ascending: false })
+                .limit(1)
+                .maybeSingle()
         ]);
 
         const monthlyDemand = {};
@@ -174,10 +183,19 @@ export const useSupabaseSync = () => {
             }
         });
 
-        const inventoryAnchor = snapshots.data?.[0] ? {
-            date: snapshots.data[0].date,
-            count: Number(snapshots.data[0].quantity_pallets)
+        const inventoryAnchor = snapshotsFloor.data ? {
+            date: snapshotsFloor.data.date,
+            count: Number(snapshotsFloor.data.quantity_pallets)
         } : null;
+
+        const yardInventory = snapshotsYard.data ? {
+            count: Number(snapshotsYard.data.quantity_pallets), // Stored as pallets or load count? 
+            // In DB 'quantity_pallets' is the column name, but for Yard we store LOAD COUNT usually.
+            // Let's assume we store the raw count value in quantity_pallets column for now, 
+            // OR we should be clear. Logic usually expects "Loads".
+            // Implementation Decision: Store 'Load Count' in 'quantity_pallets' column for location='yard'.
+            date: snapshotsYard.data.date
+        } : { count: 0, date: null };
 
         return {
             product,
@@ -190,6 +208,7 @@ export const useSupabaseSync = () => {
             // Fixed default logic:
             // isAutoReplenish: settings.data?.is_auto_replenish ?? true // better?
             inventoryAnchor,
+            yardInventory,
             truckManifest
         };
     }, []);

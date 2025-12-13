@@ -227,11 +227,12 @@ export function useMRPActions(state, calculationsResult) {
             setYardInventory(v);
             saveLocalState('yardInventory', v, selectedSize, true);
         },
-        setManualYardOverride: (v) => {
-            const val = v === '' ? null : Number(v);
-            setManualYardOverride(val);
-            saveLocalState('manualYardOverride', val, selectedSize);
-            if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'manual_yard_override', val));
+        updateYardInventory: (v) => {
+            const val = Number(v);
+            const now = getLocalISOString();
+            setYardInventory({ date: now, count: val });
+            saveLocalState('yardInventory', { date: now, count: val }, selectedSize, true);
+            if (user) saveWithStatus(() => saveInventoryAnchor(user.id, selectedSize, { date: now, count: val }, 'yard'));
         },
         setIsAutoReplenish: (v) => {
             setIsAutoReplenish(v);

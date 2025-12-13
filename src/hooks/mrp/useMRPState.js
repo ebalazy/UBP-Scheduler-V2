@@ -65,11 +65,7 @@ export function useMRPState() {
         user ? { count: 0, timestamp: null, fileName: null } :
             loadLocalState('yardInventory', { count: 0, timestamp: null, fileName: null }, selectedSize, true)
     );
-    const [manualYardOverride, setManualYardOverride] = useState(() => {
-        if (user) return null;
-        const val = loadLocalState('manualYardOverride', null, selectedSize);
-        return val ? Number(val) : null;
-    });
+
     const [isAutoReplenish, setIsAutoReplenish] = useState(() => user ? true : loadLocalState('isAutoReplenish', true, selectedSize, true));
 
     // --- Auto-Refresh on Focus ---
@@ -165,7 +161,7 @@ export function useMRPState() {
         inventoryAnchor, setInventoryAnchor,
         incomingTrucks, setIncomingTrucks,
         yardInventory, setYardInventory,
-        manualYardOverride, setManualYardOverride,
+
         isAutoReplenish, setIsAutoReplenish,
         refreshTrigger // Exposed if needed
     };

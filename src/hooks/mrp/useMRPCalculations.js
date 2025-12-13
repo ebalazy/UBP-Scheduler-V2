@@ -12,7 +12,6 @@ export function useMRPCalculations(state, poManifest = {}) {
         downtimeHours,
         incomingTrucks,
         yardInventory,
-        manualYardOverride,
         inventoryAnchor
     } = state;
 
@@ -76,7 +75,7 @@ export function useMRPCalculations(state, poManifest = {}) {
         const totalIncomingTrucks = incomingTrucks + totalScheduledInbound;
         const incomingBottles = totalIncomingTrucks * specs.bottlesPerTruck;
 
-        const effectiveYardLoads = manualYardOverride !== null ? manualYardOverride : yardInventory.count;
+        const effectiveYardLoads = yardInventory.count || 0;
         const yardBottles = effectiveYardLoads * specs.bottlesPerTruck;
 
         const csm = specs.casesPerPallet || 0;
@@ -203,7 +202,7 @@ export function useMRPCalculations(state, poManifest = {}) {
                 return orders;
             })()
         };
-    }, [selectedSize, totalScheduledCases, productionRate, downtimeHours, incomingTrucks, bottleDefinitions, safetyStockLoads, yardInventory, manualYardOverride, monthlyDemand, monthlyInbound, inventoryAnchor, leadTimeDays, poManifest, monthlyProductionActuals]);
+    }, [selectedSize, totalScheduledCases, productionRate, downtimeHours, incomingTrucks, bottleDefinitions, safetyStockLoads, yardInventory, monthlyDemand, monthlyInbound, inventoryAnchor, leadTimeDays, poManifest, monthlyProductionActuals]);
 
     return { totalScheduledCases, productionRate, calculations };
 }

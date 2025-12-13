@@ -208,19 +208,14 @@ export default function MRPView({ state, setters, results }) {
                                     type="number"
                                     autoFocus
                                     className="w-full text-sm p-1 rounded border-blue-300 focus:ring-2 focus:ring-blue-500"
-                                    // Use local state if we want to debounce, but since the setter triggers a save, 
-                                    // we should only trigger setter on commit (blur/enter).
-                                    // Current issue: `setters.setManualYardOverride` calls `saveWithStatus` immediately.
-                                    // Change: Let's use a local distinct state for editing OR just use the setter if it's debounced?
-                                    // Better UX: Update value on Blur/Enter.
-                                    defaultValue={state.manualYardOverride ?? state.yardInventory.count}
+                                    defaultValue={state.yardInventory.count}
                                     onBlur={(e) => {
-                                        setters.setManualYardOverride(e.target.value);
+                                        setters.updateYardInventory(e.target.value);
                                         setIsEditingYard(false);
                                     }}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
-                                            setters.setManualYardOverride(e.currentTarget.value);
+                                            setters.updateYardInventory(e.currentTarget.value);
                                             setIsEditingYard(false);
                                         }
                                     }}
@@ -234,9 +229,6 @@ export default function MRPView({ state, setters, results }) {
                                 </span>
                                 <span className="text-xs text-blue-500">loads</span>
                             </div>
-                        )}
-                        {yardInventory.isOverridden && !isEditingYard && (
-                            <span className="text-[9px] text-yellow-600 bg-yellow-100 dark:bg-yellow-900 px-1 rounded inline-block mt-1">Manual Override</span>
                         )}
                     </div>
                 </div>

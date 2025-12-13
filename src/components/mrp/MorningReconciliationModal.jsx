@@ -66,7 +66,7 @@ export default function MorningReconciliationModal({
         });
 
         // 3. Save Yard Inventory
-        setters.setManualYardOverride(Number(yardCount));
+        setters.updateYardInventory(Number(yardCount));
 
         // 4. Force a Re-Plan (Triggered automatically by the setters usually, 
         // but if we want to ensure specific sequencing we rely on the hooks)
