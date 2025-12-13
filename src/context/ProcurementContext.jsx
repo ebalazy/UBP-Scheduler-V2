@@ -37,9 +37,12 @@ export function ProcurementProvider({ children }) {
         setPoManifest(prev => {
             const next = { ...prev };
             orders.forEach(order => {
-                if (!next[order.date]) next[order.date] = { items: [] };
-                // Prevent duplicates? For now, just append
-                next[order.date].items.push(order);
+                const date = order.date;
+                // Create new day object or copy existing
+                const existingItems = next[date]?.items || [];
+                next[date] = {
+                    items: [...existingItems, order]
+                };
             });
             return next;
         });

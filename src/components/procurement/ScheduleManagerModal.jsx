@@ -52,10 +52,13 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
         const orderToMove = orders.find(o => o.id === movingId);
         if (!orderToMove) return;
 
+        // Apply any pending edits if we are currently editing THIS order
+        const finalOrder = (editingId === movingId)
+            ? { ...orderToMove, ...editForm, date: moveTargetDate }
+            : { ...orderToMove, date: moveTargetDate };
+
         // 1. Add to New Date
-        addOrdersBulk([
-            { ...orderToMove, date: moveTargetDate } // Ensure date key alignment
-        ]);
+        addOrdersBulk([finalOrder]);
 
         // 2. Remove from Old Date
         const newCurrentOrders = orders.filter(o => o.id !== movingId);
@@ -201,7 +204,7 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                         </span>
                                                     </h3>
                                                     <p className="text-sm text-gray-500">{order.supplier}</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Qty: {Number(order.qty).toLocaleString()}</p>
+                                                    <p className="text-xs text-gray-400 mt-1">Qty: {Number(String(order.qty || 0).replace(/,/g, '')).toLocaleString()}</p>
                                                 </div>
                                             </div>
 
