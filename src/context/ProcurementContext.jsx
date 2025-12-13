@@ -78,6 +78,8 @@ export function ProcurementProvider({ children }) {
         }
     };
 
+    const clearManifest = () => setPoManifest({});
+
     // Initialize from Cloud
     useEffect(() => {
         if (user) {
