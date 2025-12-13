@@ -24,15 +24,16 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
     const [movingId, setMovingId] = useState(null);
 
     // Helpers
-    const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
-    const getTruckCount = (qty) => (qty / bottlesPerTruck).toFixed(1);
-    const getTruckFloat = (qty) => Number(qty) / bottlesPerTruck;
+    // Business Rule: 1 PO = 1 Truck (Always)
+    const bottlesPerTruck = specs?.bottlesPerTruck || 20000; // still used for reference?
+    const getTruckCount = (qty) => "1.0"; // Always 1 truck
+    const getTruckFloat = (qty) => 1.0;
 
     // Recalculate Daily Total based on active orders
     const syncTruckCount = (targetDate, newOrdersList) => {
         if (!updateDateInbound) return;
-        const totalQty = newOrdersList.reduce((acc, o) => acc + Number(o.qty || 0), 0);
-        const totalTrucks = totalQty / bottlesPerTruck;
+        // Business Rule: Total Trucks = Number of POs
+        const totalTrucks = newOrdersList.length;
         updateDateInbound(targetDate, totalTrucks);
     };
 
