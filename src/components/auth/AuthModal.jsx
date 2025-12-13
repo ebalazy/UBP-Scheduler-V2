@@ -3,10 +3,9 @@ import { useAuth } from '../../context/AuthContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function AuthModal({ isOpen, onClose }) {
-    const { signIn, signUp, resendVerificationEmail } = useAuth();
+    const { signIn, resendVerificationEmail } = useAuth(); // Removed signUp
 
     // State
-    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
@@ -21,20 +20,8 @@ export default function AuthModal({ isOpen, onClose }) {
         setLoading(true);
 
         try {
-            if (isLogin) {
-                await signIn(email, password);
-                onClose();
-            } else {
-                const data = await signUp(email, password);
-                // Check if session is null (implies email confirmation required)
-                if (data?.user && !data?.session) {
-                    setIsLogin(true); // Switch to login mode
-                    setError("Account created! Please check your email to confirm valid address before logging in.");
-                    // Do not close modal
-                } else {
-                    onClose();
-                }
-            }
+            await signIn(email, password);
+            onClose();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -68,17 +55,17 @@ export default function AuthModal({ isOpen, onClose }) {
 
                 <div className="p-8">
                     <h2 className="text-2xl font-bold text-white mb-2">
-                        {isLogin ? 'Welcome Back' : 'Create Account'}
+                        Welcome Back
                     </h2>
                     <p className="text-gray-400 text-sm mb-6">
-                        {isLogin ? 'Sign in to access your production schedule.' : 'Get started with your free account.'}
+                        Sign in to access your production schedule.
                     </p>
 
                     {error && (
-                        <div className={`p-3 rounded-lg mb-4 text-sm font-medium border ${error.includes('Account created') || error.includes('resent') ? 'bg-green-900/30 text-green-300 border-green-800' : 'bg-red-900/30 text-red-300 border-red-800'}`}>
+                        <div className={`p-3 rounded-lg mb-4 text-sm font-medium border ${error.includes('resent') ? 'bg-green-900/30 text-green-300 border-green-800' : 'bg-red-900/30 text-red-300 border-red-800'}`}>
                             {error}
                             {/* Show Resend Button if error implies unconfirmed email */}
-                            {(error.includes('Email not confirmed') || error.includes('Account created')) && !resent && (
+                            {(error.includes('Email not confirmed')) && !resent && (
                                 <button
                                     onClick={handleResend}
                                     className="block mt-2 text-xs font-bold underline hover:text-green-200"
@@ -118,18 +105,12 @@ export default function AuthModal({ isOpen, onClose }) {
                             disabled={loading}
                             className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-bold hover:bg-blue-500 transition-all disabled:opacity-50 shadow-lg shadow-blue-900/20"
                         >
-                            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
+                            {loading ? 'Sign In' : 'Processing...'}
                         </button>
                     </form>
 
                     <div className="mt-6 text-center text-sm text-gray-500">
-                        {isLogin ? "Don't have an account? " : "Already have an account? "}
-                        <button
-                            onClick={() => { setIsLogin(!isLogin); setError(null); }}
-                            className="text-blue-400 font-bold hover:underline hover:text-blue-300"
-                        >
-                            {isLogin ? 'Sign Up' : 'Log In'}
-                        </button>
+                        <span className="italic">Authorized personnel only.</span>
                     </div>
                 </div>
             </div>
