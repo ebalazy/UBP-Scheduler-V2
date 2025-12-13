@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseSync } from '../useSupabaseSync';
@@ -28,13 +28,14 @@ export function useMRPActions(state, calculationsResult) {
     const { calculations } = calculationsResult;
 
     // --- Refs for Stable Actions (Prevent Re-renders) ---
+    // Use useLayoutEffect to ensure refs are updated synchronously before any effects/callbacks run
     const demandRef = useRef(monthlyDemand);
     const actualRef = useRef(monthlyProductionActuals);
     const inboundRef = useRef(monthlyInbound);
 
-    useEffect(() => { demandRef.current = monthlyDemand; }, [monthlyDemand]);
-    useEffect(() => { actualRef.current = monthlyProductionActuals; }, [monthlyProductionActuals]);
-    useEffect(() => { inboundRef.current = monthlyInbound; }, [monthlyInbound]);
+    useLayoutEffect(() => { demandRef.current = monthlyDemand; }, [monthlyDemand]);
+    useLayoutEffect(() => { actualRef.current = monthlyProductionActuals; }, [monthlyProductionActuals]);
+    useLayoutEffect(() => { inboundRef.current = monthlyInbound; }, [monthlyInbound]);
 
     // --- Actions ---
     const [isSaving, setIsSaving] = useState(false);
