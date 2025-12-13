@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { useSettings } from '../../context/SettingsContext';
+import { useProducts } from '../useProducts';
 import { getLocalISOString, addDays } from '../../utils/dateUtils';
 
 export function useMRPCalculations(state, poManifest = {}) {
-    const { bottleDefinitions, safetyStockLoads, leadTimeDays } = useSettings();
+    const { safetyStockLoads, leadTimeDays } = useSettings();
+    const { productMap: bottleDefinitions } = useProducts();
     const {
         selectedSize,
         monthlyDemand,
