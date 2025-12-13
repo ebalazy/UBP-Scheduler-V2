@@ -73,29 +73,29 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
 
                 <div className="space-y-2">
                     {editList.map((item, idx) => (
-                        <div key={item.id || idx} className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700/50 p-2 rounded">
-                            <div className="flex-1">
-                                <label className="text-[10px] uppercase text-gray-400 font-bold">Carrier</label>
+                        <div key={item.id || idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-gray-50 dark:bg-gray-700/50 p-3 rounded border border-gray-100 dark:border-gray-600">
+                            <div className="flex-1 w-full">
+                                <label className="text-[10px] uppercase text-gray-400 font-bold block mb-1 sm:hidden">Carrier</label>
                                 <input
-                                    className="w-full text-sm font-bold bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none dark:text-white"
+                                    className="w-full text-sm font-bold bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none dark:text-white pb-1"
                                     placeholder="Carrier Name"
                                     value={item.carrier}
                                     onChange={e => handleChange(idx, 'carrier', e.target.value)}
                                 />
                             </div>
-                            <div className="w-24">
-                                <label className="text-[10px] uppercase text-gray-400 font-bold">PO #</label>
+                            <div className="w-full sm:w-24">
+                                <label className="text-[10px] uppercase text-gray-400 font-bold block mb-1 sm:hidden">PO #</label>
                                 <input
-                                    className="w-full text-sm font-mono bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none dark:text-white"
+                                    className="w-full text-sm font-mono bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none dark:text-white pb-1"
                                     placeholder="PO-123"
                                     value={item.po}
                                     onChange={e => handleChange(idx, 'po', e.target.value)}
                                 />
                             </div>
-                            <div className="w-20">
-                                <label className="text-[10px] uppercase text-gray-400 font-bold">Time</label>
+                            <div className="w-full sm:w-28">
+                                <label className="text-[10px] uppercase text-gray-400 font-bold block mb-1 sm:hidden">Time</label>
                                 <select
-                                    className="w-full text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none dark:text-gray-200 dark:bg-gray-800 rounded px-1"
+                                    className="w-full text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none dark:text-gray-200 dark:bg-gray-800 rounded px-1 pb-1"
                                     value={item.time}
                                     onChange={e => handleChange(idx, 'time', e.target.value)}
                                 >
@@ -111,9 +111,15 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                                     })}
                                 </select>
                             </div>
-                            <button type="button" onClick={() => handleRemove(idx)} className="text-red-400 hover:text-red-600 p-1">
-                                <TrashIcon className="w-4 h-4" />
-                            </button>
+                            <div className="w-full sm:w-auto flex justify-end">
+                                <button type="button" onClick={() => handleRemove(idx)} className="text-red-400 hover:text-red-600 p-2 sm:p-1 bg-red-50 dark:bg-red-900/10 sm:bg-transparent rounded">
+                                    <div className="flex items-center sm:hidden">
+                                        <TrashIcon className="w-4 h-4 mr-1" />
+                                        <span className="text-xs font-bold">Remove</span>
+                                    </div>
+                                    <TrashIcon className="w-4 h-4 hidden sm:block" />
+                                </button>
+                            </div>
                         </div>
                     ))}
 

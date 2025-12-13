@@ -159,11 +159,11 @@ export default function LogisticsView({ state, setters, results }) {
                     </div>
                 </div>
 
-                <div className="flex space-x-3 mt-4 md:mt-0">
+                <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0 w-full md:w-auto">
                     <button
                         onClick={async () => {
                             if (!confirm("This will upload ALL old local schedule data to the cloud database and remove it from this device. Continue?")) return;
-
+                            // ... existing sync logic ...
                             try {
                                 const allLegacyItems = [];
                                 const keysToRemove = [];
@@ -177,7 +177,6 @@ export default function LogisticsView({ state, setters, results }) {
                                     if (raw) {
                                         try {
                                             const data = JSON.parse(raw);
-                                            // data is { "2023-10-27": [ { time, carrier... } ] }
                                             Object.entries(data).forEach(([date, items]) => {
                                                 if (Array.isArray(items)) {
                                                     items.forEach(item => {
@@ -204,13 +203,10 @@ export default function LogisticsView({ state, setters, results }) {
                                 });
 
                                 if (allLegacyItems.length > 0) {
-                                    // Migrating Legacy Items
                                     bulkUpdateOrders(allLegacyItems);
-
-                                    // Cleanup Keys
                                     keysToRemove.forEach(k => localStorage.removeItem(k));
                                     alert(`Successfully migrated ${allLegacyItems.length} local records to the cloud! Local storage cleared.`);
-                                    window.location.reload(); // Refresh to ensure clean state
+                                    window.location.reload();
                                 } else {
                                     alert("No local legacy data found to migrate.");
                                 }
@@ -220,7 +216,7 @@ export default function LogisticsView({ state, setters, results }) {
                                 alert("Migration Failed check console");
                             }
                         }}
-                        className="flex items-center bg-blue-600 hover:bg-blue-500 text-white px-4 py-4 rounded-xl font-bold text-sm shadow-lg border border-blue-400"
+                        className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-xl font-bold text-sm shadow-lg border border-blue-400 w-full sm:w-auto"
                     >
                         <TruckIcon className="w-5 h-5 mr-2" />
                         SYNC LOCAL DB
@@ -228,10 +224,10 @@ export default function LogisticsView({ state, setters, results }) {
 
                     <button
                         onClick={() => setIsRecModalOpen(true)}
-                        className="flex items-center bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-6 py-4 rounded-xl font-bold text-lg transition-transform hover:scale-105 shadow-xl"
+                        className="flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-6 py-3 rounded-xl font-bold text-base md:text-lg transition-transform hover:scale-105 shadow-xl w-full sm:w-auto"
                     >
-                        <ClipboardDocumentCheckIcon className="w-8 h-8 mr-2" />
-                        START DAY / TRUE-UP
+                        <ClipboardDocumentCheckIcon className="w-6 h-6 md:w-8 md:h-8 mr-2" />
+                        START DAY
                     </button>
                 </div>
             </div>

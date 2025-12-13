@@ -77,7 +77,7 @@ function AuthenticatedApp({ user }) {
         requiredDailyLoads={scheduler.results?.requiredDailyLoads}
       />
 
-      <main className="flex-grow p-4 md:p-6 max-w-7xl mx-auto w-full">
+      <main className="flex-grow p-2 md:p-6 max-w-7xl mx-auto w-full">
         {/* Modern Segmented Navigation */}
         <div className="mb-8 no-print overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
           <div className="inline-flex p-1.5 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-inner min-w-full md:min-w-0">

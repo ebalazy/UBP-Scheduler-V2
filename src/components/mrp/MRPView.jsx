@@ -274,7 +274,7 @@ export default function MRPView({ state, setters, results }) {
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Command Center</p>
                 </div>
 
-                <div className="flex items-center mt-4 md:mt-0 space-x-4">
+                <div className="flex flex-wrap items-center mt-4 md:mt-0 gap-2">
                     <button
                         onClick={() => setIsShareModalOpen(true)}
                         className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
@@ -300,17 +300,17 @@ export default function MRPView({ state, setters, results }) {
                         onClick={() => setIsEmailOpen(true)}
                         className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
                     >
-                        ✉️ Email Supplier
+                        ✉️ Email
                     </button>
 
-                    <div className="relative group">
+                    <div className="relative group w-full sm:w-auto mt-2 sm:mt-0">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span className="text-gray-400">SKU:</span>
                         </div>
                         <select
                             value={state.selectedSize}
                             onChange={(e) => setters.setSelectedSize(e.target.value)}
-                            className="appearance-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-base font-bold pl-12 pr-10 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                            className="w-full sm:w-auto appearance-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-base font-bold pl-12 pr-10 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                         >
                             {bottleSizes.map(size => (
                                 <option key={size} value={size}>{size}</option>
