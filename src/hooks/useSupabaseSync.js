@@ -277,17 +277,17 @@ export const useSupabaseSync = () => {
         if (error) console.error("Error saving production setting:", error);
     }, [ensureProduct]);
 
-    const saveInventoryAnchor = useCallback(async (userId, skuName, anchor) => {
+    const saveInventoryAnchor = useCallback(async (userId, skuName, anchor, location = 'floor') => {
         const productId = await ensureProduct(userId, skuName);
         await supabase.from('inventory_snapshots')
             .update({ is_latest: false })
             .eq('product_id', productId)
-            .eq('location', 'floor');
+            .eq('location', location);
 
         await supabase.from('inventory_snapshots').insert({
             product_id: productId,
             date: anchor.date,
-            location: 'floor',
+            location: location,
             quantity_pallets: anchor.count,
             is_latest: true
         });
