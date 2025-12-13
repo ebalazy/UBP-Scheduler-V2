@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { useProcurement } from '../context/ProcurementContext';
-import { SunIcon, MoonIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { SunIcon, MoonIcon, BoltIcon, XMarkIcon } from '@heroicons/react/24/outline'; // Replaced Trash/Plus with Bolt/XMark
 
 export default function SettingsModal({ onClose }) {
     const {
-        bottleSizes,
-        bottleDefinitions,
-        updateBottleDefinition,
         safetyStockLoads,
         setSafetyStockLoads,
         leadTimeDays,
@@ -15,43 +12,15 @@ export default function SettingsModal({ onClose }) {
         csvMapping,
         updateCsvMapping,
         resetDefaults,
-
         theme,
-        setTheme,
-        addBottleDefinition,
-        deleteBottleDefinition
+        setTheme
     } = useSettings();
 
     const { poManifest } = useProcurement();
 
-    const [newSkuName, setNewSkuName] = useState('');
-
-    const handleDeleteSku = (size) => {
-        // 1. Check for usage in POs
-        let usageCount = 0;
-        Object.values(poManifest).forEach(day => {
-            day.items?.forEach(order => {
-                if (order.sku === size) usageCount++;
-            });
-        });
-
-        if (usageCount > 0) {
-            alert(`Cannot delete "${size}".\nIt is currently used by ${usageCount} Active Purchase Orders.\n\nPlease delete or update those orders first.`);
-            return;
-        }
-
-        // 2. Confirm Delete
-        if (confirm(`Delete "${size}"?\nThis cannot be undone.`)) {
-            deleteBottleDefinition(size);
-        }
-    };
-
-    const handleAddSku = () => {
-        if (newSkuName.trim()) {
-            addBottleDefinition(newSkuName.trim());
-            setNewSkuName('');
-        }
-    };
+    // Removed newSkuName state
+    // Removed handleDeleteSku
+    // Removed handleAddSku
 
     return (
         <div className="fixed inset-0 z-50 flex justify-center bg-black bg-opacity-50 overflow-y-auto px-4 py-6 backdrop-blur-sm">
@@ -180,104 +149,34 @@ export default function SettingsModal({ onClose }) {
 
                     <hr className="border-gray-200 dark:border-gray-700" />
 
-                    {/* Bottle Definitions */}
-                    <div>
-                        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Bottle Definitions</h3>
-                        <div className="space-y-6">
-                            {bottleSizes.map(size => (
-                                <div key={size} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
-                                    <div className="flex justify-between items-center mb-3 border-b dark:border-gray-600 pb-2">
-                                        <h4 className="font-bold text-md text-gray-800 dark:text-white">{size} Configuration</h4>
-                                        <button
-                                            onClick={() => handleDeleteSku(size)}
-                                            className="text-red-400 hover:text-red-600 p-1"
-                                            title="Delete Product"
-                                        >
-                                            <TrashIcon className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Material / SKU #</label>
-                                            <input
-                                                type="text"
-                                                value={bottleDefinitions[size].skuNumber || ''}
-                                                onChange={(e) => updateBottleDefinition(size, 'skuNumber', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
-                                                placeholder="e.g. 10005432"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Run Rate (cph)</label>
-                                            <input
-                                                type="number"
-                                                inputMode="numeric"
-                                                value={bottleDefinitions[size].productionRate || 0}
-                                                onChange={(e) => updateBottleDefinition(size, 'productionRate', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Bottles / Case</label>
-                                            <input
-                                                type="number"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                value={bottleDefinitions[size].bottlesPerCase}
-                                                onChange={(e) => updateBottleDefinition(size, 'bottlesPerCase', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Bottles / Truck</label>
-                                            <input
-                                                type="number"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                value={bottleDefinitions[size].bottlesPerTruck}
-                                                onChange={(e) => updateBottleDefinition(size, 'bottlesPerTruck', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cases / Truck</label>
-                                            <input
-                                                type="number"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                value={bottleDefinitions[size].casesPerTruck}
-                                                onChange={(e) => updateBottleDefinition(size, 'casesPerTruck', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cases / Pallet</label>
-                                            <input
-                                                type="number"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                value={bottleDefinitions[size].casesPerPallet || 0}
-                                                onChange={(e) => updateBottleDefinition(size, 'casesPerPallet', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Scrap %</label>
-                                            <input
-                                                type="number"
-                                                step="0.1"
-                                                value={bottleDefinitions[size].scrapPercentage || 0}
-                                                onChange={(e) => updateBottleDefinition(size, 'scrapPercentage', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cases / Pallet</label>
+                    <input
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={bottleDefinitions[size].casesPerPallet || 0}
+                        onChange={(e) => updateBottleDefinition(size, 'casesPerPallet', e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Scrap %</label>
+                    <input
+                        type="number"
+                        step="0.1"
+                        value={bottleDefinitions[size].scrapPercentage || 0}
+                        onChange={(e) => updateBottleDefinition(size, 'scrapPercentage', e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
+                    />
+                </div>
+            </div>
+        </div>
+    ))
+}
+                        </div >
 
-                        {/* Add New Product */}
-                        <div className="mt-4 bg-gray-100 dark:bg-gray-900/50 p-4 rounded-md border border-dashed border-gray-300 dark:border-gray-700 flex items-end gap-4">
+    {/* Add New Product */ }
+    < div className = "mt-4 bg-gray-100 dark:bg-gray-900/50 p-4 rounded-md border border-dashed border-gray-300 dark:border-gray-700 flex items-end gap-4" >
                             <div className="flex-grow">
                                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">New Product Name (e.g. "12oz Cans")</label>
                                 <input
@@ -296,46 +195,46 @@ export default function SettingsModal({ onClose }) {
                                 <PlusIcon className="h-4 w-4 mr-1" />
                                 Add
                             </button>
-                        </div>
-                    </div>
-                </div>
+                        </div >
+                    </div >
+                </div >
 
-                <div className="mt-8 bg-gray-50 dark:bg-gray-800 -mx-6 -mb-6 p-4 rounded-b-lg border-t dark:border-gray-700">
-                    <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-4">
-                        <button
-                            onClick={() => {
-                                if (confirm('Are you sure you want to reset all settings to factory defaults?')) {
-                                    resetDefaults();
-                                }
-                            }}
-                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
-                        >
-                            Reset to Factory Defaults
-                        </button>
+    <div className="mt-8 bg-gray-50 dark:bg-gray-800 -mx-6 -mb-6 p-4 rounded-b-lg border-t dark:border-gray-700">
+        <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-4">
+            <button
+                onClick={() => {
+                    if (confirm('Are you sure you want to reset all settings to factory defaults?')) {
+                        resetDefaults();
+                    }
+                }}
+                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
+            >
+                Reset to Factory Defaults
+            </button>
 
-                        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="w-full md:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold flex items-center justify-center"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 4.992l3.181-3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                </svg>
-                                Sync Cloud Data
-                            </button>
-                            <button
-                                onClick={onClose}
-                                className="w-full md:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-bold shadow-sm"
-                            >
-                                Done
-                            </button>
-                        </div>
-                    </div>
-                    <div className="text-center mt-4">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-600">v{import.meta.env.PACKAGE_VERSION} (Smart Planner)</p>
-                    </div>
-                </div>
+            <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                <button
+                    onClick={() => window.location.reload()}
+                    className="w-full md:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold flex items-center justify-center"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 4.992l3.181-3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Sync Cloud Data
+                </button>
+                <button
+                    onClick={onClose}
+                    className="w-full md:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-bold shadow-sm"
+                >
+                    Done
+                </button>
             </div>
         </div>
+        <div className="text-center mt-4">
+            <p className="text-[10px] text-gray-400 dark:text-gray-600">v{import.meta.env.PACKAGE_VERSION} (Smart Planner)</p>
+        </div>
+    </div>
+            </div >
+        </div >
     );
 }
