@@ -17,17 +17,14 @@ export default function LogisticsView({ state, setters, results }) {
     const [aggregatedSchedule, setAggregatedSchedule] = useState({ today: [], tomorrow: [] });
     const [filterSku, setFilterSku] = useState('ALL');
 
-    if (!results) return <div className="p-8 text-center text-gray-500">Loading Logistics Data...</div>;
-
-    const { specs, yardInventory } = results;
     const { poManifest, updateDailyManifest, bulkUpdateOrders } = useProcurement(); // Access Global POs
+
     const todayStr = getLocalISOString();
 
     // Calculate Tomorrow's Date (Local)
     const tomorrowStr = addDays(todayStr, 1);
     const tomorrowDateObj = new Date(tomorrowStr + 'T00:00:00'); // For display purposes
 
-    // --- AGGREGATION LOGIC ---
     // --- AGGREGATION LOGIC ---
     useEffect(() => {
         try {
@@ -126,7 +123,7 @@ export default function LogisticsView({ state, setters, results }) {
             // Optionally set safe empty state?
             // setAggregatedSchedule({ today: [], tomorrow: [] }); 
         }
-    }, [bottleSizes, state.monthlyInbound, state.stateVersion, poManifest]); // Added poManifest dependency
+    }, [bottleSizes, state.monthlyInbound, state.stateVersion, poManifest, todayStr, tomorrowStr]);
 
     // Filter Logic
     const filteredToday = filterSku === 'ALL'
@@ -142,6 +139,9 @@ export default function LogisticsView({ state, setters, results }) {
 
     // Helper for large numbers
     const fmt = (n) => n ? n.toLocaleString() : '0';
+
+    if (!results) return <div className="p-8 text-center text-gray-500">Loading Logistics Data...</div>;
+    const { yardInventory } = results;
 
     return (
         <div className="max-w-7xl mx-auto space-y-6">
