@@ -51,6 +51,10 @@ export function ProcurementProvider({ children }) {
         setPoManifest(prev => {
             const next = { ...prev };
             orders.forEach(order => {
+                // Ensure ID exists
+                if (!order.id) {
+                    order.id = crypto.randomUUID();
+                }
                 const date = order.date;
                 const existingItems = next[date]?.items || [];
                 next[date] = {
