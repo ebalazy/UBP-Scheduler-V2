@@ -237,24 +237,31 @@ export default function PlanningGrid({
                                 const val = monthlyInbound[dateStr] || 0;
                                 return (
                                     <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 relative group">
-                                        <input
-                                            className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-green-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500 font-bold
-                                                ${val > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-300'}
-                                            `}
-                                            value={val || ''}
-                                            placeholder="0"
-                                            onChange={e => {
-                                                const v = e.target.value.replace(/,/g, '');
-                                                if (!isNaN(v)) updateDateInbound(dateStr, v);
-                                            }}
-                                        />
-                                        {/* PO Indicator */}
-                                        {poManifest[dateStr] && poManifest[dateStr].items.length > 0 && (
-                                            <div className="absolute top-0 right-0 m-0.5" onClick={() => openManager(dateStr)}>
-                                                <div className="w-2.5 h-2.5 bg-blue-600 hover:bg-blue-500 hover:scale-125 transition-transform rounded-full ring-1 ring-white dark:ring-gray-800 flex items-center justify-center cursor-pointer shadow-sm" title={`${poManifest[dateStr].items.length} POs - Click to Manage`}>
-                                                    <span className="text-[6px] text-white font-bold">{poManifest[dateStr].items.length}</span>
-                                                </div>
-                                            </div>
+                                        {poManifest[dateStr] && poManifest[dateStr].items.length > 0 ? (
+                                            /* PO MODE: Clickable Number */
+                                            <button
+                                                className="w-full h-full p-2 text-center text-xs font-bold text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors flex items-center justify-center gap-1"
+                                                onClick={() => openManager(dateStr)}
+                                                title={`${poManifest[dateStr].items.length} POs - Click to Manage`}
+                                            >
+                                                {val}
+                                                {/* Subtle Dot to indicate this is a Manifest value */}
+                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                            </button>
+                                        ) : (
+                                            /* MANUAL MODE: Input */
+                                            <input
+                                                className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-green-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500 font-bold
+                                                    ${val > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-300'}
+                                                `}
+                                                value={val || ''}
+                                                placeholder="0"
+                                                onChange={e => {
+                                                    const v = e.target.value.replace(/,/g, '');
+                                                    if (!isNaN(v)) updateDateInbound(dateStr, v);
+                                                }}
+                                                onDoubleClick={() => openManager(dateStr)} // Allow opening even if manual?
+                                            />
                                         )}
                                     </td>
                                 );
