@@ -87,6 +87,7 @@ export default function PlanningGrid({
                 isOpen={!!managerDate}
                 onClose={closeManager}
                 date={managerDate}
+                monthlyInbound={monthlyInbound}
                 existingItems={currentManifest}
                 onSave={async (item) => {
                     // Item: { po, qty, sku, supplier... }
