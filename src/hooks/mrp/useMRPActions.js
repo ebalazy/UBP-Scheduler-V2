@@ -231,6 +231,7 @@ export function useMRPActions(state, calculationsResult) {
             const val = v === '' ? null : Number(v);
             setManualYardOverride(val);
             saveLocalState('manualYardOverride', val, selectedSize);
+            if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'manual_yard_override', val));
         },
         setIsAutoReplenish: (v) => {
             setIsAutoReplenish(v);
