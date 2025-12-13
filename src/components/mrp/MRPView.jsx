@@ -4,7 +4,8 @@ import PlanningGrid from './PlanningGrid';
 import OrderActionLog from './OrderActionLog';
 import SharePlanModal from '../SharePlanModal';
 import BulkImportModal from '../procurement/BulkImportModal';
-import SupplierEmailModal from '../procurement/SupplierEmailModal'; // NEW
+import SupplierEmailModal from '../procurement/SupplierEmailModal';
+import YMSExportModal from '../procurement/YMSExportModal'; // NEW
 import { useSettings } from '../../context/SettingsContext';
 import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
@@ -16,6 +17,7 @@ export default function MRPView({ state, setters, results }) {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [isEmailOpen, setIsEmailOpen] = useState(false); // NEW
+    const [isExportOpen, setIsExportOpen] = useState(false); // NEW
     const [viewMode, setViewMode] = useState('grid');
 
     // Morning Reconciliation Modal State
@@ -422,6 +424,11 @@ export default function MRPView({ state, setters, results }) {
             <SupplierEmailModal
                 isOpen={isEmailOpen}
                 onClose={() => setIsEmailOpen(false)}
+            />
+
+            <YMSExportModal
+                isOpen={isExportOpen}
+                onClose={() => setIsExportOpen(false)}
             />
         </div>
     );
