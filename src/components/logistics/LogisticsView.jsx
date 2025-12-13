@@ -72,12 +72,12 @@ export default function LogisticsView({ state, setters, results }) {
             // Let's standardise the Global PO to look like a manifest item { id, time, carrier, type... }
             const mappedGlobalToday = globalToday.map(po => ({
                 id: po.id,
-                time: 'Any', // POs don't have time yet
+                time: po.time, // Add time
                 carrier: po.carrier || po.supplier,
                 type: 'PO',
-                po: po.po, // Fix: Pass 'po' directly
+                po: po.po,
                 details: `PO#${po.po} (${po.qty})`,
-                isGlobal: true // Flag to prevent editing in local view if needed?
+                isGlobal: true
             }));
 
             // Combine Manifests (Local + Global)
@@ -104,10 +104,10 @@ export default function LogisticsView({ state, setters, results }) {
 
             const mappedGlobalTmr = globalTomorrow.map(po => ({
                 id: po.id,
-                time: 'Any',
+                time: po.time, // Add time
                 carrier: po.carrier || po.supplier,
                 type: 'PO',
-                po: po.po, // Fix: Pass 'po' directly
+                po: po.po,
                 details: `PO#${po.po} (${po.qty})`,
                 isGlobal: true
             }));
@@ -268,40 +268,19 @@ export default function LogisticsView({ state, setters, results }) {
                                     </h4>
                                     <DockManifestParams
                                         date={todayStr}
-                                        totalRequired={item.count} // From Aggregated
+                                        totalRequired={item.count}
                                         manifest={item.manifest}
                                         onUpdate={(d, list) => {
-                                            // Handling update is tricky. We need to update the SPECIFIC SKU's state.
-                                            // If the active tabs SKU matches, we can use 'setters.updateTruckManifest'.
-                                            // If NOT, we are viewing a READ-ONLY aggregate effectively, 
-                                            // UNLESS we switch context or write to LS directly.
-                                            // writing to LS directly for "other" SKUs means UI won't react instantly if we switch tabs.
-                                            // Constraint: Edit only allowed if item.sku === state.selectedSize?
-                                            // No, that sucks. User wants to edit "12oz" while on "20oz" page.
-
-                                            // SOLUTION: Write directly to `mrp_${sku}_truckManifest` in LS, 
-                                            // AND force a re-render of THIS component by updating a local trigger or refetching.
-                                            // Actually, setters.updateTruckManifest only updates CURRENT SKU.
-
                                             if (item.sku === state.selectedSize) {
                                                 setters.updateTruckManifest(d, list);
                                             } else {
-                                                // Manual LS Write for off-screen SKU
-                                                // This is a "Backdoor" update.
                                                 const key = `mrp_${item.sku}_truckManifest`;
                                                 const existing = JSON.parse(localStorage.getItem(key) || '{}');
                                                 existing[d] = list;
-                                                // Clean empty?
                                                 if (!list || list.length === 0) delete existing[d];
                                                 localStorage.setItem(key, JSON.stringify(existing));
-                                                // Force refresh of aggregation
-                                                setAggregatedSchedule(prev => ({ ...prev })); // Hacky trigger? 
-                                                // Or just wait for next effect cycle? The Effect depends on `state.monthlyInbound`, 
-                                                // but changing LS doesn't update React State of OTHER skus.
-                                                // We need a forceUpdate.
-                                                window.location.reload(); // Brutal but effective for now? No.
-                                                // Let's just update local state `setAggregatedSchedule` manually to reflect change in UI.
-                                                // TODO: Better cross-sku context management later.
+                                                // Reload to see changes
+                                                window.location.reload();
                                             }
                                         }}
                                     />
