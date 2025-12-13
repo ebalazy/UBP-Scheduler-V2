@@ -20,7 +20,7 @@ export default function LogisticsView({ state, setters, results }) {
     if (!results) return <div className="p-8 text-center text-gray-500">Loading Logistics Data...</div>;
 
     const { specs, yardInventory } = results;
-    const { poManifest } = useProcurement(); // Access Global POs
+    const { poManifest, updateDailyManifest } = useProcurement(); // Access Global POs
     const todayStr = getLocalISOString();
 
     // Calculate Tomorrow's Date (Local)
@@ -270,17 +270,36 @@ export default function LogisticsView({ state, setters, results }) {
                                         totalRequired={item.count}
                                         manifest={item.manifest}
                                         onUpdate={(d, list) => {
-                                            if (item.sku === state.selectedSize) {
-                                                setters.updateTruckManifest(d, list);
-                                            } else {
-                                                const key = `mrp_${item.sku}_truckManifest`;
-                                                const existing = JSON.parse(localStorage.getItem(key) || '{}');
-                                                existing[d] = list;
-                                                if (!list || list.length === 0) delete existing[d];
-                                                localStorage.setItem(key, JSON.stringify(existing));
-                                                // Reload to see changes
-                                                window.location.reload();
-                                            }
+                                            // Convert to Global POs
+                                            const specs = results.specs;
+                                            const qtyPerTruck = specs?.bottlesPerTruck || 20000;
+
+                                            // 1. Map UI items to PO Objects
+                                            const newOpsItems = list.map(uiItem => ({
+                                                id: uiItem.id || crypto.randomUUID(),
+                                                date: d,
+                                                po: uiItem.po || `TEMP-${Date.now()}`, // Fallback if empty, though user should enter it
+                                                sku: item.sku,
+                                                qty: qtyPerTruck, // Assume 1 Full Truck
+                                                supplier: uiItem.carrier || 'Unknown', // Map Carrier to Supplier for now, or just leave generic
+                                                carrier: uiItem.carrier,
+                                                time: uiItem.time,
+                                                status: 'scheduled',
+                                                isGlobal: true
+                                            }));
+
+                                            // 2. Merge with EXISTING Global Order (Preserve other SKUs)
+                                            const currentDayManifest = poManifest[d]?.items || [];
+                                            const otherSkuItems = currentDayManifest.filter(i => i.sku !== item.sku);
+
+                                            const combinedItems = [...otherSkuItems, ...newOpsItems];
+
+                                            // 3. Update Context (Syncs to Cloud + State)
+                                            // We need to access updateDailyManifest from context
+                                            // But we only have 'poManifest' destructured. 
+                                            // We need to destructure 'updateDailyManifest' at top of component.
+                                            // See Step 2158 for context export.
+                                            setters.updateGlobalManifest(d, combinedItems);
                                         }}
                                     />
                                 </div>
@@ -315,18 +334,24 @@ export default function LogisticsView({ state, setters, results }) {
                                         totalRequired={item.count}
                                         manifest={item.manifest}
                                         onUpdate={(d, list) => {
-                                            if (item.sku === state.selectedSize) {
-                                                setters.updateTruckManifest(d, list);
-                                            } else {
-                                                const key = `mrp_${item.sku}_truckManifest`;
-                                                const existing = JSON.parse(localStorage.getItem(key) || '{}');
-                                                existing[d] = list;
-                                                if (!list || list.length === 0) delete existing[d];
-                                                localStorage.setItem(key, JSON.stringify(existing));
-                                                // Reload to see changes (Temporary fix for multi-sku write)
-                                                window.location.reload();
-                                            }
-                                        }}
+                                            const specs = results.specs;
+                                            const qtyPerTruck = specs?.bottlesPerTruck || 20000;
+
+                                            const newOpsItems = list.map(uiItem => ({
+                                                id: uiItem.id || crypto.randomUUID(),
+                                                date: d,
+                                                po: uiItem.po || 'TBD',
+                                                sku: item.sku,
+
+                                                // 2. Merge with EXISTING Global Order (Preserve other SKUs)
+                                                const currentDayManifest = poManifest[d]?.items || [];
+                                                const otherSkuItems = currentDayManifest.filter(i => i.sku !== item.sku);
+
+                                                const combinedItems = [...otherSkuItems, ...newOpsItems];
+
+                                                // 3. Update Context
+                                                updateDailyManifest(d, combinedItems);
+                                            }}
                                     />
                                 </div>
                             ))}
