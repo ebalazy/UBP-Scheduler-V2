@@ -15,7 +15,7 @@ import LandingPage from './components/LandingPage';
 import CockpitView from './components/cockpit/CockpitView';
 import LogisticsView from './components/logistics/LogisticsView';
 import ProductsView from './components/products/ProductsView';
-import { Boxes, CalendarClock, Crown, Gauge, Truck, CubeIcon } from 'lucide-react';
+import { Boxes, CalendarClock, Crown, Gauge, Truck, Package } from 'lucide-react';
 
 import { ProcurementProvider, useProcurement } from './context/ProcurementContext';
 
@@ -139,7 +139,7 @@ function AuthenticatedApp({ user }) {
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
                 }`}
             >
-              <CubeIcon className="w-4 h-4" />
+              <Package className="w-4 h-4" />
               <span>Products</span>
             </button>
 
