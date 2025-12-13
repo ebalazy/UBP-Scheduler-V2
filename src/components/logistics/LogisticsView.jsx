@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import MorningReconciliationModal from '../mrp/MorningReconciliationModal';
 import DockManifestParams from './DockManifestParams';
+import { useProcurement } from '../../context/ProcurementContext';
 
 export default function LogisticsView({ state, setters, results }) {
     const [isRecModalOpen, setIsRecModalOpen] = useState(false);
@@ -20,6 +21,7 @@ export default function LogisticsView({ state, setters, results }) {
     if (!results) return <div className="p-8 text-center text-gray-500">Loading Logistics Data...</div>;
 
     const { specs, yardInventory } = results;
+    const { poManifest } = useProcurement(); // Access Global POs
     const todayStr = getLocalISOString();
 
     // Calculate Tomorrow's Date (Local)
@@ -34,7 +36,7 @@ export default function LogisticsView({ state, setters, results }) {
         const agg = { today: [], tomorrow: [] };
 
         bottleSizes.forEach(sku => {
-            // 1. Read Inbound Count
+            // 1. Read Inbound Count (Legacy Manual)
             const inboundKey = `mrp_${sku}_monthlyInbound`;
             let inboundMap = {};
             try {
@@ -42,7 +44,7 @@ export default function LogisticsView({ state, setters, results }) {
                 if (raw) inboundMap = JSON.parse(raw);
             } catch (e) { }
 
-            // 2. Read Manifest Details
+            // 2. Read Local Dock Manifest (Detailed Schedule)
             const manifestKey = `mrp_${sku}_truckManifest`;
             let manifestMap = {};
             try {
@@ -50,37 +52,78 @@ export default function LogisticsView({ state, setters, results }) {
                 if (raw) manifestMap = JSON.parse(raw);
             } catch (e) { }
 
-            // 3. Check Today
-            const savedTodayCount = Number(inboundMap[todayStr]) || 0;
-            const todayManifest = manifestMap[todayStr] || [];
-            // Business Rule: Count is at least the number of POs (1 PO = 1 Truck)
-            // But if saved count is higher (manual override), keep it.
-            const effectiveTodayCount = Math.max(savedTodayCount, todayManifest.length);
+            // 3. Get Global POs for this SKU (New!)
+            const getGlobalPOs = (date) => {
+                const dayData = poManifest[date];
+                if (!dayData || !dayData.items) return [];
+                // Filter items that match this SKU (case insensitive just in case, though usually exact)
+                return dayData.items.filter(item => item.sku === sku);
+            };
 
-            if (effectiveTodayCount > 0 || todayManifest.length > 0) {
+            const globalToday = getGlobalPOs(todayStr);
+            const globalTomorrow = getGlobalPOs(tomorrowStr);
+
+            // 4. Check Today
+            const savedTodayCount = Number(inboundMap[todayStr]) || 0;
+            const todayLocalManifest = manifestMap[todayStr] || [];
+
+            // Merge Global POs into Manifest for display (Simple concatenation for now)
+            // We map Global POs to the manifest format if needed, but DockManifestParams handles generic objects well?
+            // Let's standardise the Global PO to look like a manifest item { id, time, carrier, type... }
+            const mappedGlobalToday = globalToday.map(po => ({
+                id: po.id,
+                time: 'Any', // POs don't have time yet
+                carrier: po.carrier || po.supplier,
+                type: 'PO',
+                details: `PO#${po.po} (${po.qty})`,
+                isGlobal: true // Flag to prevent editing in local view if needed?
+            }));
+
+            // Combine Manifests (Local + Global)
+            // deduplication? Global POs are separate from local manual entries usually.
+            const combinedTodayManifest = [...todayLocalManifest, ...mappedGlobalToday];
+
+            // Effective Count: Max of Manual, LocalCount, GlobalCount. 
+            // Actually, Global Count should probably ADD to Local if distinct?
+            // But usually the Manual Count was a crude estimate.
+            // Let's say: Effective = Max(Manual, CombinedManifest.length)
+            const effectiveTodayCount = Math.max(savedTodayCount, combinedTodayManifest.length);
+
+            if (effectiveTodayCount > 0 || combinedTodayManifest.length > 0) {
                 agg.today.push({
                     sku,
                     count: effectiveTodayCount,
-                    manifest: todayManifest
+                    manifest: combinedTodayManifest
                 });
             }
 
-            // 4. Check Tomorrow
+            // 5. Check Tomorrow
             const savedTmrCount = Number(inboundMap[tomorrowStr]) || 0;
-            const tmrManifest = manifestMap[tomorrowStr] || [];
-            const effectiveTmrCount = Math.max(savedTmrCount, tmrManifest.length);
+            const tmrLocalManifest = manifestMap[tomorrowStr] || [];
 
-            if (effectiveTmrCount > 0 || tmrManifest.length > 0) {
+            const mappedGlobalTmr = globalTomorrow.map(po => ({
+                id: po.id,
+                time: 'Any',
+                carrier: po.carrier || po.supplier,
+                type: 'PO',
+                details: `PO#${po.po} (${po.qty})`,
+                isGlobal: true
+            }));
+
+            const combinedTmrManifest = [...tmrLocalManifest, ...mappedGlobalTmr];
+            const effectiveTmrCount = Math.max(savedTmrCount, combinedTmrManifest.length);
+
+            if (effectiveTmrCount > 0 || combinedTmrManifest.length > 0) {
                 agg.tomorrow.push({
                     sku,
                     count: effectiveTmrCount,
-                    manifest: tmrManifest
+                    manifest: combinedTmrManifest
                 });
             }
         });
 
         setAggregatedSchedule(agg);
-    }, [bottleSizes, state.monthlyInbound, state.stateVersion]); // Re-run when current SKU updates too, or a global state version changes
+    }, [bottleSizes, state.monthlyInbound, state.stateVersion, poManifest]); // Added poManifest dependency
 
     // Filter Logic
     const filteredToday = filterSku === 'ALL'
