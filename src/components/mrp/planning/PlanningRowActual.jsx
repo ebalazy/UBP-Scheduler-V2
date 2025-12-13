@@ -10,37 +10,76 @@ export default function PlanningRowActual({ dates, monthlyProductionActuals, upd
             {dates.map((date) => {
                 const dateStr = formatLocalDate(date);
                 const val = monthlyProductionActuals[dateStr];
-                const hasVal = val !== undefined;
                 return (
-                    <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <input
-                            id={`actual-${dateStr}`}
-                            className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 font-bold
-                                ${hasVal ? 'text-blue-700 dark:text-blue-300' : 'text-gray-400'}
-                            `}
-                            value={hasVal ? val : ''}
-                            placeholder="-"
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    const nextDate = new Date(date);
-                                    nextDate.setDate(nextDate.getDate() + 1);
-                                    const nextId = `actual-${formatLocalDate(nextDate)}`;
-                                    const nextEl = document.getElementById(nextId);
-                                    if (nextEl) {
-                                        nextEl.focus();
-                                        nextEl.select();
-                                    }
-                                }
-                            }}
-                            onChange={e => {
-                                const v = e.target.value.replace(/,/g, '');
-                                if (!isNaN(v)) updateDateActual(dateStr, v);
-                            }}
-                        />
-                    </td>
+                    <ActualCell
+                        key={dateStr}
+                        date={date}
+                        dateStr={dateStr}
+                        initialValue={val}
+                        updateDateActual={updateDateActual}
+                    />
                 );
             })}
         </tr>
     );
 }
+
+const ActualCell = React.memo(({ date, dateStr, initialValue, updateDateActual }) => {
+    // Treat undefined/null as empty string for input
+    const [localVal, setLocalVal] = React.useState(initialValue !== undefined && initialValue !== null ? initialValue : '');
+
+    React.useEffect(() => {
+        setLocalVal(initialValue !== undefined && initialValue !== null ? initialValue : '');
+    }, [initialValue]);
+
+    const debouncedUpdate = React.useMemo(() => {
+        let timer;
+        return (d, v) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                updateDateActual(d, v);
+            }, 300);
+        };
+    }, [updateDateActual]);
+
+    const hasVal = localVal !== '' && localVal !== undefined;
+
+    return (
+        <td className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <input
+                id={`actual-${dateStr}`}
+                className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 font-bold
+                    ${hasVal ? 'text-blue-700 dark:text-blue-300' : 'text-gray-400'}
+                `}
+                value={localVal}
+                placeholder="-"
+                onChange={(e) => {
+                    const v = e.target.value.replace(/,/g, '');
+                    // Allow empty string to clear
+                    if (v === '' || !isNaN(v)) {
+                        setLocalVal(v);
+                        debouncedUpdate(dateStr, v);
+                    }
+                }}
+                onBlur={() => {
+                    updateDateActual(dateStr, localVal);
+                }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        updateDateActual(dateStr, localVal); // Force sync
+
+                        const nextDate = new Date(date);
+                        nextDate.setDate(nextDate.getDate() + 1);
+                        const nextId = `actual-${formatLocalDate(nextDate)}`;
+                        const nextEl = document.getElementById(nextId);
+                        if (nextEl) {
+                            nextEl.focus();
+                            nextEl.select();
+                        }
+                    }
+                }}
+            />
+        </td>
+    );
+});
