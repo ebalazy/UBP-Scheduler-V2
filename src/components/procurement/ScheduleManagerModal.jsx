@@ -14,9 +14,9 @@ import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
 import { addDays, formatLocalDate } from '../../utils/dateUtils';
 
-export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound }) {
+export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound, specs }) {
     const { updateDailyManifest, addOrdersBulk, removeOrder, updateOrder } = useProcurement();
-    const { specs, schedulerSettings } = useSettings();
+    const { schedulerSettings } = useSettings();
 
     // Edit State
     const [editingId, setEditingId] = useState(null);
