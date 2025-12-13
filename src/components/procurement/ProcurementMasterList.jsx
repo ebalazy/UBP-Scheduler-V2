@@ -3,7 +3,6 @@ import { Dialog } from '@headlessui/react';
 import {
     XMarkIcon,
     TrashIcon,
-    FunnelIcon,
     MagnifyingGlassIcon,
     TableCellsIcon,
     PencilSquareIcon,
