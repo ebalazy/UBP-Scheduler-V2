@@ -20,7 +20,7 @@ export default function LogisticsView({ state, setters, results }) {
     if (!results) return <div className="p-8 text-center text-gray-500">Loading Logistics Data...</div>;
 
     const { specs, yardInventory } = results;
-    const { poManifest, updateDailyManifest } = useProcurement(); // Access Global POs
+    const { poManifest, updateDailyManifest, bulkUpdateOrders } = useProcurement(); // Access Global POs
     const todayStr = getLocalISOString();
 
     // Calculate Tomorrow's Date (Local)
@@ -159,273 +159,340 @@ export default function LogisticsView({ state, setters, results }) {
                     </div>
                 </div>
 
-                <button
-                    onClick={() => setIsRecModalOpen(true)}
-                    className="mt-4 md:mt-0 flex items-center bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-6 py-4 rounded-xl font-bold text-lg transition-transform hover:scale-105 shadow-xl"
-                >
-                    <ClipboardDocumentCheckIcon className="w-8 h-8 mr-2" />
-                    START DAY / TRUE-UP
-                </button>
-            </div>
+                <div className="flex space-x-3 mt-4 md:mt-0">
+                    <button
+                        onClick={async () => {
+                            if (!confirm("This will upload ALL old local schedule data to the cloud database and remove it from this device. Continue?")) return;
 
-            {/* Inventory Status Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Floor Inventory */}
-                <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-sm">Floor Inventory</p>
-                        <div className="flex items-baseline mt-2">
-                            <span className="text-6xl font-black text-slate-800 dark:text-white">
-                                {fmt(Math.round(results.calculatedPallets))}
-                            </span>
-                            <span className="ml-2 text-xl font-medium text-gray-400">Pallets</span>
+                            try {
+                                const allLegacyItems = [];
+                                const keysToRemove = [];
+                                const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
+                                const specs = results.specs;
+                                const qtyPerTruck = specs?.bottlesPerTruck || 20000;
+
+                                bottleSizes.forEach(sku => {
+                                    const key = `mrp_${sku}_truckManifest`;
+                                    const raw = localStorage.getItem(key);
+                                    if (raw) {
+                                        try {
+                                            const data = JSON.parse(raw);
+                                            // data is { "2023-10-27": [ { time, carrier... } ] }
+                                            Object.entries(data).forEach(([date, items]) => {
+                                                if (Array.isArray(items)) {
+                                                    items.forEach(item => {
+                                                        allLegacyItems.push({
+                                                            id: item.id || safeUUID(),
+                                                            date: date,
+                                                            po: item.po || `LEGACY-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                                                            sku: sku,
+                                                            qty: qtyPerTruck,
+                                                            supplier: item.carrier || 'Unknown',
+                                                            carrier: item.carrier,
+                                                            time: item.time,
+                                                            status: 'scheduled',
+                                                            isGlobal: true
+                                                        });
+                                                    });
+                                                }
+                                            });
+                                            keysToRemove.push(key);
+                                        } catch (e) {
+                                            console.warn("Failed to parse legacy key", key, e);
+                                        }
+                                    }
+                                });
+
+                                if (allLegacyItems.length > 0) {
+                                    console.log("Migrating Legacy Items:", allLegacyItems.length);
+                                    bulkUpdateOrders(allLegacyItems);
+
+                                    // Cleanup Keys
+                                    keysToRemove.forEach(k => localStorage.removeItem(k));
+                                    alert(`Successfully migrated ${allLegacyItems.length} local records to the cloud! Local storage cleared.`);
+                                    window.location.reload(); // Refresh to ensure clean state
+                                } else {
+                                    alert("No local legacy data found to migrate.");
+                                }
+
+                            } catch (err) {
+                                console.error("Migration Error", err);
+                                alert("Migration Failed check console");
+                            }
+                        }}
+                        className="flex items-center bg-blue-600 hover:bg-blue-500 text-white px-4 py-4 rounded-xl font-bold text-sm shadow-lg border border-blue-400"
+                    >
+                        <TruckIcon className="w-5 h-5 mr-2" />
+                        SYNC LOCAL DB
+                    </button>
+
+                    <button
+                        onClick={() => setIsRecModalOpen(true)}
+                        className="flex items-center bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-6 py-4 rounded-xl font-bold text-lg transition-transform hover:scale-105 shadow-xl"
+                    >
+                        <ClipboardDocumentCheckIcon className="w-8 h-8 mr-2" />
+                        START DAY / TRUE-UP
+                    </button>
+                </div>
+
+                {/* Inventory Status Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Floor Inventory */}
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-sm">Floor Inventory</p>
+                            <div className="flex items-baseline mt-2">
+                                <span className="text-6xl font-black text-slate-800 dark:text-white">
+                                    {fmt(Math.round(results.calculatedPallets))}
+                                </span>
+                                <span className="ml-2 text-xl font-medium text-gray-400">Pallets</span>
+                            </div>
+                        </div>
+                        <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center">
+                            <CubeIcon className="w-8 h-8 text-blue-600" />
                         </div>
                     </div>
-                    <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center">
-                        <CubeIcon className="w-8 h-8 text-blue-600" />
+
+                    {/* Yard Inventory */}
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-sm">Yard Inventory</p>
+                            <div className="flex items-baseline mt-2">
+                                <span className="text-6xl font-black text-slate-800 dark:text-white">
+                                    {yardInventory.effectiveCount}
+                                </span>
+                                <span className="ml-2 text-xl font-medium text-gray-400">Loads</span>
+                            </div>
+                            {yardInventory.isOverridden && (
+                                <span className="inline-block mt-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded">
+                                    MANUAL OVERRIDE
+                                </span>
+                            )}
+                        </div>
+                        <div className="h-16 w-16 bg-orange-50 rounded-full flex items-center justify-center">
+                            <TruckIcon className="w-8 h-8 text-orange-600" />
+                        </div>
                     </div>
                 </div>
 
-                {/* Yard Inventory */}
-                <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-sm">Yard Inventory</p>
-                        <div className="flex items-baseline mt-2">
-                            <span className="text-6xl font-black text-slate-800 dark:text-white">
-                                {yardInventory.effectiveCount}
-                            </span>
-                            <span className="ml-2 text-xl font-medium text-gray-400">Loads</span>
-                        </div>
-                        {yardInventory.isOverridden && (
-                            <span className="inline-block mt-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded">
-                                MANUAL OVERRIDE
-                            </span>
-                        )}
-                    </div>
-                    <div className="h-16 w-16 bg-orange-50 rounded-full flex items-center justify-center">
-                        <TruckIcon className="w-8 h-8 text-orange-600" />
-                    </div>
-                </div>
-            </div>
+                {/* Dock Schedule / Inbound Manifest */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center">
+                            <CalendarDaysIcon className="w-5 h-5 mr-2 text-gray-500" />
+                            Master Dock Schedule
+                        </h2>
 
-            {/* Dock Schedule / Inbound Manifest */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center">
-                        <CalendarDaysIcon className="w-5 h-5 mr-2 text-gray-500" />
-                        Master Dock Schedule
-                    </h2>
-
-                    {/* SKU Filter Pill */}
-                    <div className="flex space-x-1 bg-white dark:bg-gray-800 rounded-lg p-1 border dark:border-gray-600">
-                        <button
-                            onClick={() => setFilterSku('ALL')}
-                            className={`px-3 py-1 text-[10px] uppercase font-bold rounded ${filterSku === 'ALL' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                            All
-                        </button>
-                        {bottleSizes.map(sku => (
+                        {/* SKU Filter Pill */}
+                        <div className="flex space-x-1 bg-white dark:bg-gray-800 rounded-lg p-1 border dark:border-gray-600">
                             <button
-                                key={sku}
-                                onClick={() => setFilterSku(sku)}
-                                className={`px-3 py-1 text-[10px] uppercase font-bold rounded ${filterSku === sku ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-400 hover:text-gray-600'}`}
+                                onClick={() => setFilterSku('ALL')}
+                                className={`px-3 py-1 text-[10px] uppercase font-bold rounded ${filterSku === 'ALL' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-400 hover:text-gray-600'}`}
                             >
-                                {sku}
+                                All
                             </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {/* Today */}
-                    <div className="p-6 transition-colors">
-                        <div className="flex items-center mb-4">
-                            <div className={`w-3 h-12 rounded-full mr-4 ${totalTodayTrucks > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                            <div>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">TODAY</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {new Date().toLocaleDateString()}
-                                </p>
-                            </div>
-                            <div className="ml-auto text-right">
-                                {totalTodayTrucks > 0 ? (
-                                    <span className="text-sm font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full uppercase">
-                                        {totalTodayTrucks} Total Trucks
-                                    </span>
-                                ) : null}
-                            </div>
-                        </div>
-
-                        {/* Render List of Active SKUs */}
-                        <div className="pl-7 space-y-6">
-                            {filteredToday.length === 0 && (
-                                <p className="text-sm text-gray-400 italic">No scheduled deliveries.</p>
-                            )}
-                            {filteredToday.map(item => (
-                                <div key={item.sku} className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
-                                    <h4 className="flex items-center text-xs font-bold text-gray-500 uppercase mb-3">
-                                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                                        {item.sku} Production Supply ({item.count} Trucks)
-                                    </h4>
-                                    <DockManifestParams
-                                        date={todayStr}
-                                        totalRequired={item.count}
-                                        manifest={item.manifest}
-                                        onUpdate={(d, list) => {
-                                            console.log("LogisticsView onUpdate (Today) Called", { d, listLength: list.length });
-                                            try {
-                                                const specs = results.specs;
-                                                const qtyPerTruck = specs?.bottlesPerTruck || 20000;
-                                                const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
-
-                                                const newOpsItems = list.map(uiItem => ({
-                                                    id: uiItem.id || safeUUID(),
-                                                    date: d,
-                                                    po: uiItem.po || `TEMP-${Date.now()}`,
-                                                    sku: item.sku,
-                                                    qty: qtyPerTruck,
-                                                    supplier: uiItem.carrier || 'Unknown',
-                                                    carrier: uiItem.carrier,
-                                                    time: uiItem.time,
-                                                    status: 'scheduled',
-                                                    isGlobal: true
-                                                }));
-
-                                                const currentDayManifest = poManifest[d]?.items || [];
-                                                const otherSkuItems = Array.isArray(currentDayManifest)
-                                                    ? currentDayManifest.filter(i => i.sku !== item.sku)
-                                                    : [];
-
-                                                const combinedItems = [...otherSkuItems, ...newOpsItems];
-
-                                                console.log("Calling updateDailyManifest (Today)", { d, count: combinedItems.length });
-                                                updateDailyManifest(d, combinedItems);
-                                            } catch (err) {
-                                                console.error("Failed to update manifest (Today) in LogicsticsView:", err);
-                                                alert("Error saving manifest. See console.");
-                                            }
-
-                                            // --- CLEANUP LEGACY LOCAL STORAGE (Today) ---
-                                            try {
-                                                const legacyKey = `mrp_${item.sku}_truckManifest`;
-                                                const raw = localStorage.getItem(legacyKey);
-                                                if (raw) {
-                                                    const data = JSON.parse(raw);
-                                                    if (data[d]) {
-                                                        delete data[d];
-                                                        localStorage.setItem(legacyKey, JSON.stringify(data));
-                                                        console.log("Cleaned up legacy local manifest for (Today)", d);
-                                                    }
-                                                }
-                                            } catch (e) {
-                                                console.warn("Legacy cleanup failed (Today)", e);
-                                            }
-                                        }}
-                                    />
-                                </div>
+                            {bottleSizes.map(sku => (
+                                <button
+                                    key={sku}
+                                    onClick={() => setFilterSku(sku)}
+                                    className={`px-3 py-1 text-[10px] uppercase font-bold rounded ${filterSku === sku ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    {sku}
+                                </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Tomorrow */}
-                    <div className="p-6 transition-colors opacity-95">
-                        <div className="flex items-center mb-4">
-                            <div className={`w-3 h-12 rounded-full mr-4 ${totalTomorrowTrucks > 0 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                            <div>
-                                <p className="text-xl font-bold text-gray-700 dark:text-gray-300">TOMORROW</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {tomorrowDateObj.toLocaleDateString()}
-                                </p>
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {/* Today */}
+                        <div className="p-6 transition-colors">
+                            <div className="flex items-center mb-4">
+                                <div className={`w-3 h-12 rounded-full mr-4 ${totalTodayTrucks > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                <div>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">TODAY</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {new Date().toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <div className="ml-auto text-right">
+                                    {totalTodayTrucks > 0 ? (
+                                        <span className="text-sm font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full uppercase">
+                                            {totalTodayTrucks} Total Trucks
+                                        </span>
+                                    ) : null}
+                                </div>
+                            </div>
+
+                            {/* Render List of Active SKUs */}
+                            <div className="pl-7 space-y-6">
+                                {filteredToday.length === 0 && (
+                                    <p className="text-sm text-gray-400 italic">No scheduled deliveries.</p>
+                                )}
+                                {filteredToday.map(item => (
+                                    <div key={item.sku} className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                                        <h4 className="flex items-center text-xs font-bold text-gray-500 uppercase mb-3">
+                                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                            {item.sku} Production Supply ({item.count} Trucks)
+                                        </h4>
+                                        <DockManifestParams
+                                            date={todayStr}
+                                            totalRequired={item.count}
+                                            manifest={item.manifest}
+                                            onUpdate={(d, list) => {
+                                                console.log("LogisticsView onUpdate (Today) Called", { d, listLength: list.length });
+                                                try {
+                                                    const specs = results.specs;
+                                                    const qtyPerTruck = specs?.bottlesPerTruck || 20000;
+                                                    const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
+
+                                                    const newOpsItems = list.map(uiItem => ({
+                                                        id: uiItem.id || safeUUID(),
+                                                        date: d,
+                                                        po: uiItem.po || `TEMP-${Date.now()}`,
+                                                        sku: item.sku,
+                                                        qty: qtyPerTruck,
+                                                        supplier: uiItem.carrier || 'Unknown',
+                                                        carrier: uiItem.carrier,
+                                                        time: uiItem.time,
+                                                        status: 'scheduled',
+                                                        isGlobal: true
+                                                    }));
+
+                                                    const currentDayManifest = poManifest[d]?.items || [];
+                                                    const otherSkuItems = Array.isArray(currentDayManifest)
+                                                        ? currentDayManifest.filter(i => i.sku !== item.sku)
+                                                        : [];
+
+                                                    const combinedItems = [...otherSkuItems, ...newOpsItems];
+
+                                                    console.log("Calling updateDailyManifest (Today)", { d, count: combinedItems.length });
+                                                    updateDailyManifest(d, combinedItems);
+                                                } catch (err) {
+                                                    console.error("Failed to update manifest (Today) in LogicsticsView:", err);
+                                                    alert("Error saving manifest. See console.");
+                                                }
+
+                                                // --- CLEANUP LEGACY LOCAL STORAGE (Today) ---
+                                                try {
+                                                    const legacyKey = `mrp_${item.sku}_truckManifest`;
+                                                    const raw = localStorage.getItem(legacyKey);
+                                                    if (raw) {
+                                                        const data = JSON.parse(raw);
+                                                        if (data[d]) {
+                                                            delete data[d];
+                                                            localStorage.setItem(legacyKey, JSON.stringify(data));
+                                                            console.log("Cleaned up legacy local manifest for (Today)", d);
+                                                        }
+                                                    }
+                                                } catch (e) {
+                                                    console.warn("Legacy cleanup failed (Today)", e);
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
-                        <div className="pl-7 space-y-6">
-                            {filteredTomorrow.length === 0 && (
-                                <p className="text-sm text-gray-400 italic">No scheduled deliveries.</p>
-                            )}
-                            {filteredTomorrow.map(item => (
-                                <div key={item.sku} className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
-                                    <h4 className="flex items-center text-xs font-bold text-gray-500 uppercase mb-3">
-                                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                                        {item.sku} Production Supply ({item.count} Trucks)
-                                    </h4>
-                                    <DockManifestParams
-                                        date={tomorrowStr}
-                                        totalRequired={item.count}
-                                        manifest={item.manifest}
-                                        onUpdate={(d, list) => {
-                                            console.log("LogisticsView onUpdate Called", { d, listLength: list.length });
-                                            try {
-                                                const specs = results.specs;
-                                                const qtyPerTruck = specs?.bottlesPerTruck || 20000;
-                                                const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
-
-                                                const newOpsItems = list.map(uiItem => ({
-                                                    id: uiItem.id || safeUUID(),
-                                                    date: d,
-                                                    po: uiItem.po || 'TBD',
-                                                    sku: item.sku,
-                                                    qty: qtyPerTruck,
-                                                    supplier: uiItem.carrier || 'Unknown',
-                                                    carrier: uiItem.carrier,
-                                                    time: uiItem.time,
-                                                    status: 'scheduled',
-                                                    isGlobal: true
-                                                }));
-
-                                                const currentDayManifest = poManifest[d]?.items || [];
-                                                // Robust filter
-                                                const otherSkuItems = Array.isArray(currentDayManifest)
-                                                    ? currentDayManifest.filter(i => i.sku !== item.sku)
-                                                    : [];
-
-                                                const combinedItems = [...otherSkuItems, ...newOpsItems];
-
-                                                console.log("Calling updateDailyManifest", { d, count: combinedItems.length });
-                                                updateDailyManifest(d, combinedItems);
-                                            } catch (err) {
-                                                console.error("Failed to update manifest in LogicsticsView:", err);
-                                                alert("Error saving manifest. See console.");
-                                            }
-
-                                            // --- CLEANUP LEGACY LOCAL STORAGE (Tomorrow) ---
-                                            try {
-                                                const legacyKey = `mrp_${item.sku}_truckManifest`;
-                                                const raw = localStorage.getItem(legacyKey);
-                                                if (raw) {
-                                                    const data = JSON.parse(raw);
-                                                    if (data[d]) {
-                                                        delete data[d];
-                                                        localStorage.setItem(legacyKey, JSON.stringify(data));
-                                                        console.log("Cleaned up legacy local manifest for (tomorrow)", d);
-                                                    }
-                                                }
-                                            } catch (e) {
-                                                console.warn("Legacy cleanup failed (tomorrow)", e);
-                                            }
-                                        }}
-                                    />
+                        {/* Tomorrow */}
+                        <div className="p-6 transition-colors opacity-95">
+                            <div className="flex items-center mb-4">
+                                <div className={`w-3 h-12 rounded-full mr-4 ${totalTomorrowTrucks > 0 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                <div>
+                                    <p className="text-xl font-bold text-gray-700 dark:text-gray-300">TOMORROW</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {tomorrowDateObj.toLocaleDateString()}
+                                    </p>
                                 </div>
-                            ))}
+                            </div>
+
+                            <div className="pl-7 space-y-6">
+                                {filteredTomorrow.length === 0 && (
+                                    <p className="text-sm text-gray-400 italic">No scheduled deliveries.</p>
+                                )}
+                                {filteredTomorrow.map(item => (
+                                    <div key={item.sku} className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                                        <h4 className="flex items-center text-xs font-bold text-gray-500 uppercase mb-3">
+                                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                            {item.sku} Production Supply ({item.count} Trucks)
+                                        </h4>
+                                        <DockManifestParams
+                                            date={tomorrowStr}
+                                            totalRequired={item.count}
+                                            manifest={item.manifest}
+                                            onUpdate={(d, list) => {
+                                                console.log("LogisticsView onUpdate Called", { d, listLength: list.length });
+                                                try {
+                                                    const specs = results.specs;
+                                                    const qtyPerTruck = specs?.bottlesPerTruck || 20000;
+                                                    const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
+
+                                                    const newOpsItems = list.map(uiItem => ({
+                                                        id: uiItem.id || safeUUID(),
+                                                        date: d,
+                                                        po: uiItem.po || 'TBD',
+                                                        sku: item.sku,
+                                                        qty: qtyPerTruck,
+                                                        supplier: uiItem.carrier || 'Unknown',
+                                                        carrier: uiItem.carrier,
+                                                        time: uiItem.time,
+                                                        status: 'scheduled',
+                                                        isGlobal: true
+                                                    }));
+
+                                                    const currentDayManifest = poManifest[d]?.items || [];
+                                                    // Robust filter
+                                                    const otherSkuItems = Array.isArray(currentDayManifest)
+                                                        ? currentDayManifest.filter(i => i.sku !== item.sku)
+                                                        : [];
+
+                                                    const combinedItems = [...otherSkuItems, ...newOpsItems];
+
+                                                    console.log("Calling updateDailyManifest", { d, count: combinedItems.length });
+                                                    updateDailyManifest(d, combinedItems);
+                                                } catch (err) {
+                                                    console.error("Failed to update manifest in LogicsticsView:", err);
+                                                    alert("Error saving manifest. See console.");
+                                                }
+
+                                                // --- CLEANUP LEGACY LOCAL STORAGE (Tomorrow) ---
+                                                try {
+                                                    const legacyKey = `mrp_${item.sku}_truckManifest`;
+                                                    const raw = localStorage.getItem(legacyKey);
+                                                    if (raw) {
+                                                        const data = JSON.parse(raw);
+                                                        if (data[d]) {
+                                                            delete data[d];
+                                                            localStorage.setItem(legacyKey, JSON.stringify(data));
+                                                            console.log("Cleaned up legacy local manifest for (tomorrow)", d);
+                                                        }
+                                                    }
+                                                } catch (e) {
+                                                    console.warn("Legacy cleanup failed (tomorrow)", e);
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
+                    </div>
+
+                    {/* Extended Lookahead Link (Planner View hint) */}
+                    <div className="bg-gray-50 dark:bg-gray-900/50 p-4 text-center">
+                        <p className="text-xs text-gray-500">
+                            For the full 30-day schedule, ask a Planner or switch to the Planning View.
+                        </p>
                     </div>
                 </div>
 
-                {/* Extended Lookahead Link (Planner View hint) */}
-                <div className="bg-gray-50 dark:bg-gray-900/50 p-4 text-center">
-                    <p className="text-xs text-gray-500">
-                        For the full 30-day schedule, ask a Planner or switch to the Planning View.
-                    </p>
-                </div>
+                {/* Modal */}
+                <MorningReconciliationModal
+                    isOpen={isRecModalOpen}
+                    onClose={() => setIsRecModalOpen(false)}
+                    state={state} // Pass full state
+                    setters={setters} // Pass all setters
+                />
             </div>
-
-            {/* Modal */}
-            <MorningReconciliationModal
-                isOpen={isRecModalOpen}
-                onClose={() => setIsRecModalOpen(false)}
-                state={state} // Pass full state
-                setters={setters} // Pass all setters
-            />
-        </div>
-    );
+            );
 }
