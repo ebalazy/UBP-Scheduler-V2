@@ -214,14 +214,6 @@ export default function ProductsView() {
                 onSave={handleSave}
             />
 
-            {/* TEMPORARY DEBUG INFO */}
-            <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs font-mono overflow-auto">
-                <p><strong>Debug Info:</strong></p>
-                <p>User ID: {user?.id}</p>
-                <p>Fetch Error: {fetchError || 'None'}</p>
-                <p>Products Count: {products.length}</p>
-                <p>Raw Data: {JSON.stringify(products.slice(0, 2), null, 2)}</p>
-            </div>
         </div>
     );
 }
