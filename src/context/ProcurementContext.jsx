@@ -33,9 +33,13 @@ export function ProcurementProvider({ children }) {
 
         if (user) {
             // Cloud Sync: Persist each item
-            items.forEach(item => {
-                saveProcurementEntry(item);
-            });
+            try {
+                items.forEach(item => {
+                    saveProcurementEntry(item).catch(err => console.error("Cloud Save Failed for Item:", item, err));
+                });
+            } catch (err) {
+                console.error("Error initiating cloud sync:", err);
+            }
         }
     };
 
