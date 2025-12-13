@@ -98,6 +98,29 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
         setSelectedIds(new Set());
     };
 
+    const handleBulkSetYear = (yearInput) => {
+        const year = parseInt(yearInput);
+        if (isNaN(year) || year < 2000 || year > 2100) {
+            alert("Invalid Year");
+            return;
+        }
+        if (!confirm(`Update YEAR to "${year}" for ${selectedIds.size} orders? (Month/Day will be preserved)`)) return;
+
+        const ordersToUpdate = allOrders
+            .filter(o => selectedIds.has(o.id))
+            .map(o => {
+                // Parse existing date YYYY-MM-DD
+                const parts = o.date.split('-'); // [YYYY, MM, DD]
+                if (parts.length !== 3) return o;
+
+                const newDate = `${year}-${parts[1]}-${parts[2]}`;
+                return { ...o, date: newDate };
+            });
+
+        bulkUpdateOrders(ordersToUpdate);
+        setSelectedIds(new Set());
+    };
+
     return (
         <Dialog open={isOpen} onClose={onClose} className="relative z-50">
             <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
@@ -153,21 +176,37 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
 
                             {selectedIds.size > 0 && (
                                 <div className="flex items-center gap-2">
-                                    <select
-                                        className="text-sm border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                                        onChange={(e) => {
-                                            if (e.target.value) {
-                                                handleBulkSetSku(e.target.value);
-                                                e.target.value = ''; // Reset
-                                            }
-                                        }}
-                                        defaultValue=""
-                                    >
-                                        <option value="" disabled>Set SKU...</option>
-                                        {Object.keys(bottleDefinitions).map(sku => (
-                                            <option key={sku} value={sku}>{sku}</option>
-                                        ))}
-                                    </select>
+                                    <div className="relative group">
+                                        <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                                            Bulk Actions
+                                        </button>
+                                        <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50 hidden group-hover:block">
+                                            <div className="p-2">
+                                                <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Set properties</div>
+                                                <button
+                                                    onClick={() => {
+                                                        const year = prompt("Enter Target Year (e.g. 2025):", new Date().getFullYear());
+                                                        if (year) handleBulkSetYear(year);
+                                                    }}
+                                                    className="w-full text-left px-2 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-sm text-gray-700 dark:text-gray-200"
+                                                >
+                                                    Set Year...
+                                                </button>
+
+                                                <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                                                <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Assign SKU</div>
+                                                {Object.keys(bottleDefinitions).map(sku => (
+                                                    <button
+                                                        key={sku}
+                                                        onClick={() => handleBulkSetSku(sku)}
+                                                        className="w-full text-left px-2 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded text-sm text-gray-700 dark:text-gray-200"
+                                                    >
+                                                        {sku}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
