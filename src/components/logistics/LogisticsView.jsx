@@ -51,23 +51,29 @@ export default function LogisticsView({ state, setters, results }) {
             } catch (e) { }
 
             // 3. Check Today
-            const todayCount = Number(inboundMap[todayStr]) || 0;
+            const savedTodayCount = Number(inboundMap[todayStr]) || 0;
             const todayManifest = manifestMap[todayStr] || [];
-            if (todayCount > 0 || todayManifest.length > 0) {
+            // Business Rule: Count is at least the number of POs (1 PO = 1 Truck)
+            // But if saved count is higher (manual override), keep it.
+            const effectiveTodayCount = Math.max(savedTodayCount, todayManifest.length);
+
+            if (effectiveTodayCount > 0 || todayManifest.length > 0) {
                 agg.today.push({
                     sku,
-                    count: todayCount,
+                    count: effectiveTodayCount,
                     manifest: todayManifest
                 });
             }
 
             // 4. Check Tomorrow
-            const tmrCount = Number(inboundMap[tomorrowStr]) || 0;
+            const savedTmrCount = Number(inboundMap[tomorrowStr]) || 0;
             const tmrManifest = manifestMap[tomorrowStr] || [];
-            if (tmrCount > 0 || tmrManifest.length > 0) {
+            const effectiveTmrCount = Math.max(savedTmrCount, tmrManifest.length);
+
+            if (effectiveTmrCount > 0 || tmrManifest.length > 0) {
                 agg.tomorrow.push({
                     sku,
-                    count: tmrCount,
+                    count: effectiveTmrCount,
                     manifest: tmrManifest
                 });
             }
