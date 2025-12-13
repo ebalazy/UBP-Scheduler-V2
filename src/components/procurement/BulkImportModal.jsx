@@ -107,22 +107,48 @@ export default function BulkImportModal({ isOpen, onClose }) {
             const rawDate = row[mapping.date];
             const parsedDate = parseFlexibleDate(rawDate);
 
-            // Skip invalid dates but dont fail entire batch?
-            // If date is missing, maybe its a header row?
+            // Skip invalid dates but dont fail entire batch
             if (!parsedDate) return null;
 
             return {
                 po: cleanPO(row[mapping.po]),
                 date: parsedDate,
-                        </p >
-        <textarea
-            className="w-full h-64 p-3 border rounded-lg font-mono text-xs bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
-            placeholder={`Example: \n450001234\t2023 - 10 - 25\t44000\tSupplier A\n450001235\t2023 - 10 - 26\t22000\tSupplier B`}
-            value={rawText}
-            onChange={e => setRawText(e.target.value)}
-        />
-                    </div >
-                );
+                qty: cleanQty(row[mapping.qty]),
+                supplier: row[mapping.supplier] || 'Unknown'
+            };
+        }).filter(o => {
+            if (o && o.po && o.date) {
+                successCount++;
+                return true;
+            }
+            return false;
+        });
+
+        addOrdersBulk(orders);
+
+        // Success Feedback
+        alert(`Successfully imported ${successCount} orders! Check the Planning Grid for blue badges.`);
+
+        onClose();
+        // Reset
+        setRawText('');
+        setStep(1);
+    };
+
+    const renderStep1 = () => (
+        <div className="space-y-4">
+            <p className="text-sm text-gray-500">
+                Copy your rows from Excel or SAP and paste them below.
+                Make sure to include the <strong>PO Number</strong> and <strong>Delivery Date</strong>.
+            </p>
+            <textarea
+                className="w-full h-64 p-3 border rounded-lg font-mono text-xs bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
+                placeholder={`Example:\n450001234\t2023-10-25\t44000\tSupplier A\n450001235\t2023-10-26\t22000\tSupplier B`}
+                value={rawText}
+                onChange={e => setRawText(e.target.value)}
+            />
+        </div>
+    );
 
     const renderStep2 = () => (
         <div className="space-y-6">
@@ -175,7 +201,7 @@ export default function BulkImportModal({ isOpen, onClose }) {
                         {parsedPreview.map((row, rIdx) => (
                             <tr key={rIdx} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                                 {row.map((cell, cIdx) => (
-                                    <td key={cIdx} className={`p - 2 font - mono truncate max - w - [150px] ${Object.values(mapping).includes(cIdx) ? 'font-bold text-gray-800 dark:text-white' : 'text-gray-400'} `}>
+                                    <td key={cIdx} className={`p-2 font-mono truncate max-w-[150px] ${Object.values(mapping).includes(cIdx) ? 'font-bold text-gray-800 dark:text-white' : 'text-gray-400'}`}>
                                         {cell}
                                     </td>
                                 ))}
