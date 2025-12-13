@@ -1,18 +1,36 @@
+```
 import { useState, useMemo } from 'react';
 import { Dialog } from '@headlessui/react';
-import {
-    XMarkIcon,
-    TrashIcon,
+import { 
+    XMarkIcon, 
+    TrashIcon, 
     FunnelIcon,
     MagnifyingGlassIcon,
-    TableCellsIcon
+    TableCellsIcon,
+    PencilSquareIcon,
+    PlusIcon
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
+import EditOrderModal from './EditOrderModal';
 
 export default function ProcurementMasterList({ isOpen, onClose }) {
     const { poManifest, deleteOrdersBulk } = useProcurement();
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [selectedIds, setSelectedIds] = new Set());
+    
+    // Edit/Create State
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editingOrder, setEditingOrder] = useState(null);
+
+    const handleEdit = (order) => {
+        setEditingOrder(order);
+        setIsEditOpen(true);
+    };
+
+    const handleCreate = () => {
+        setEditingOrder(null);
+        setIsEditOpen(true);
+    };
 
     // Flatten Manifest
     const allOrders = useMemo(() => {
@@ -59,7 +77,7 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
 
     const handleDeleteSelected = () => {
         if (selectedIds.size === 0) return;
-        if (!confirm(`Are you sure you want to PERMANENTLY delete ${selectedIds.size} orders?`)) return;
+        if (!confirm(`Are you sure you want to PERMANENTLY delete ${ selectedIds.size } orders ? `)) return;
 
         const ordersToDelete = allOrders.filter(o => selectedIds.has(o.id));
         deleteOrdersBulk(ordersToDelete);
@@ -75,8 +93,8 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
                         <div className="flex items-center gap-3">
-                            <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg">
-                                <TableCellsIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                            <div className="bg-purple-100 dark:bg-purple-900 p-2 rounded-lg">
+                                <TableCellsIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                             </div>
                             <div>
                                 <Dialog.Title className="text-xl font-bold text-gray-900 dark:text-white">
@@ -85,9 +103,18 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                 <p className="text-sm text-gray-500">Manage all Inbound Orders across all dates.</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-                            <XMarkIcon className="w-6 h-6" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                             <button 
+                                onClick={handleCreate}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-500 rounded-lg font-bold transition-colors shadow-sm"
+                            >
+                                <PlusIcon className="w-5 h-5" />
+                                New Order
+                            </button>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-4">
+                                <XMarkIcon className="w-6 h-6" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Toolbar */}
@@ -138,21 +165,22 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Supplier</th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Trucks</th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Carrier</th>
+                                    <th className="p-4 w-12 border-b dark:border-gray-700"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
                                 {filteredOrders.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="p-10 text-center text-gray-400 italic">
+                                        <td colSpan="7" className="p-10 text-center text-gray-400 italic">
                                             No orders found matching your search.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredOrders.map(order => (
-                                        <tr key={order.id} className={`hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors ${selectedIds.has(order.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                                        <tr key={order.id} className={`hover: bg - blue - 50 dark: hover: bg - gray - 800 transition - colors ${ selectedIds.has(order.id) ? 'bg-blue-50 dark:bg-blue-900/20' : '' } `}>
                                             <td className="p-4">
-                                                <input
-                                                    type="checkbox"
+                                                <input 
+                                                    type="checkbox" 
                                                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                     checked={selectedIds.has(order.id)}
                                                     onChange={() => toggleSelect(order.id)}
@@ -175,13 +203,22 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                             <td className="p-4 text-sm text-gray-500 dark:text-gray-400">
                                                 {order.carrier || '-'}
                                             </td>
+                                            <td className="p-4">
+                                                <button 
+                                                    onClick={() => handleEdit(order)}
+                                                    className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                                    title="Edit Order"
+                                                >
+                                                    <PencilSquareIcon className="w-5 h-5" />
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                         </table>
                     </div>
-
+                    
                     {/* Footer */}
                     <div className="p-4 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 flex justify-between">
                         <span>Showing {filteredOrders.length} of {allOrders.length} orders</span>
@@ -190,6 +227,13 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
 
                 </Dialog.Panel>
             </div>
+
+            <EditOrderModal 
+                isOpen={isEditOpen}
+                onClose={() => setIsEditOpen(false)}
+                order={editingOrder}
+            />
         </Dialog>
     );
 }
+```

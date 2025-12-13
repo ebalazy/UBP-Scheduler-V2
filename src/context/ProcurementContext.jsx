@@ -117,6 +117,38 @@ export function ProcurementProvider({ children }) {
         }
     };
 
+    const moveOrder = (oldDate, newDate, order) => {
+        // 1. Remove from Old Date
+        setPoManifest(prev => {
+            const next = { ...prev };
+            // Remove from old
+            if (next[oldDate]?.items) {
+                next[oldDate].items = next[oldDate].items.filter(i => i.id !== order.id);
+            }
+            // Add to new
+            const existing = next[newDate]?.items || [];
+            // Update order date property itself
+            const movedOrder = { ...order, date: newDate };
+
+            next[newDate] = {
+                items: [...existing, movedOrder]
+            };
+            return next;
+        });
+
+        // 2. Sync to Cloud
+        if (user) {
+            // Delete old entry (if PO # matches)
+            // Ideally we just upsert with new date if the DB supports it, 
+            // but SupabaseSync uses PO as key. If PO is same, upsert overwrites.
+            // Wait, does 'saveProcurementEntry' handle date change? 
+            // Yes, standard upsert on (user_id, po_number).
+            // So we just save the new one.
+            const movedOrder = { ...order, date: newDate };
+            saveProcurementEntry(movedOrder);
+        }
+    };
+
     const clearManifest = () => setPoManifest({});
 
     // Initialize from Cloud
@@ -137,6 +169,7 @@ export function ProcurementProvider({ children }) {
         removeOrder,
         updateOrder,
         deleteOrdersBulk,
+        moveOrder,
         clearManifest
     };
 
