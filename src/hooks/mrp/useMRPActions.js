@@ -79,16 +79,15 @@ export function useMRPActions(state, calculationsResult) {
         const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
         const localSafetyTarget = safetyStockLoads * specs.bottlesPerTruck;
         let runningBalance = calculations.initialInventory;
-        const startOffset = leadTimeDays || 2; // Respect lead time (48h)
+        const startOffset = leadTimeDays || 2;
         const next60Days = {};
 
-        // 1. Simulator: Walk through locked period (0 to leadTime-1)
+        // 1. Simulator: Walk through locked period
         for (let i = 0; i < startOffset; i++) {
             const ds = addDays(getLocalISOString(), i);
             const act = actualMap[ds];
             const plan = demandMap[ds];
             const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase * scrapFactor;
-            // Use EXISTING Inbound (Locked)
             const existingTrucks = inboundMap[ds] || 0;
             runningBalance = runningBalance + (existingTrucks * specs.bottlesPerTruck) - dDem;
         }
@@ -96,7 +95,6 @@ export function useMRPActions(state, calculationsResult) {
         // 2. Planner: Walk from LeadTime onwards
         for (let i = startOffset; i < 60; i++) {
             const ds = addDays(getLocalISOString(), i);
-
             const act = actualMap[ds];
             const plan = demandMap[ds];
             const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase * scrapFactor;
@@ -108,32 +106,55 @@ export function useMRPActions(state, calculationsResult) {
                 dTrucks = needed;
                 bal += needed * specs.bottlesPerTruck;
             }
+            // Only set if non-zero to keep map clean, or explicitly set 0 if it was previously set?
+            // To ensure stability, we should reflect the calculated state.
             if (dTrucks > 0) next60Days[ds] = dTrucks;
-            else next60Days[ds] = 0;
+            else if (inboundMap[ds]) next60Days[ds] = 0; // Only explicitly zero out if it existed
+
             runningBalance = bal;
         }
 
+        // 3. Diff Check: Compare 'next60Days' with 'inboundMap'
+        let hasChanges = false;
+        Object.entries(next60Days).forEach(([date, qty]) => {
+            const current = inboundMap[date] || 0;
+            if (current !== qty) hasChanges = true;
+        });
+
+        // Also check if we are missing any keys that should be zeroed? 
+        // We handled "else next60Days[ds] = 0" above only if inboundMap[ds] existed. 
+        // So next60Days contains ALL changes needed.
+
+        if (!hasChanges) return;
+
+        // 4. Construct New Map
         const newInbound = { ...inboundMap, ...next60Days };
 
-        // Equality Check to prevent loops/unnecessary saves
-        if (JSON.stringify(newInbound) === JSON.stringify(inboundMap)) return;
+        // Remove 0s to keep it clean (optional, but good for storage)
+        Object.keys(newInbound).forEach(k => {
+            if (newInbound[k] === 0) delete newInbound[k];
+        });
 
-        // Auto-Replenish
+        // Final Safety Check via JSON stringify just in case (sorted keys)
+        const sortObj = o => Object.keys(o).sort().reduce((acc, k) => ({ ...acc, [k]: o[k] }), {});
+        if (JSON.stringify(sortObj(newInbound)) === JSON.stringify(sortObj(inboundMap))) return;
+
+        // Apply
         setMonthlyInbound(newInbound);
         saveLocalState('monthlyInbound', newInbound, selectedSize, true);
 
         if (user) {
             saveWithStatus(async () => {
                 const promises = Object.entries(next60Days).map(([date, trucks]) => {
-                    if (trucks > 0 || (inboundMap[date] > 0 && trucks === 0)) {
-                        return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
-                    }
-                    return Promise.resolve();
+                    // Save explicit 0s or new values
+                    return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
                 });
                 await Promise.all(promises);
             });
         }
-    }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, savePlanningEntry, setMonthlyInbound, monthlyInbound]);
+    }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, savePlanningEntry, setMonthlyInbound]);
+    // Removed 'monthlyInbound' from deps to prevent loop, passing it as arg is sufficient for logic.
+    // The effect below will control triggering.
     // Added setMonthlyInbound, monthlyInbound to dep array, logic seems fine? 
     // Wait, monthlyInbound is passed as arg inboundMap to avoid closure issues in the useMRP effect.
 
@@ -149,7 +170,7 @@ export function useMRPActions(state, calculationsResult) {
         isAutoReplenish,
         monthlyDemand,
         monthlyProductionActuals,
-        // We do NOT add monthlyInbound here to avoid loop
+        monthlyInbound, // Added back to trigger on manual changes
         runAutoReplenishment
     ]);
 
