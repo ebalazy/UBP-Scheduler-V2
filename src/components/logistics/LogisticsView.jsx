@@ -161,68 +161,6 @@ export default function LogisticsView({ state, setters, results }) {
 
                 <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0 w-full md:w-auto">
                     <button
-                        onClick={async () => {
-                            if (!confirm("This will upload ALL old local schedule data to the cloud database and remove it from this device. Continue?")) return;
-                            // ... existing sync logic ...
-                            try {
-                                const allLegacyItems = [];
-                                const keysToRemove = [];
-                                const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
-                                const specs = results.specs;
-                                const qtyPerTruck = specs?.bottlesPerTruck || 20000;
-
-                                bottleSizes.forEach(sku => {
-                                    const key = `mrp_${sku}_truckManifest`;
-                                    const raw = localStorage.getItem(key);
-                                    if (raw) {
-                                        try {
-                                            const data = JSON.parse(raw);
-                                            Object.entries(data).forEach(([date, items]) => {
-                                                if (Array.isArray(items)) {
-                                                    items.forEach(item => {
-                                                        allLegacyItems.push({
-                                                            id: item.id || safeUUID(),
-                                                            date: date,
-                                                            po: item.po || `LEGACY-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                                                            sku: sku,
-                                                            qty: qtyPerTruck,
-                                                            supplier: item.carrier || 'Unknown',
-                                                            carrier: item.carrier,
-                                                            time: item.time,
-                                                            status: 'scheduled',
-                                                            isGlobal: true
-                                                        });
-                                                    });
-                                                }
-                                            });
-                                            keysToRemove.push(key);
-                                        } catch (e) {
-                                            console.warn("Failed to parse legacy key", key, e);
-                                        }
-                                    }
-                                });
-
-                                if (allLegacyItems.length > 0) {
-                                    bulkUpdateOrders(allLegacyItems);
-                                    keysToRemove.forEach(k => localStorage.removeItem(k));
-                                    alert(`Successfully migrated ${allLegacyItems.length} local records to the cloud! Local storage cleared.`);
-                                    window.location.reload();
-                                } else {
-                                    alert("No local legacy data found to migrate.");
-                                }
-
-                            } catch (err) {
-                                console.error("Migration Error", err);
-                                alert("Migration Failed check console");
-                            }
-                        }}
-                        className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-xl font-bold text-sm shadow-lg border border-blue-400 w-full sm:w-auto"
-                    >
-                        <TruckIcon className="w-5 h-5 mr-2" />
-                        SYNC LOCAL DB
-                    </button>
-
-                    <button
                         onClick={() => setIsRecModalOpen(true)}
                         className="flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-6 py-3 rounded-xl font-bold text-base md:text-lg transition-transform hover:scale-105 shadow-xl w-full sm:w-auto"
                     >
