@@ -150,14 +150,54 @@ export function ProcurementProvider({ children }) {
     };
 
     const bulkUpdateOrders = (updates) => {
-        // updates: Array of { id, changes: {} } or similar.
-        // Actually simplest is: Array of { ...fullOrder } with changes applied.
+        // updates: Array of modified order objects { ...order, date: 'NEW' }
         setPoManifest(prev => {
             const next = { ...prev };
+
             updates.forEach(updatedOrder => {
-                const date = updatedOrder.date;
-                if (next[date]?.items) {
-                    next[date].items = next[date].items.map(i => i.id === updatedOrder.id ? updatedOrder : i);
+                // We don't know the OLD date easily unless passed, 
+                // OR we have to scan the manifest to find where this ID lives currently.
+                // Scanning is inefficient but safest if we only have the new object.
+
+                let oldDate = null;
+                // Try to find the order in the current manifest to check if date changed
+                // (Optimization: We could trust the caller to pass { oldDate, newOrder }, but let's be robust)
+                for (const [d, data] of Object.entries(next)) {
+                    if (data.items.some(i => i.id === updatedOrder.id)) {
+                        oldDate = d;
+                        break;
+                    }
+                    if (data.items.some(i => i.po === updatedOrder.po)) { // Fallback ID/PO check
+                        oldDate = d;
+                        break;
+                    }
+                }
+
+                const newDate = updatedOrder.date;
+
+                if (oldDate && oldDate !== newDate) {
+                    // MOVE LOGIC
+                    // 1. Remove from Old
+                    if (next[oldDate]?.items) {
+                        next[oldDate].items = next[oldDate].items.filter(i => i.id !== updatedOrder.id);
+                        if (next[oldDate].items.length === 0) delete next[oldDate]; // Clean
+                    }
+                    // 2. Add to New
+                    if (!next[newDate]) next[newDate] = { items: [] };
+                    next[newDate].items.push(updatedOrder);
+
+                } else {
+                    // UPDATE IN PLACE (Same Date)
+                    // If oldDate found, use it (it equals newDate). 
+                    // If not found, maybe new insert? (Assume insert if date given)
+                    const targetDate = oldDate || newDate;
+                    if (next[targetDate]) {
+                        next[targetDate].items = next[targetDate].items.map(i => i.id === updatedOrder.id ? updatedOrder : i);
+                    } else {
+                        // Edge case: New Order being added via bulkUpdate? Unlikely but handling it.
+                        if (!next[targetDate]) next[targetDate] = { items: [] };
+                        next[targetDate].items.push(updatedOrder);
+                    }
                 }
             });
             return next;
