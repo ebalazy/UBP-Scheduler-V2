@@ -286,6 +286,7 @@ export const useSupabaseSync = () => {
 
         await supabase.from('inventory_snapshots').insert({
             product_id: productId,
+            user_id: userId,
             date: anchor.date,
             location: location,
             quantity_pallets: anchor.count,
