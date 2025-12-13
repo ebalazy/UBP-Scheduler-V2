@@ -169,45 +169,44 @@ export default function SettingsModal({ onClose }) {
                         className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
                     />
                 </div>
+            </div>
+
+            <div className="mt-8 bg-gray-50 dark:bg-gray-800 -mx-6 -mb-6 p-4 rounded-b-lg border-t dark:border-gray-700">
+                <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-4">
+                    <button
+                        onClick={() => {
+                            if (confirm('Are you sure you want to reset all settings to factory defaults?')) {
+                                resetDefaults();
+                            }
+                        }}
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
+                    >
+                        Reset to Factory Defaults
+                    </button>
+
+                    <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="w-full md:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold flex items-center justify-center"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 4.992l3.181-3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                            Sync Cloud Data
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="w-full md:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-bold shadow-sm"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+                <div className="text-center mt-4">
+                    <p className="text-[10px] text-gray-400 dark:text-gray-600">v{import.meta.env.PACKAGE_VERSION} (Smart Planner)</p>
                 </div>
             </div>
-
-    <div className="mt-8 bg-gray-50 dark:bg-gray-800 -mx-6 -mb-6 p-4 rounded-b-lg border-t dark:border-gray-700">
-        <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-4">
-            <button
-                onClick={() => {
-                    if (confirm('Are you sure you want to reset all settings to factory defaults?')) {
-                        resetDefaults();
-                    }
-                }}
-                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
-            >
-                Reset to Factory Defaults
-            </button>
-
-            <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                <button
-                    onClick={() => window.location.reload()}
-                    className="w-full md:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold flex items-center justify-center"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 4.992l3.181-3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                    </svg>
-                    Sync Cloud Data
-                </button>
-                <button
-                    onClick={onClose}
-                    className="w-full md:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-bold shadow-sm"
-                >
-                    Done
-                </button>
-            </div>
-        </div>
-        <div className="text-center mt-4">
-            <p className="text-[10px] text-gray-400 dark:text-gray-600">v{import.meta.env.PACKAGE_VERSION} (Smart Planner)</p>
-        </div>
-    </div>
-            </div >
+        </div >
         </div >
     );
 }
