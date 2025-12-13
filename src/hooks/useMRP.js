@@ -499,6 +499,21 @@ export function useMRP() {
         setters: {
             setSelectedSize,
             updateDateDemand,
+            updateDateDemandBulk: (updates) => {
+                // updates: { '2023-11-01': 50000, '2023-11-02': 50000 }
+                const newDemand = { ...monthlyDemand, ...updates };
+                setMonthlyDemand(newDemand);
+                saveLocalState('monthlyDemand', newDemand, true);
+
+                if (user) {
+                    saveWithStatus(async () => {
+                        const promises = Object.entries(updates).map(([date, val]) =>
+                            savePlanningEntry(user.id, selectedSize, date, 'demand_plan', Number(val))
+                        );
+                        await Promise.all(promises);
+                    });
+                }
+            },
             updateDateActual,
             updateDateActual,
             updateDateInbound,

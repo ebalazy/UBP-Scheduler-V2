@@ -376,6 +376,7 @@ export default function MRPView({ state, setters, results }) {
                                 <PlanningGrid
                                     monthlyDemand={state.monthlyDemand || {}}
                                     updateDateDemand={setters.updateDateDemand}
+                                    updateDateDemandBulk={setters.updateDateDemandBulk}
                                     monthlyInbound={state.monthlyInbound || {}}
                                     updateDateInbound={setters.updateDateInbound}
                                     monthlyProductionActuals={state.monthlyProductionActuals || {}}

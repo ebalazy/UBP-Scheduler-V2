@@ -4,7 +4,7 @@ import { useProcurement } from '../../context/ProcurementContext';
 import ScheduleManagerModal from '../procurement/ScheduleManagerModal';
 
 export default function PlanningGrid({
-    monthlyDemand, updateDateDemand,
+    monthlyDemand, updateDateDemand, updateDateDemandBulk,
     monthlyInbound, updateDateInbound,
     monthlyProductionActuals, updateDateActual,
     specs, safetyTarget, dailyLedger
@@ -91,8 +91,13 @@ export default function PlanningGrid({
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {/* 1. DEMAND ROW */}
                         <tr>
-                            <th className="sticky left-0 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 z-10 shadow-md">
+                            <th className="sticky left-0 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 z-10 shadow-md group relative">
                                 Production (Plan)
+                                {/* Tooltip Trick */}
+                                <div className="hidden group-hover:block absolute left-full top-0 ml-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded shadow-lg z-50 pointer-events-none">
+                                    <strong>⚡ Power Tip:</strong><br />
+                                    Type <code>60000*5</code> and hit Enter to fill 5 days at once!
+                                </div>
                             </th>
                             {dates.map((date, idx) => {
                                 const dateStr = formatLocalDate(date);
@@ -103,12 +108,55 @@ export default function PlanningGrid({
                                         <input
                                             id={`demand-${dateStr}`}
                                             className="w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:text-gray-200"
-                                            value={val ? Number(val).toLocaleString() : ''}
+                                            value={val || ''} // Allow raw chars during typing if needed, but usually controlled. using simple value prop.
                                             placeholder="-"
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
                                                     e.preventDefault();
-                                                    // Move to next day
+                                                    const rawVal = e.target.value.replace(/,/g, '');
+
+                                                    // Check for Smart Batch Syntax: "Number*Days" (e.g. 60000*5)
+                                                    const match = rawVal.match(/^(\d+)\*(\d+)$/);
+
+                                                    if (match) {
+                                                        const value = match[1];
+                                                        const count = parseInt(match[2], 10);
+
+                                                        // Generate Bulk Update Map
+                                                        const updates = {};
+                                                        let nextDate = new Date(date); // Start with current day
+
+                                                        // Current Day
+                                                        updates[dateStr] = value;
+
+                                                        // Next (count-1) days
+                                                        for (let i = 1; i < count; i++) {
+                                                            nextDate.setDate(nextDate.getDate() + 1);
+                                                            updates[formatLocalDate(nextDate)] = value;
+                                                        }
+
+                                                        // Execute Bulk Update
+                                                        if (updateDateDemandBulk) {
+                                                            updateDateDemandBulk(updates);
+                                                        } else {
+                                                            // Fallback (shouldn't happen)
+                                                            updateDateDemand(dateStr, value);
+                                                        }
+
+                                                        // Move Focus to the day AFTER the batch
+                                                        const jumpDate = new Date(date);
+                                                        jumpDate.setDate(jumpDate.getDate() + count);
+                                                        const jumpId = `demand-${formatLocalDate(jumpDate)}`;
+                                                        const jumpEl = document.getElementById(jumpId);
+                                                        if (jumpEl) {
+                                                            jumpEl.focus();
+                                                            jumpEl.select();
+                                                        }
+
+                                                        return; // Done
+                                                    }
+
+                                                    // Standard Move (Next Day)
                                                     const nextDate = new Date(date);
                                                     nextDate.setDate(nextDate.getDate() + 1);
                                                     const nextId = `demand-${formatLocalDate(nextDate)}`;
@@ -120,9 +168,16 @@ export default function PlanningGrid({
                                                 }
                                             }}
                                             onChange={e => {
-                                                // Strip commas for raw number
-                                                const v = e.target.value.replace(/,/g, '');
-                                                if (!isNaN(v)) updateDateDemand(dateStr, v);
+                                                // Allow typing numbers AND '*'
+                                                const v = e.target.value;
+                                                // If it contains only digits, commas, or *, allow it. 
+                                                // Actually, we just want to update state. 
+                                                // But monthlyDemand usually expects just numbers?
+                                                // If we pass '60000*5' to updateDateDemand, it might get saved to state as a string.
+                                                // That's fine for temporary typing, as long as calculation logic downstream handles NaN gracefully.
+                                                // (PlanningGrid calculations use `Number(val)` which becomes NaN).
+                                                // Let's ensure we allow it.
+                                                updateDateDemand(dateStr, v);
                                             }}
                                         />
                                     </td>
