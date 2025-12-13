@@ -166,7 +166,8 @@ export function SettingsProvider({ children }) {
             root.classList.remove('dark');
         }
         localStorage.setItem('theme', theme);
-        if (user) saveUserProfile(user.id, { theme });
+        // Theme is not currently in the profiles schema, so we don't sync it to avoid 400 errors.
+        // if (user) saveUserProfile(user.id, { theme });
     }, [theme, user]);
 
     const [schedulerSettings, setSchedulerSettings] = useState(() => {

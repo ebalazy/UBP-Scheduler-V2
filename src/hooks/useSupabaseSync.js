@@ -383,8 +383,21 @@ export const useSupabaseSync = () => {
 
     const saveUserProfile = async (userId, updates) => {
         // updates: { lead_time_days, safety_stock_loads, dashboard_layout }
-        // Ensure ID matches
-        const payload = { id: userId, ...updates, updated_at: new Date().toISOString() };
+        // schema: id, lead_time_days, safety_stock_loads, dashboard_layout, updated_at
+
+        // Filter out fields that don't exist in the schema (like 'theme') to prevent 400 errors
+        const allowed = ['lead_time_days', 'safety_stock_loads', 'dashboard_layout'];
+        const cleanUpdates = {};
+
+        Object.keys(updates).forEach(key => {
+            if (allowed.includes(key)) {
+                cleanUpdates[key] = updates[key];
+            }
+        });
+
+        if (Object.keys(cleanUpdates).length === 0) return;
+
+        const payload = { id: userId, ...cleanUpdates, updated_at: new Date().toISOString() };
         const { error } = await supabase.from('profiles').upsert(payload);
         if (error) console.error("Error saving profile:", error);
     };
