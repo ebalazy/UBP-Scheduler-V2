@@ -14,7 +14,8 @@ import { useSupabaseSync } from './hooks/useSupabaseSync';
 import LandingPage from './components/LandingPage';
 import CockpitView from './components/cockpit/CockpitView';
 import LogisticsView from './components/logistics/LogisticsView';
-import { Boxes, CalendarClock, Crown, Gauge, Truck } from 'lucide-react';
+import ProductsView from './components/products/ProductsView';
+import { Boxes, CalendarClock, Crown, Gauge, Truck, CubeIcon } from 'lucide-react';
 
 import { ProcurementProvider, useProcurement } from './context/ProcurementContext';
 
@@ -130,6 +131,18 @@ function AuthenticatedApp({ user }) {
               <span>Master Plan</span>
             </button>
 
+            {/* Products Tab - NEW */}
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'products'
+                ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                }`}
+            >
+              <CubeIcon className="w-4 h-4" />
+              <span>Products</span>
+            </button>
+
             {/* Divisor Line */}
             <div className="w-px bg-gray-300 dark:bg-gray-600 mx-1 my-2 hidden md:block"></div>
 
@@ -180,6 +193,10 @@ function AuthenticatedApp({ user }) {
             masterLedger={masterSchedule.masterLedger}
             loading={masterSchedule.loading}
           />
+        </div>
+
+        <div className={activeTab === 'products' ? 'block' : 'hidden'}>
+          <ProductsView />
         </div>
 
         <div className={activeTab === 'cockpit' ? 'block' : 'hidden'}>
