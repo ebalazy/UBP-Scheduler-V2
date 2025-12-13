@@ -164,23 +164,107 @@ export default function PlanningGrid({
                                 const dateStr = formatLocalDate(date);
                                 const ledgerItem = ledgerMap[dateStr];
                                 const balance = ledgerItem ? ledgerItem.balance : null;
-                                // Convert to Pallets? Or Cases?
-                                // Let's simplify and do PALLETS for Planner View
+
+                                // Conversion Config
                                 const casesPerPallet = specs?.casesPerPallet || 100;
                                 const bottlesPerCase = specs?.bottlesPerCase || 1;
-                                const pallets = balance !== null ? Math.round(balance / bottlesPerCase / casesPerPallet) : null;
+                                const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
+                                const totalPallets = balance !== null ? Math.round(balance / bottlesPerCase / casesPerPallet) : null;
+
+                                // Smart Label Logic
+                                let label = '-';
+                                if (totalPallets !== null) {
+                                    const palletsPerTruck = Math.floor(bottlesPerTruck / bottlesPerCase / casesPerPallet) || 22;
+                                    if (Math.abs(totalPallets) >= palletsPerTruck) {
+                                        // Show Trucks + Remainder Pallets (e.g. "2T 5P")
+                                        const trucks = Math.floor(totalPallets / palletsPerTruck);
+                                        const remainder = totalPallets % palletsPerTruck;
+                                        label = `${trucks}T ${remainder}P`;
+                                    } else {
+                                        // Just Pallets (e.g. "15P")
+                                        label = `${totalPallets}`;
+                                    }
+                                }
 
                                 // Colors
                                 let bgClass = '';
                                 if (balance !== null && safetyTarget) {
                                     if (balance < safetyTarget) bgClass = 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-bold';
-                                    else if (balance > safetyTarget + (specs?.bottlesPerTruck * 2)) bgClass = 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300';
+                                    else if (balance > safetyTarget + (bottlesPerTruck * 2)) bgClass = 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300';
                                     else bgClass = 'text-gray-600 dark:text-gray-300';
                                 }
 
                                 return (
                                     <td key={dateStr} className={`p-2 text-center text-xs border-r border-gray-200 dark:border-gray-700 ${bgClass}`}>
-                                        {pallets !== null ? fmt(pallets) : '-'}
+                                        {label}
+                                    </td>
+                                );
+                            })}
+                        </tr>
+
+                        {/* 5. COVERAGE (Days of Supply) */}
+                        <tr className="border-t border-gray-300 dark:border-gray-600">
+                            <th className="sticky left-0 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-500 uppercase z-10 shadow-md">
+                                Coverage (DOS)
+                            </th>
+                            {dates.map((date, idx) => {
+                                const dateStr = formatLocalDate(date);
+                                const ledgerItem = ledgerMap[dateStr];
+                                const balance = ledgerItem ? ledgerItem.balance : 0;
+                                const specsScrap = 1 + ((specs?.scrapPercentage || 0) / 100);
+
+                                // Calculate Coverage
+                                let coverage = 0;
+                                let remaining = balance;
+                                let isInfinite = false;
+
+                                // Look ahead up to 14 days
+                                for (let i = 1; i <= 30; i++) {
+                                    // We need future dates. dates[] array has 45 days. 
+                                    // We can use the array index for speed if aligned, but date math is safer.
+                                    // Let's use the `dates` array since it maps perfectly? 
+                                    // Actually, we need to look beyond the rendered grid if possible, 
+                                    // but looking at `monthlyDemand` map is safer.
+                                    const nextDate = new Date(date);
+                                    nextDate.setDate(nextDate.getDate() + i);
+                                    const nextDateStr = formatLocalDate(nextDate);
+
+                                    const demand = (monthlyDemand[nextDateStr] || 0) * specs.bottlesPerCase * specsScrap;
+
+                                    if (demand === 0) {
+                                        // If no demand, we survive this day "for free"
+                                        // But if demand is 0 forever, coverage is infinite.
+                                        // Let's count it as 1 day of coverage.
+                                        coverage += 1;
+                                        if (i === 30) isInfinite = true; // Cap at 30
+                                        continue;
+                                    }
+
+                                    if (remaining >= demand) {
+                                        remaining -= demand;
+                                        coverage += 1;
+                                    } else {
+                                        // Partial Day
+                                        coverage += remaining / demand;
+                                        remaining = 0;
+                                        break;
+                                    }
+                                }
+
+                                const val = coverage.toFixed(1);
+                                const numericVal = parseFloat(val);
+
+                                // Color Logic
+                                let colorClass = 'text-gray-400';
+                                if (balance > 0) {
+                                    if (numericVal < 2.0) colorClass = 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold';
+                                    else if (numericVal < 4.0) colorClass = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 font-bold';
+                                    else colorClass = 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold';
+                                }
+
+                                return (
+                                    <td key={dateStr} className={`p-2 text-center text-xs border-r border-gray-200 dark:border-gray-700 ${colorClass}`}>
+                                        {isInfinite ? '>30' : val}
                                     </td>
                                 );
                             })}
