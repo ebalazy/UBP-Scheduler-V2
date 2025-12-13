@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { getLocalISOString, addDays } from '../../utils/dateUtils';
 import { useSettings } from '../../context/SettingsContext';
 import {
     TruckIcon,
@@ -19,12 +20,11 @@ export default function LogisticsView({ state, setters, results }) {
     if (!results) return <div className="p-8 text-center text-gray-500">Loading Logistics Data...</div>;
 
     const { specs, yardInventory } = results;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalISOString();
 
-    // Calculate Tomorrow's Date
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    // Calculate Tomorrow's Date (Local)
+    const tomorrowStr = addDays(todayStr, 1);
+    const tomorrowDateObj = new Date(tomorrowStr + 'T00:00:00'); // For display purposes
 
     // --- AGGREGATION LOGIC ---
     useEffect(() => {
@@ -264,7 +264,7 @@ export default function LogisticsView({ state, setters, results }) {
                             <div>
                                 <p className="text-xl font-bold text-gray-700 dark:text-gray-300">TOMORROW</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {tomorrow.toLocaleDateString()}
+                                    {tomorrowDateObj.toLocaleDateString()}
                                 </p>
                             </div>
                         </div>
