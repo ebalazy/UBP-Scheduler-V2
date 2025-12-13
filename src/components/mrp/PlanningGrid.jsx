@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { formatLocalDate } from '../../utils/dateUtils';
 
 export default function PlanningGrid({
     monthlyDemand, updateDateDemand,
@@ -20,7 +20,7 @@ export default function PlanningGrid({
         _d.setDate(_d.getDate() + 1);
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = formatLocalDate(new Date());
 
     // Ledger Map for quick lookup
     const ledgerMap = (dailyLedger || []).reduce((acc, item) => {
@@ -59,7 +59,7 @@ export default function PlanningGrid({
                                 Metric
                             </th>
                             {dates.map(date => {
-                                const dateStr = date.toISOString().split('T')[0];
+                                const dateStr = formatLocalDate(date);
                                 const isToday = dateStr === todayStr;
                                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                                 return (
@@ -82,7 +82,7 @@ export default function PlanningGrid({
                                 Demand (Plan)
                             </th>
                             {dates.map(date => {
-                                const dateStr = date.toISOString().split('T')[0];
+                                const dateStr = formatLocalDate(date);
                                 const val = monthlyDemand[dateStr] || 0;
                                 return (
                                     <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -106,7 +106,7 @@ export default function PlanningGrid({
                                 Actual / Prod
                             </th>
                             {dates.map(date => {
-                                const dateStr = date.toISOString().split('T')[0];
+                                const dateStr = formatLocalDate(date);
                                 const val = monthlyProductionActuals[dateStr];
                                 const hasVal = val !== undefined;
                                 return (
@@ -133,7 +133,7 @@ export default function PlanningGrid({
                                 Inbound Trucks
                             </th>
                             {dates.map(date => {
-                                const dateStr = date.toISOString().split('T')[0];
+                                const dateStr = formatLocalDate(date);
                                 const val = monthlyInbound[dateStr] || 0;
                                 return (
                                     <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -160,7 +160,7 @@ export default function PlanningGrid({
                                 End Inventory
                             </th>
                             {dates.map(date => {
-                                const dateStr = date.toISOString().split('T')[0];
+                                const dateStr = formatLocalDate(date);
                                 const ledgerItem = ledgerMap[dateStr];
                                 const balance = ledgerItem ? ledgerItem.balance : null;
                                 // Convert to Pallets? Or Cases?
