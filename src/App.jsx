@@ -60,7 +60,8 @@ function AuthenticatedApp({ user }) {
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
 
-  const mrp = useMRP();
+  const { poManifest } = useProcurement();
+  const mrp = useMRP(poManifest);
   const scheduler = useScheduler();
   const { bottleSizes } = useSettings();
   const masterSchedule = useMasterSchedule(bottleSizes);

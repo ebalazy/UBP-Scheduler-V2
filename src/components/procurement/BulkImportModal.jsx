@@ -156,7 +156,7 @@ export default function BulkImportModal({ isOpen, onClose }) {
             </p>
             <textarea
                 className="w-full h-64 p-3 border rounded-lg font-mono text-xs bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
-                placeholder={`Example:\n450001234\t2023-10-25\t44000\tSupplier A\n450001235\t2023-10-26\t22000\tSupplier B`}
+                placeholder={`Example:\n450001234\t${new Date().toISOString().split('T')[0]}\t44000\tSupplier A\n450001235\t${new Date(Date.now() + 86400000).toISOString().split('T')[0]}\t22000\tSupplier B`}
                 value={rawText}
                 onChange={e => setRawText(e.target.value)}
             />
