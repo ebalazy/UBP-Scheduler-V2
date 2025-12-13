@@ -18,7 +18,7 @@ export default function PlanningRowActual({ dates, monthlyProductionActuals, upd
                             className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 font-bold
                                 ${hasVal ? 'text-blue-700 dark:text-blue-300' : 'text-gray-400'}
                             `}
-                            value={hasVal ? Number(val).toLocaleString() : ''}
+                            value={hasVal ? val : ''}
                             placeholder="-"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {

@@ -219,9 +219,13 @@ export function useMRPActions(state, calculationsResult) {
 
     // Reactive Trigger for Auto-Replenishment
     useEffect(() => {
-        if (isAutoReplenish && calculations) {
+        if (!isAutoReplenish || !calculations) return;
+
+        const timer = setTimeout(() => {
             runAutoReplenishment(monthlyDemand, monthlyProductionActuals, monthlyInbound);
-        }
+        }, 500);
+
+        return () => clearTimeout(timer);
     }, [
         calculations?.initialInventory,
         safetyStockLoads,
@@ -229,7 +233,7 @@ export function useMRPActions(state, calculationsResult) {
         isAutoReplenish,
         monthlyDemand,
         monthlyProductionActuals,
-        monthlyInbound, // Added back to trigger on manual changes
+        monthlyInbound,
         runAutoReplenishment
     ]);
 
