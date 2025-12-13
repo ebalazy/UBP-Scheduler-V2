@@ -6,6 +6,7 @@ import SharePlanModal from '../SharePlanModal';
 import BulkImportModal from '../procurement/BulkImportModal';
 import SupplierEmailModal from '../procurement/SupplierEmailModal';
 import YMSExportModal from '../procurement/YMSExportModal'; // NEW
+import ProcurementMasterList from '../procurement/ProcurementMasterList'; // NEW
 import { useSettings } from '../../context/SettingsContext';
 import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
@@ -18,6 +19,7 @@ export default function MRPView({ state, setters, results }) {
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [isEmailOpen, setIsEmailOpen] = useState(false); // NEW
     const [isExportOpen, setIsExportOpen] = useState(false); // NEW
+    const [isMasterListOpen, setIsMasterListOpen] = useState(false); // NEW
     const [viewMode, setViewMode] = useState('grid');
 
     // Morning Reconciliation Modal State
@@ -288,6 +290,13 @@ export default function MRPView({ state, setters, results }) {
                     </button>
 
                     <button
+                        onClick={() => setIsMasterListOpen(true)}
+                        className="flex items-center text-purple-600 dark:text-purple-400 hover:text-purple-800 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
+                    >
+                        📋 Manage POs
+                    </button>
+
+                    <button
                         onClick={() => setIsEmailOpen(true)}
                         className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
                     >
@@ -430,6 +439,11 @@ export default function MRPView({ state, setters, results }) {
             <YMSExportModal
                 isOpen={isExportOpen}
                 onClose={() => setIsExportOpen(false)}
+            />
+
+            <ProcurementMasterList
+                isOpen={isMasterListOpen}
+                onClose={() => setIsMasterListOpen(false)}
             />
         </div>
     );
