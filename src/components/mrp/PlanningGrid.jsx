@@ -87,7 +87,7 @@ export default function PlanningGrid({
                                 return (
                                     <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                                         <input
-                                            className="w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                                            className="w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:text-gray-200"
                                             value={val || ''}
                                             placeholder="-"
                                             onChange={e => {
@@ -112,7 +112,7 @@ export default function PlanningGrid({
                                 return (
                                     <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                                         <input
-                                            className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 font-bold
+                                            className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 font-bold
                                                 ${hasVal ? 'text-blue-700 dark:text-blue-300' : 'text-gray-400'}
                                             `}
                                             value={hasVal ? val : ''}
@@ -138,7 +138,7 @@ export default function PlanningGrid({
                                 return (
                                     <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                                         <input
-                                            className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-green-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500 font-bold
+                                            className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-green-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500 font-bold
                                                 ${val > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-300'}
                                             `}
                                             value={val || ''}
