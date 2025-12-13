@@ -27,6 +27,15 @@ export function useMRPActions(state, calculationsResult) {
 
     const { calculations } = calculationsResult;
 
+    // --- Refs for Stable Actions (Prevent Re-renders) ---
+    const demandRef = useRef(monthlyDemand);
+    const actualRef = useRef(monthlyProductionActuals);
+    const inboundRef = useRef(monthlyInbound);
+
+    useEffect(() => { demandRef.current = monthlyDemand; }, [monthlyDemand]);
+    useEffect(() => { actualRef.current = monthlyProductionActuals; }, [monthlyProductionActuals]);
+    useEffect(() => { inboundRef.current = monthlyInbound; }, [monthlyInbound]);
+
     // --- Actions ---
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState(null);
@@ -52,7 +61,7 @@ export function useMRPActions(state, calculationsResult) {
             saveWithStatus(fn);
             delete saveTimers.current[key];
         }, delay);
-    }, []);
+    }, [saveWithStatus]);
 
     // Debounce Helper (Local Storage)
     const scheduleLocalSave = useCallback((key, fn, delay = 300) => {
@@ -73,11 +82,11 @@ export function useMRPActions(state, calculationsResult) {
         };
     }, []);
 
-    const updateDateDemand = (date, value) => {
+    const updateDateDemand = useCallback((date, value) => {
         // Allow raw value flow for decimals/empty string. 
         // Only convert to Number for DB/Calculations if needed (Calculations handle strings)
         const val = value;
-        const newDemand = { ...monthlyDemand, [date]: val };
+        const newDemand = { ...demandRef.current, [date]: val };
         setMonthlyDemand(newDemand);
         scheduleLocalSave('monthlyDemand', () => {
             saveLocalState('monthlyDemand', newDemand, selectedSize, true);
@@ -90,12 +99,12 @@ export function useMRPActions(state, calculationsResult) {
                 1000
             );
         }
-    };
+    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyDemand, savePlanningEntry]);
 
-    const updateDateActual = (date, value) => {
+    const updateDateActual = useCallback((date, value) => {
         // Allow raw value flow
         const val = (value === '' || value === null) ? undefined : value;
-        const newActuals = { ...monthlyProductionActuals };
+        const newActuals = { ...actualRef.current };
         if (val === undefined) delete newActuals[date];
         else newActuals[date] = val;
 
@@ -111,11 +120,11 @@ export function useMRPActions(state, calculationsResult) {
                 1000
             );
         }
-    };
+    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyProductionActuals, savePlanningEntry]);
 
-    const updateDateInbound = (date, value) => {
+    const updateDateInbound = useCallback((date, value) => {
         const val = value; // Allow raw string
-        const newInbound = { ...monthlyInbound, [date]: val };
+        const newInbound = { ...inboundRef.current, [date]: val };
         setMonthlyInbound(newInbound);
         scheduleLocalSave('monthlyInbound', () => {
             saveLocalState('monthlyInbound', newInbound, selectedSize, true);
@@ -128,7 +137,7 @@ export function useMRPActions(state, calculationsResult) {
                 1000
             );
         }
-    };
+    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyInbound, savePlanningEntry]);
 
     // Auto-Replenish Logic (Reactive)
     const runAutoReplenishment = useCallback((demandMap, actualMap, inboundMap) => {
@@ -238,23 +247,31 @@ export function useMRPActions(state, calculationsResult) {
     ]);
 
 
-    const setters = {
-        setSelectedSize,
-        updateDateDemand,
-        updateDateDemandBulk: (updates) => {
-            const newDemand = { ...monthlyDemand, ...updates };
-            setMonthlyDemand(newDemand);
+    const updateDateDemandBulk = useCallback((updates) => {
+        const newDemand = { ...demandRef.current, ...updates };
+        setMonthlyDemand(newDemand);
+        scheduleLocalSave('monthlyDemand', () => {
             saveLocalState('monthlyDemand', newDemand, selectedSize, true);
+        }, 500);
 
-            if (user) {
-                saveWithStatus(async () => {
+        if (user) {
+            scheduleSave(
+                `demand-bulk-${Object.keys(updates)[0]}`,
+                async () => {
                     const promises = Object.entries(updates).map(([date, val]) =>
                         savePlanningEntry(user.id, selectedSize, date, 'demand_plan', Number(val))
                     );
                     await Promise.all(promises);
-                });
-            }
-        },
+                },
+                1000
+            );
+        }
+    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyDemand, savePlanningEntry]);
+
+    const setters = {
+        setSelectedSize,
+        updateDateDemand,
+        updateDateDemandBulk,
         updateDateActual,
         updateDateInbound,
         updateTruckManifest: (date, trucks) => {
