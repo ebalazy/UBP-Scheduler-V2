@@ -3,7 +3,8 @@ import CalendarDemand from './CalendarDemand';
 import PlanningGrid from './PlanningGrid';
 import OrderActionLog from './OrderActionLog';
 import SharePlanModal from '../SharePlanModal';
-import BulkImportModal from '../procurement/BulkImportModal'; // NEW
+import BulkImportModal from '../procurement/BulkImportModal';
+import SupplierEmailModal from '../procurement/SupplierEmailModal'; // NEW
 import { useSettings } from '../../context/SettingsContext';
 import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
@@ -13,7 +14,8 @@ export default function MRPView({ state, setters, results }) {
     const { bottleSizes, leadTimeDays } = useSettings();
     const [isEditingYard, setIsEditingYard] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [isImportOpen, setIsImportOpen] = useState(false); // NEW
+    const [isImportOpen, setIsImportOpen] = useState(false);
+    const [isEmailOpen, setIsEmailOpen] = useState(false); // NEW
     const [viewMode, setViewMode] = useState('grid');
 
     // Morning Reconciliation Modal State
@@ -204,6 +206,7 @@ export default function MRPView({ state, setters, results }) {
                                     className="w-full text-sm p-1 rounded border-blue-300 focus:ring-2 focus:ring-blue-500"
                                     value={state.manualYardOverride ?? state.yardInventory.count}
                                     onChange={(e) => setters.setManualYardOverride(e.target.value)}
+                                    onFocus={(e) => e.target.select()}
                                     onBlur={() => setIsEditingYard(false)}
                                     onKeyDown={(e) => e.key === 'Enter' && setIsEditingYard(false)}
                                 />
@@ -280,6 +283,13 @@ export default function MRPView({ state, setters, results }) {
                         className="flex items-center text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
                     >
                         📥 Import POs
+                    </button>
+
+                    <button
+                        onClick={() => setIsEmailOpen(true)}
+                        className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
+                    >
+                        ✉️ Email Supplier
                     </button>
 
                     <div className="relative group">
@@ -407,6 +417,11 @@ export default function MRPView({ state, setters, results }) {
             <BulkImportModal
                 isOpen={isImportOpen}
                 onClose={() => setIsImportOpen(false)}
+            />
+
+            <SupplierEmailModal
+                isOpen={isEmailOpen}
+                onClose={() => setIsEmailOpen(false)}
             />
         </div>
     );

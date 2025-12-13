@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { formatLocalDate } from '../../utils/dateUtils';
+import { useProcurement } from '../../context/ProcurementContext';
 
 export default function PlanningGrid({
     monthlyDemand, updateDateDemand,
@@ -9,6 +10,7 @@ export default function PlanningGrid({
 }) {
     // We display 35 days (5 weeks) from today or selected start date
     const [startDate, setStartDate] = useState(new Date());
+    const { poManifest } = useProcurement();
 
     // Generate Date Range
     const dates = [];
@@ -169,7 +171,7 @@ export default function PlanningGrid({
                                 const dateStr = formatLocalDate(date);
                                 const val = monthlyInbound[dateStr] || 0;
                                 return (
-                                    <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 relative group">
                                         <input
                                             className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-green-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500 font-bold
                                                 ${val > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-300'}
@@ -181,6 +183,14 @@ export default function PlanningGrid({
                                                 if (!isNaN(v)) updateDateInbound(dateStr, v);
                                             }}
                                         />
+                                        {/* PO Indicator */}
+                                        {poManifest[dateStr] && poManifest[dateStr].items.length > 0 && (
+                                            <div className="absolute top-0 right-0 m-0.5">
+                                                <div className="w-2.5 h-2.5 bg-blue-500 rounded-full ring-1 ring-white dark:ring-gray-800 flex items-center justify-center cursor-help" title={`${poManifest[dateStr].items.length} POs Linked`}>
+                                                    <span className="text-[6px] text-white font-bold">{poManifest[dateStr].items.length}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </td>
                                 );
                             })}
