@@ -6,7 +6,7 @@ const ProcurementContext = createContext();
 
 export function ProcurementProvider({ children }) {
     const { user } = useAuth();
-    // const { fetchProcurementData, saveProcurementEntry } = useSupabaseSync(); // Future integration
+    const { fetchProcurementData, saveProcurementEntry, deleteProcurementEntry } = useSupabaseSync();
 
     // State: Manifest of POs keyed by Date (YYYY-MM-DD)
     // Structure: { "2023-12-15": { items: [ { id, po, qty, supplier, status } ] } }
@@ -30,6 +30,20 @@ export function ProcurementProvider({ children }) {
             ...prev,
             [date]: { items } // Replace items for that day
         }));
+
+        // Cloud Sync: This is tricky. 'items' is the absolute list for that day.
+        // But our Sync is per-PO upsert.
+        // If an item was REMOVED from 'items', we need to delete it from Cloud.
+        // Strategy: We can't easily diff here without reading old state.
+        // Better Strategy: The calling component (ScheduleManager) calls distinct 'add' or 'delete' actions?
+        // Ideally yes. But for now 'updateDailyManifest' is used for everything.
+        // Let's stick to LocalStorage for full state, and use 'add/delete' specific hooks?
+        // Actually, let's just loop and upsert 'items'. Deletions are hard.
+        // Wait, 'ScheduleManager' calls 'updateDailyManifest' after filter.
+        // Let's rely on the components to call 'saveProcurementEntry' separately?
+        // No, Context should handle it.
+
+        // IMPROVEMENT: We need explicit 'removeOrder' action in Context to handle Cloud Deletes.
     };
 
     const addOrdersBulk = (orders) => {
@@ -38,22 +52,48 @@ export function ProcurementProvider({ children }) {
             const next = { ...prev };
             orders.forEach(order => {
                 const date = order.date;
-                // Create new day object or copy existing
                 const existingItems = next[date]?.items || [];
                 next[date] = {
                     items: [...existingItems, order]
                 };
+                // Sync to Cloud
+                if (user) {
+                    saveProcurementEntry(order);
+                }
             });
             return next;
         });
     };
 
-    const clearManifest = () => setPoManifest({});
+    const removeOrder = (date, orderId, poNumber) => {
+        setPoManifest(prev => {
+            const next = { ...prev };
+            if (next[date]) {
+                next[date].items = next[date].items.filter(i => i.id !== orderId && i.po !== poNumber);
+            }
+            return next;
+        });
+        if (user && poNumber) {
+            deleteProcurementEntry(poNumber);
+        }
+    };
+
+    // Initialize from Cloud
+    useEffect(() => {
+        if (user) {
+            fetchProcurementData().then(data => {
+                if (data && Object.keys(data).length > 0) {
+                    setPoManifest(data);
+                }
+            });
+        }
+    }, [user]);
 
     const value = {
         poManifest,
         updateDailyManifest,
         addOrdersBulk,
+        removeOrder,
         clearManifest
     };
 

@@ -14,7 +14,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { addDays, formatLocalDate } from '../../utils/dateUtils';
 
 export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound }) {
-    const { updateDailyManifest, addOrdersBulk } = useProcurement();
+    const { updateDailyManifest, addOrdersBulk, removeOrder } = useProcurement();
     const { specs } = useSettings();
 
     // Edit State
@@ -28,8 +28,10 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
         if (!confirm('Are you sure you want to cancel this order?')) return;
 
         // 1. Remove from PO Manifest
-        const newOrders = orders.filter(o => o.id !== orderId);
-        updateDailyManifest(date, newOrders);
+        // const newOrders = orders.filter(o => o.id !== orderId); // Old way
+        // updateDailyManifest(date, newOrders); // Old way
+        const order = orders.find(o => o.id === orderId);
+        removeOrder(date, orderId, order?.po);
 
         // 2. Sync: Decrement Truck Count
         if (updateDateInbound && monthlyInbound) {
@@ -61,8 +63,7 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
         addOrdersBulk([finalOrder]);
 
         // 2. Remove from Old Date
-        const newCurrentOrders = orders.filter(o => o.id !== movingId);
-        updateDailyManifest(date, newCurrentOrders);
+        removeOrder(date, movingId, orderToMove.po);
 
         // 3. Sync: Update Truck Counts
         if (updateDateInbound && monthlyInbound) {

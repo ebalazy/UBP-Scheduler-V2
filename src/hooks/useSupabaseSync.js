@@ -363,14 +363,84 @@ export const useSupabaseSync = () => {
         }
     };
 
+    /**
+     * PROCUREMENT SYNC
+     */
+    const saveProcurementEntry = async (order) => {
+        // order: { date, po, qty, supplier, status }
+        // We use 'po_number' as unique key for upsert?
+        // Or we just insert?
+        // Let's assume PO Number is unique.
+
+        if (!order.po) return;
+
+        const payload = {
+            date: order.date,
+            po_number: order.po,
+            quantity: order.qty,
+            supplier: order.supplier,
+            status: order.status || 'planned',
+            user_id: (await supabase.auth.getUser()).data.user?.id
+        };
+
+        // Check if exists by PO + Date?
+        // Using upsert on po_number if we constrained it, but we didn't add constraint yet.
+        // Let's try to match by PO Number.
+        const { data: existing } = await supabase
+            .from('procurement_orders')
+            .select('id')
+            .eq('po_number', order.po)
+            .maybeSingle();
+
+        if (existing) {
+            await supabase.from('procurement_orders').update(payload).eq('id', existing.id);
+        } else {
+            await supabase.from('procurement_orders').insert(payload);
+        }
+    };
+
+    const deleteProcurementEntry = async (poNumber) => {
+        await supabase.from('procurement_orders').delete().eq('po_number', poNumber);
+    };
+
+    const fetchProcurementData = useCallback(async () => {
+        const { data, error } = await supabase
+            .from('procurement_orders')
+            .select('*')
+            .gte('date', new Date().toISOString().split('T')[0]); // Only future/today? Or all? Let's get all for now.
+
+        if (error) {
+            console.error("Error fetching procurement:", error);
+            return {};
+        }
+
+        // Transform to local Manifest format: { [date]: { items: [] } }
+        const manifest = {};
+        data.forEach(row => {
+            if (!manifest[row.date]) manifest[row.date] = { items: [] };
+            manifest[row.date].items.push({
+                id: row.id, // Keep DB ID
+                po: row.po_number,
+                qty: Number(row.quantity),
+                supplier: row.supplier,
+                status: row.status,
+                date: row.date
+            });
+        });
+        return manifest;
+    }, []);
+
     return {
         migrateLocalStorage,
-        uploadLocalData, // New Export
+        uploadLocalData,
         fetchMRPState,
         fetchUserProfile,
         savePlanningEntry,
         saveProductionSetting,
         saveInventoryAnchor,
-        saveUserProfile
+        saveUserProfile,
+        saveProcurementEntry,
+        deleteProcurementEntry,
+        fetchProcurementData
     };
 };
