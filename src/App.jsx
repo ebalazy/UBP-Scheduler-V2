@@ -16,6 +16,8 @@ import CockpitView from './components/cockpit/CockpitView';
 import LogisticsView from './components/logistics/LogisticsView';
 import { Boxes, CalendarClock, Crown, Gauge, Truck } from 'lucide-react';
 
+import { ProcurementProvider } from './context/ProcurementContext';
+
 export default function App() {
   const { user, loading } = useAuth();
   const { uploadLocalData } = useSupabaseSync();
@@ -43,7 +45,11 @@ export default function App() {
     return <LandingPage />;
   }
 
-  return <AuthenticatedApp user={user} />;
+  return (
+    <ProcurementProvider>
+      <AuthenticatedApp user={user} />
+    </ProcurementProvider>
+  );
 }
 
 function AuthenticatedApp({ user }) {

@@ -3,6 +3,7 @@ import CalendarDemand from './CalendarDemand';
 import PlanningGrid from './PlanningGrid';
 import OrderActionLog from './OrderActionLog';
 import SharePlanModal from '../SharePlanModal';
+import BulkImportModal from '../procurement/BulkImportModal'; // NEW
 import { useSettings } from '../../context/SettingsContext';
 import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
@@ -12,6 +13,7 @@ export default function MRPView({ state, setters, results }) {
     const { bottleSizes, leadTimeDays } = useSettings();
     const [isEditingYard, setIsEditingYard] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [isImportOpen, setIsImportOpen] = useState(false); // NEW
     const [viewMode, setViewMode] = useState('grid');
 
     // Morning Reconciliation Modal State
@@ -273,6 +275,13 @@ export default function MRPView({ state, setters, results }) {
                         Share Plan
                     </button>
 
+                    <button
+                        onClick={() => setIsImportOpen(true)}
+                        className="flex items-center text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
+                    >
+                        📥 Import POs
+                    </button>
+
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span className="text-gray-400">SKU:</span>
@@ -393,6 +402,11 @@ export default function MRPView({ state, setters, results }) {
                 onClose={() => setIsReconcileOpen(false)}
                 state={state}
                 setters={setters}
+            />
+
+            <BulkImportModal
+                isOpen={isImportOpen}
+                onClose={() => setIsImportOpen(false)}
             />
         </div>
     );
