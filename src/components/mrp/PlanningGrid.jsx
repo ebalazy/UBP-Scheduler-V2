@@ -235,15 +235,20 @@ export default function PlanningGrid({
                             </th>
                             {dates.map(date => {
                                 const dateStr = formatLocalDate(date);
-                                const val = monthlyInbound[dateStr] || 0;
+                                // Logic: If we have POs, count them. Rule: 1 PO = 1 Truck.
+                                // If not, fallback to manual 'monthlyInbound' value.
+                                const manifestItems = poManifest[dateStr]?.items || [];
+                                const hasManifest = manifestItems.length > 0;
+                                const val = hasManifest ? manifestItems.length : (monthlyInbound[dateStr] || 0);
+
                                 return (
                                     <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 relative group">
-                                        {poManifest[dateStr] && poManifest[dateStr].items.length > 0 ? (
+                                        {hasManifest ? (
                                             /* PO MODE: Clickable Number */
                                             <button
                                                 className="w-full h-full p-2 text-center text-xs font-bold text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors flex items-center justify-center gap-1"
                                                 onClick={() => openManager(dateStr)}
-                                                title={`${poManifest[dateStr].items.length} POs - Click to Manage`}
+                                                title={`${manifestItems.length} POs - Click to Manage`}
                                             >
                                                 {val}
                                                 {/* Subtle Dot to indicate this is a Manifest value */}
@@ -261,7 +266,7 @@ export default function PlanningGrid({
                                                     const v = e.target.value.replace(/,/g, '');
                                                     if (!isNaN(v)) updateDateInbound(dateStr, v);
                                                 }}
-                                                onDoubleClick={() => openManager(dateStr)} // Allow opening even if manual?
+                                                onDoubleClick={() => openManager(dateStr)}
                                             />
                                         )}
                                     </td>
