@@ -1,7 +1,7 @@
 import React from 'react';
 import { formatLocalDate } from '../../../utils/dateUtils';
 
-export default function PlanningRowInventory({ dates, ledgerMap, specs, safetyTarget }) {
+function PlanningRowInventory({ dates, ledgerMap, specs, safetyTarget }) {
     return (
         <tr className="bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-300 dark:border-gray-600">
             <th className="sticky left-0 bg-gray-100 dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-800 dark:text-white z-10 shadow-md">
@@ -48,3 +48,5 @@ export default function PlanningRowInventory({ dates, ledgerMap, specs, safetyTa
         </tr>
     );
 }
+
+export default React.memo(PlanningRowInventory);

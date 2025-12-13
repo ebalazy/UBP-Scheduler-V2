@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useSettings } from '../../context/SettingsContext';
 
-export default function BurnDownChart({ currentInventoryBottles, weeklyDemandBottles, safetyStockBottles }) {
+function BurnDownChart({ currentInventoryBottles, weeklyDemandBottles, safetyStockBottles }) {
     const { theme } = useSettings();
     const isDark = theme === 'dark';
 
@@ -102,3 +102,4 @@ export default function BurnDownChart({ currentInventoryBottles, weeklyDemandBot
         </div>
     );
 }
+export default React.memo(BurnDownChart);
