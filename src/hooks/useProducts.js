@@ -17,7 +17,6 @@ export function useProducts() {
                     .select(`
                         *,
                         production_settings (
-                            id,
                             line_name,
                             production_rate
                         )
