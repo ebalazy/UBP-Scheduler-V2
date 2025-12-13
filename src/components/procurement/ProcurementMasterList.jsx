@@ -6,14 +6,18 @@ import {
     MagnifyingGlassIcon,
     TableCellsIcon,
     PencilSquareIcon,
-    PlusIcon
+    PencilSquareIcon,
+    PlusIcon,
+    TagIcon
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
+import { useSettings } from '../../context/SettingsContext';
 import { formatTime12h } from '../../utils/dateUtils';
 import EditOrderModal from './EditOrderModal';
 
 export default function ProcurementMasterList({ isOpen, onClose }) {
-    const { poManifest, deleteOrdersBulk } = useProcurement();
+    const { poManifest, deleteOrdersBulk, bulkUpdateOrders } = useProcurement();
+    const { bottleDefinitions } = useSettings();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedIds, setSelectedIds] = useState(new Set());
 
@@ -83,6 +87,18 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
         setSelectedIds(new Set());
     };
 
+    const handleBulkSetSku = (sku) => {
+        if (!sku || selectedIds.size === 0) return;
+        if (!confirm(`Set SKU to "${sku}" for ${selectedIds.size} orders?`)) return;
+
+        const ordersToUpdate = allOrders
+            .filter(o => selectedIds.has(o.id))
+            .map(o => ({ ...o, sku }));
+
+        bulkUpdateOrders(ordersToUpdate);
+        setSelectedIds(new Set());
+    };
+
     return (
         <Dialog open={isOpen} onClose={onClose} className="relative z-50">
             <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
@@ -135,13 +151,34 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                             <span className="text-sm text-gray-500">
                                 {selectedIds.size} selected
                             </span>
+
+                            {selectedIds.size > 0 && (
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        className="text-sm border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                handleBulkSetSku(e.target.value);
+                                                e.target.value = ''; // Reset
+                                            }
+                                        }}
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>Set SKU...</option>
+                                        {Object.keys(bottleDefinitions).map(sku => (
+                                            <option key={sku} value={sku}>{sku}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
                             <button
                                 onClick={handleDeleteSelected}
                                 disabled={selectedIds.size === 0}
                                 className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 <TrashIcon className="w-5 h-5" />
-                                Delete Selected
+                                Delete
                             </button>
                         </div>
                     </div>

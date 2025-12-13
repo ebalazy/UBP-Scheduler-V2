@@ -16,7 +16,7 @@ import CockpitView from './components/cockpit/CockpitView';
 import LogisticsView from './components/logistics/LogisticsView';
 import { Boxes, CalendarClock, Crown, Gauge, Truck } from 'lucide-react';
 
-import { ProcurementProvider } from './context/ProcurementContext';
+import { ProcurementProvider, useProcurement } from './context/ProcurementContext';
 
 export default function App() {
   const { user, loading } = useAuth();

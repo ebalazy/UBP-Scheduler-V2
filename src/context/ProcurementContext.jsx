@@ -149,6 +149,26 @@ export function ProcurementProvider({ children }) {
         }
     };
 
+    const bulkUpdateOrders = (updates) => {
+        // updates: Array of { id, changes: {} } or similar.
+        // Actually simplest is: Array of { ...fullOrder } with changes applied.
+        setPoManifest(prev => {
+            const next = { ...prev };
+            updates.forEach(updatedOrder => {
+                const date = updatedOrder.date;
+                if (next[date]?.items) {
+                    next[date].items = next[date].items.map(i => i.id === updatedOrder.id ? updatedOrder : i);
+                }
+            });
+            return next;
+        });
+
+        if (user) {
+            // Persist all
+            updates.forEach(order => saveProcurementEntry(order));
+        }
+    };
+
     const clearManifest = () => setPoManifest({});
 
     // Initialize from Cloud
@@ -170,6 +190,7 @@ export function ProcurementProvider({ children }) {
         updateOrder,
         deleteOrdersBulk,
         moveOrder,
+        bulkUpdateOrders,
         clearManifest
     };
 
