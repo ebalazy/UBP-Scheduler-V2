@@ -206,7 +206,7 @@ export default function SettingsModal({ onClose }) {
                     <p className="text-[10px] text-gray-400 dark:text-gray-600">v{import.meta.env.PACKAGE_VERSION} (Smart Planner)</p>
                 </div>
             </div>
-        </div >
-        </div >
+        </div>
+    </div >
     );
 }
