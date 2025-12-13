@@ -169,35 +169,8 @@ export default function SettingsModal({ onClose }) {
                         className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base sm:text-sm"
                     />
                 </div>
+                </div>
             </div>
-        </div>
-    ))
-}
-                        </div >
-
-    {/* Add New Product */ }
-    < div className = "mt-4 bg-gray-100 dark:bg-gray-900/50 p-4 rounded-md border border-dashed border-gray-300 dark:border-gray-700 flex items-end gap-4" >
-                            <div className="flex-grow">
-                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">New Product Name (e.g. "12oz Cans")</label>
-                                <input
-                                    type="text"
-                                    value={newSkuName}
-                                    onChange={(e) => setNewSkuName(e.target.value)}
-                                    placeholder="Enter SKU Name..."
-                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                                />
-                            </div>
-                            <button
-                                onClick={handleAddSku}
-                                disabled={!newSkuName.trim()}
-                                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md text-sm font-bold flex items-center"
-                            >
-                                <PlusIcon className="h-4 w-4 mr-1" />
-                                Add
-                            </button>
-                        </div >
-                    </div >
-                </div >
 
     <div className="mt-8 bg-gray-50 dark:bg-gray-800 -mx-6 -mb-6 p-4 rounded-b-lg border-t dark:border-gray-700">
         <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-4">
