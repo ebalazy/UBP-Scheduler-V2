@@ -342,16 +342,21 @@ export default function LogisticsView({ state, setters, results }) {
                                                 date: d,
                                                 po: uiItem.po || 'TBD',
                                                 sku: item.sku,
+                                                qty: qtyPerTruck,
+                                                supplier: uiItem.carrier || 'Unknown',
+                                                carrier: uiItem.carrier,
+                                                time: uiItem.time,
+                                                status: 'scheduled',
+                                                isGlobal: true
+                                            }));
 
-                                                // 2. Merge with EXISTING Global Order (Preserve other SKUs)
-                                                const currentDayManifest = poManifest[d]?.items || [];
-                                                const otherSkuItems = currentDayManifest.filter(i => i.sku !== item.sku);
+                                            const currentDayManifest = poManifest[d]?.items || [];
+                                            const otherSkuItems = currentDayManifest.filter(i => i.sku !== item.sku);
 
-                                                const combinedItems = [...otherSkuItems, ...newOpsItems];
+                                            const combinedItems = [...otherSkuItems, ...newOpsItems];
 
-                                                // 3. Update Context
-                                                updateDailyManifest(d, combinedItems);
-                                            }}
+                                            updateDailyManifest(d, combinedItems);
+                                        }}
                                     />
                                 </div>
                             ))}
