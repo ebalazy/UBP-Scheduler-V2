@@ -80,7 +80,7 @@ export default function PlanningGrid({
                         {/* 1. DEMAND ROW */}
                         <tr>
                             <th className="sticky left-0 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 z-10 shadow-md">
-                                Demand (Plan)
+                                Production (Plan)
                             </th>
                             {dates.map((date, idx) => {
                                 const dateStr = formatLocalDate(date);
