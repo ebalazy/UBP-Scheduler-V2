@@ -10,7 +10,167 @@ export function useMRP(poManifest = {}) {
     const { user } = useAuth();
     const { fetchMRPState, savePlanningEntry, saveProductionSetting, saveInventoryAnchor, migrateLocalStorage } = useSupabaseSync();
 
-    // ... (lines 13-174 remain the same) ...
+    // 1. Load Selected Size first (Local persist for UI preference is fine)
+    const [selectedSize, setSelectedSize] = useState(() => localStorage.getItem('mrp_selectedSize') || '20oz');
+
+    // Helper: Dynamic Key Generation (Legacy LocalStorage)
+    const getStorageKey = (key, sku = selectedSize) => `mrp_${sku}_${key}`;
+
+    // Helper: Smart Load (Migrates Legacy Data if New Key missing)
+    const loadLocalState = (key, defaultVal, parse = false) => {
+        const fullKey = getStorageKey(key);
+        const legacyKey = `mrp_${key}`;
+        let saved = localStorage.getItem(fullKey);
+        if (saved === null && selectedSize === '20oz') {
+            saved = localStorage.getItem(legacyKey);
+        }
+        if (saved === null) return defaultVal;
+        if (parse) {
+            try { return JSON.parse(saved) || defaultVal; }
+            catch { return defaultVal; }
+        }
+        return saved;
+    };
+
+    // Helper: Save State (Local)
+    const saveLocalState = (key, value, parse = false) => {
+        const fullKey = getStorageKey(key);
+        const val = parse ? JSON.stringify(value) : value;
+        localStorage.setItem(fullKey, val);
+    };
+
+    // --- State Definitions ---
+    // For logged-in users, we start with EMPTY/Loading state to avoid "flashing" local stale data.
+    // For anon users, we initialize directly from LocalStorage.
+
+    const init = (key, defaultVal, parse = false) => {
+        if (user) return defaultVal; // Return default (empty) if user exists, wait for fetch
+        return loadLocalState(key, defaultVal, parse);
+    };
+
+    const [monthlyDemand, setMonthlyDemand] = useState(() => init('monthlyDemand', {}, true));
+    const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => init('monthlyProductionActuals', {}, true));
+    const [monthlyInbound, setMonthlyInbound] = useState(() => init('monthlyInbound', {}, true));
+    const [truckManifest, setTruckManifest] = useState(() => init('truckManifest', {}, true));
+    // productionRate is now derived from settings
+    const [downtimeHours, setDowntimeHours] = useState(() => user ? 0 : Number(loadLocalState('downtimeHours', 0)));
+    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => user ? 0 : Number(loadLocalState('currentInventoryPallets', 0)));
+    const [inventoryAnchor, setInventoryAnchor] = useState(() =>
+        user ? { date: getLocalISOString(), count: 0 } :
+            loadLocalState('inventoryAnchor', { date: getLocalISOString(), count: 0 }, true)
+    );
+    const [incomingTrucks, setIncomingTrucks] = useState(() => user ? 0 : Number(loadLocalState('incomingTrucks', 0)));
+    const [yardInventory, setYardInventory] = useState(() =>
+        user ? { count: 0, timestamp: null, fileName: null } :
+            loadLocalState('yardInventory', { count: 0, timestamp: null, fileName: null }, true)
+    );
+    const [manualYardOverride, setManualYardOverride] = useState(() => {
+        if (user) return null;
+        const val = loadLocalState('manualYardOverride', null);
+        return val ? Number(val) : null;
+    });
+    const [isAutoReplenish, setIsAutoReplenish] = useState(() => user ? true : loadLocalState('isAutoReplenish', true, true));
+
+    // --- Auto-Refresh on Focus ---
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    useEffect(() => {
+        const onTrigger = () => {
+            // Only auto-refresh if user is logged in (cloud mode) and app is visible
+            if (user && document.visibilityState === 'visible') {
+                console.log("App Focused/Visible: Refreshing Cloud Data...");
+                setRefreshTrigger(t => t + 1);
+            }
+        };
+
+        document.addEventListener('visibilitychange', onTrigger);
+        window.addEventListener('focus', onTrigger);
+        return () => {
+            document.removeEventListener('visibilitychange', onTrigger);
+            window.removeEventListener('focus', onTrigger);
+        };
+    }, [user]);
+
+    // --- Cloud Sync Effect ---
+    useEffect(() => {
+        localStorage.setItem('mrp_selectedSize', selectedSize);
+
+        if (!user) {
+            // Local Mode: Reload local state when SKU changes
+            console.log("Local Mode: Loading from LocalStorage");
+            setMonthlyDemand(loadLocalState('monthlyDemand', {}, true));
+            setMonthlyProductionActuals(loadLocalState('monthlyProductionActuals', {}, true));
+            setMonthlyInbound(loadLocalState('monthlyInbound', {}, true));
+            setTruckManifest(loadLocalState('truckManifest', {}, true));
+            setProductionRate(Number(loadLocalState('productionRate', 0)));
+            setDowntimeHours(Number(loadLocalState('downtimeHours', 0)));
+            // ... (other setters if needed, but react usually handles re-render if key changes)
+            // Actually, hooks don't re-run init logic on re-render, so we MUST use setters here for SKU switch.
+            setInventoryAnchor(loadLocalState('inventoryAnchor', { date: getLocalISOString(), count: 0 }, true));
+            setIsAutoReplenish(loadLocalState('isAutoReplenish', true, true));
+        } else {
+            // Cloud Mode: Fetch from Supabase
+            console.log(`Cloud Mode: Fetching for ${selectedSize}...`);
+            const loadCloud = async () => {
+                try {
+                    const data = await fetchMRPState(user.id, selectedSize);
+
+                    if (data) {
+                        console.log("Cloud Data Recevied:", data.productionRate);
+                        setMonthlyDemand(data.monthlyDemand || {});
+                        setMonthlyProductionActuals(data.monthlyProductionActuals || {});
+                        setMonthlyInbound(data.monthlyInbound || {});
+                        setTruckManifest(data.truckManifest || {});
+                        // Update Settings Context
+                        if (data.productionRate) updateBottleDefinition(selectedSize, 'productionRate', data.productionRate);
+                        setDowntimeHours(data.downtimeHours);
+                        setIsAutoReplenish(data.isAutoReplenish);
+                        if (data.inventoryAnchor) setInventoryAnchor(data.inventoryAnchor);
+                    } else {
+                        console.log("No Cloud Data found. Attempting Migration...");
+                        const result = await migrateLocalStorage(user, bottleSizes);
+                        if (result.success) {
+                            const retry = await fetchMRPState(user.id, selectedSize);
+                            if (retry) {
+                                setMonthlyDemand(retry.monthlyDemand || {});
+                                setMonthlyProductionActuals(retry.monthlyProductionActuals || {});
+                                setMonthlyInbound(retry.monthlyInbound || {});
+                                setTruckManifest(retry.truckManifest || {});
+                                if (retry.productionRate) updateBottleDefinition(selectedSize, 'productionRate', retry.productionRate);
+                                setDowntimeHours(retry.downtimeHours);
+                                setIsAutoReplenish(retry.isAutoReplenish);
+                                if (retry.inventoryAnchor) setInventoryAnchor(retry.inventoryAnchor);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to load cloud state", e);
+                    setSaveError("Data Load Failed");
+                }
+            };
+            loadCloud();
+        }
+    }, [selectedSize, user, refreshTrigger]); // Re-run on Size change, Login, or Focus trigger
+
+    // --- Calculations (Identical Logic) ---
+    // Updated to use Actuals if present, otherwise Demand
+    const totalScheduledCases = useMemo(() => {
+        const today = getLocalISOString();
+        const allDates = new Set([...Object.keys(monthlyDemand), ...Object.keys(monthlyProductionActuals)]);
+
+        return Array.from(allDates).reduce((acc, date) => {
+            if (date >= today) {
+                const actual = monthlyProductionActuals[date];
+                const plan = monthlyDemand[date];
+                const val = (actual !== undefined && actual !== null) ? Number(actual) : Number(plan);
+                return acc + (val || 0);
+            }
+            return acc;
+        }, 0);
+    }, [monthlyDemand, monthlyProductionActuals]);
+
+    // Derived productionRate for calculations
+    const productionRate = bottleDefinitions[selectedSize]?.productionRate || 0;
 
     const calculations = useMemo(() => {
         const specs = bottleDefinitions[selectedSize];
