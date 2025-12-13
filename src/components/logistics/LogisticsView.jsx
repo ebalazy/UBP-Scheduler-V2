@@ -204,7 +204,7 @@ export default function LogisticsView({ state, setters, results }) {
                                 });
 
                                 if (allLegacyItems.length > 0) {
-                                    console.log("Migrating Legacy Items:", allLegacyItems.length);
+                                    // Migrating Legacy Items
                                     bulkUpdateOrders(allLegacyItems);
 
                                     // Cleanup Keys
@@ -340,7 +340,7 @@ export default function LogisticsView({ state, setters, results }) {
                                         totalRequired={item.count}
                                         manifest={item.manifest}
                                         onUpdate={(d, list) => {
-                                            console.log("LogisticsView onUpdate (Today) Called", { d, listLength: list.length });
+                                            // LogisticsView onUpdate (Today) Called
                                             try {
                                                 const specs = results.specs;
                                                 const qtyPerTruck = specs?.bottlesPerTruck || 20000;
@@ -366,7 +366,7 @@ export default function LogisticsView({ state, setters, results }) {
 
                                                 const combinedItems = [...otherSkuItems, ...newOpsItems];
 
-                                                console.log("Calling updateDailyManifest (Today)", { d, count: combinedItems.length });
+
                                                 updateDailyManifest(d, combinedItems);
                                             } catch (err) {
                                                 console.error("Failed to update manifest (Today) in LogicsticsView:", err);
@@ -382,7 +382,7 @@ export default function LogisticsView({ state, setters, results }) {
                                                     if (data[d]) {
                                                         delete data[d];
                                                         localStorage.setItem(legacyKey, JSON.stringify(data));
-                                                        console.log("Cleaned up legacy local manifest for (Today)", d);
+
                                                     }
                                                 }
                                             } catch (e) {
@@ -422,7 +422,7 @@ export default function LogisticsView({ state, setters, results }) {
                                         totalRequired={item.count}
                                         manifest={item.manifest}
                                         onUpdate={(d, list) => {
-                                            console.log("LogisticsView onUpdate Called", { d, listLength: list.length });
+                                            // LogisticsView onUpdate Called
                                             try {
                                                 const specs = results.specs;
                                                 const qtyPerTruck = specs?.bottlesPerTruck || 20000;
@@ -449,7 +449,7 @@ export default function LogisticsView({ state, setters, results }) {
 
                                                 const combinedItems = [...otherSkuItems, ...newOpsItems];
 
-                                                console.log("Calling updateDailyManifest", { d, count: combinedItems.length });
+
                                                 updateDailyManifest(d, combinedItems);
                                             } catch (err) {
                                                 console.error("Failed to update manifest in LogicsticsView:", err);
@@ -465,7 +465,7 @@ export default function LogisticsView({ state, setters, results }) {
                                                     if (data[d]) {
                                                         delete data[d];
                                                         localStorage.setItem(legacyKey, JSON.stringify(data));
-                                                        console.log("Cleaned up legacy local manifest for (tomorrow)", d);
+
                                                     }
                                                 }
                                             } catch (e) {

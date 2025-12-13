@@ -34,7 +34,7 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
             e.preventDefault();
             e.stopPropagation();
         }
-        console.log("Handle Save Clicked", { date, editList });
+
         onUpdate(date, editList);
         setIsEditing(false);
     };

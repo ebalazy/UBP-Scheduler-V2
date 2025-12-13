@@ -78,7 +78,7 @@ export function useMRP(poManifest = {}) {
         const onTrigger = () => {
             // Only auto-refresh if user is logged in (cloud mode) and app is visible
             if (user && document.visibilityState === 'visible') {
-                console.log("App Focused/Visible: Refreshing Cloud Data...");
+                // App Focused/Visible: Refreshing Cloud Data...
                 setRefreshTrigger(t => t + 1);
             }
         };
@@ -97,7 +97,7 @@ export function useMRP(poManifest = {}) {
 
         if (!user) {
             // Local Mode: Reload local state when SKU changes
-            console.log("Local Mode: Loading from LocalStorage");
+            // Local Mode
             setMonthlyDemand(loadLocalState('monthlyDemand', {}, true));
             setMonthlyProductionActuals(loadLocalState('monthlyProductionActuals', {}, true));
             setMonthlyInbound(loadLocalState('monthlyInbound', {}, true));
@@ -110,13 +110,13 @@ export function useMRP(poManifest = {}) {
             setIsAutoReplenish(loadLocalState('isAutoReplenish', true, true));
         } else {
             // Cloud Mode: Fetch from Supabase
-            console.log(`Cloud Mode: Fetching for ${selectedSize}...`);
+            // Cloud Mode
             const loadCloud = async () => {
                 try {
                     const data = await fetchMRPState(user.id, selectedSize);
 
                     if (data) {
-                        console.log("Cloud Data Recevied:", data.productionRate);
+
                         setMonthlyDemand(data.monthlyDemand || {});
                         setMonthlyProductionActuals(data.monthlyProductionActuals || {});
                         setMonthlyInbound(data.monthlyInbound || {});
@@ -127,7 +127,7 @@ export function useMRP(poManifest = {}) {
                         setIsAutoReplenish(data.isAutoReplenish);
                         if (data.inventoryAnchor) setInventoryAnchor(data.inventoryAnchor);
                     } else {
-                        console.log("No Cloud Data found. Attempting Migration...");
+                        // No Cloud Data found. Attempting Migration...
                         const result = await migrateLocalStorage(user, bottleSizes);
                         if (result.success) {
                             const retry = await fetchMRPState(user.id, selectedSize);
@@ -468,7 +468,7 @@ export function useMRP(poManifest = {}) {
         // Equality Check to prevent loops/unnecessary saves
         if (JSON.stringify(newInbound) === JSON.stringify(inboundMap)) return;
 
-        console.log("Auto-Replenish: Updating Inbound Schedule...");
+        // Auto-Replenish
         setMonthlyInbound(newInbound);
         saveLocalState('monthlyInbound', newInbound, true);
 

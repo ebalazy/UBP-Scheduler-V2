@@ -90,7 +90,7 @@ export default function DeliveryTable({ schedule, truckSchedule, onUpdatePO, onD
             });
 
             const filename = getExportFilename("csv");
-            console.log(`Exporting ${data.length} rows to ${filename}`);
+
 
             // Use file-saver for robust cross-browser saving
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });

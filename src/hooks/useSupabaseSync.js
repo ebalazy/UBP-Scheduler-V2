@@ -51,7 +51,7 @@ export const useSupabaseSync = () => {
      */
     const migrateLocalStorage = async (user, bottleSizes) => {
         if (!user) return;
-        console.log("Starting Migration for user:", user.email);
+        // Starting Migration
 
         try {
             // 1. Migrate Products & Settings
@@ -137,7 +137,7 @@ export const useSupabaseSync = () => {
                 }
             }
 
-            console.log("Migration Complete");
+            // Migration Complete
             return { success: true };
 
         } catch (err) {
@@ -418,10 +418,10 @@ export const useSupabaseSync = () => {
 
         // 2. If no products, assume fresh cloud account. Run migration.
         if (count === 0) {
-            console.log("Fresh Cloud Account detected. Uploading Local Data...");
+            // Fresh Cloud Account detected
             await migrateLocalStorage(user, bottleSizes);
         } else {
-            console.log("Cloud Data exists. Skipping migration to prevent overwrite.");
+            // Cloud Data exists
         }
     };
 
