@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getLocalISOString, formatLocalDate } from '../../utils/dateUtils';
 import { useSettings } from '../../context/SettingsContext';
+import { useProcurement } from '../../context/ProcurementContext';
 import ScheduleManagerModal from '../procurement/ScheduleManagerModal';
 
 // Sub-components
@@ -16,18 +17,23 @@ export default function PlanningGrid({
     monthlyDemand,
     monthlyProductionActuals,
     monthlyInbound,
-    truckManifest, // Map: { date: [ { id, po, qty, ... } ] }
+    // truckManifest, // Now from Context
     updateDateDemand,
     updateDateDemandBulk,
     updateDateActual,
     updateDateInbound, // For manual qty overrides
-    saveProcurementEntry,
-    deleteProcurementEntry,
-    ledger,
+    // saveProcurementEntry, // Now from Context
+    // deleteProcurementEntry, // Now from Context
+    dailyLedger = [], // Renamed from ledger and defaulted
     specs,
     userProfile
 }) {
     const { bottleSizes } = useSettings();
+    const { poManifest, saveProcurementEntry, deleteProcurementEntry } = useProcurement();
+
+    // Alias for internal use matches new component expectation
+    const truckManifest = poManifest;
+    const ledger = dailyLedger;
 
     // -- State --
     const [startDate, setStartDate] = useState(new Date());
