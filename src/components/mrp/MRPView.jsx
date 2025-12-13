@@ -11,6 +11,7 @@ import { useSettings } from '../../context/SettingsContext';
 import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
 import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { formatLocalDate } from '../../utils/dateUtils';
 
 export default function MRPView({ state, setters, results }) {
     const { bottleSizes, leadTimeDays } = useSettings();
@@ -149,13 +150,13 @@ export default function MRPView({ state, setters, results }) {
 
     const renderSidebar = () => (
         <div className="space-y-6">
-            {/* 1. Live Inventory Card */}
+            {/* 1. Inventory Status Card */}
             <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 transition-colors">
                 <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-2">
-                    <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Live Inventory</h2>
-                    <label className="flex items-center cursor-pointer">
+                    <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Inventory Status</h2>
+                    <label className="flex items-center cursor-pointer" title="Auto-Pilot: Automatically suggests truck orders to maintain safety stock.">
                         <span className="text-xs mr-2 font-medium text-purple-600">
-                            {state.isAutoReplenish ? 'Auto' : 'Manual'}
+                            {state.isAutoReplenish ? 'Auto-Pilot' : 'Manual'}
                         </span>
                         <div className="relative">
                             <input
@@ -180,6 +181,9 @@ export default function MRPView({ state, setters, results }) {
                                     {Math.round(results.calculatedPallets || 0)}
                                 </span>
                                 <span className="text-xs text-gray-400">plts</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-1">
+                                Effective: {formatLocalDate(state.inventoryAnchor?.date) || 'N/A'}
                             </div>
                         </div>
                         {/* Morning Reconciliation Trigger */}
@@ -223,11 +227,16 @@ export default function MRPView({ state, setters, results }) {
                                 />
                             </div>
                         ) : (
-                            <div className="flex items-baseline space-x-1">
-                                <span className="text-2xl font-bold text-blue-800 dark:text-blue-200">
-                                    {yardInventory.effectiveCount}
-                                </span>
-                                <span className="text-xs text-blue-500">loads</span>
+                            <div>
+                                <div className="flex items-baseline space-x-1">
+                                    <span className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                                        {yardInventory.effectiveCount}
+                                    </span>
+                                    <span className="text-xs text-blue-500">loads</span>
+                                </div>
+                                <div className="text-[10px] text-blue-400 mt-1">
+                                    Effective: {formatLocalDate(state.yardInventory?.date) || 'N/A'}
+                                </div>
                             </div>
                         )}
                     </div>

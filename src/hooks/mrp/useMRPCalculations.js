@@ -181,7 +181,7 @@ export function useMRPCalculations(state, poManifest = {}) {
         return {
             netInventory, safetyTarget, trucksToOrder, trucksToCancel,
             lostProductionCases, effectiveScheduledCases, specs,
-            yardInventory: { ...yardInventory, effectiveCount: effectiveYardLoads, isOverridden: manualYardOverride !== null },
+            yardInventory: { ...yardInventory, effectiveCount: effectiveYardLoads, isOverridden: false },
             dailyLedger, firstStockoutDate, firstOverflowDate, totalIncomingTrucks,
             initialInventory: inventoryBottles + yardBottles,
             calculatedPallets: derivedPallets,

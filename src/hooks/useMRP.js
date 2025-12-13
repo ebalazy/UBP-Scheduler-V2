@@ -27,7 +27,7 @@ export function useMRP(poManifest = {}) {
             currentInventoryPallets: state.currentInventoryPallets,
             incomingTrucks: state.incomingTrucks,
             yardInventory: state.yardInventory,
-            manualYardOverride: state.manualYardOverride,
+
             isAutoReplenish: state.isAutoReplenish,
             inventoryAnchor: state.inventoryAnchor,
 
