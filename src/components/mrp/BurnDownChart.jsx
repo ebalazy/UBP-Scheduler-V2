@@ -40,63 +40,65 @@ export default function BurnDownChart({ currentInventoryBottles, weeklyDemandBot
     return (
         <div className="w-full h-80 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
             <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Inventory Burn Down (14 Days)</h3>
-            <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                    data={data}
-                    margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                    }}
-                >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-                    <XAxis
-                        dataKey="day"
-                        tick={{ fontSize: 12, fill: axisColor }}
-                        axisLine={false}
-                        tickLine={false}
-                        interval={2}
-                    />
-                    <YAxis
-                        tick={{ fontSize: 12, fill: axisColor }}
-                        axisLine={false}
-                        tickLine={false}
-                        tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                    />
-                    <Tooltip
-                        contentStyle={{
-                            backgroundColor: tooltipBg,
-                            borderRadius: '8px',
-                            border: isDark ? '1px solid #374151' : 'none',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                            color: tooltipColor
+            <div style={{ width: '100%', height: 250 }}>
+                <ResponsiveContainer>
+                    <LineChart
+                        data={data}
+                        margin={{
+                            top: 5,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
                         }}
-                        itemStyle={{ color: tooltipColor }}
-                        labelStyle={{ color: axisColor }}
-                        formatter={(value) => value.toLocaleString()}
-                    />
-                    <Legend wrapperStyle={{ color: axisColor }} />
-                    <Line
-                        type="monotone"
-                        dataKey="inventory"
-                        name="Projected Inventory"
-                        stroke="#3B82F6"
-                        strokeWidth={3}
-                        dot={false}
-                        activeDot={{ r: 6 }}
-                    />
-                    <Line
-                        type="step"
-                        dataKey="safetyStock"
-                        name="Safety Stock"
-                        stroke="#EF4444"
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                        dot={false}
-                    />
-                </LineChart>
-            </ResponsiveContainer>
+                    >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+                        <XAxis
+                            dataKey="day"
+                            tick={{ fontSize: 12, fill: axisColor }}
+                            axisLine={false}
+                            tickLine={false}
+                            interval={2}
+                        />
+                        <YAxis
+                            tick={{ fontSize: 12, fill: axisColor }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip
+                            contentStyle={{
+                                backgroundColor: tooltipBg,
+                                borderRadius: '8px',
+                                border: isDark ? '1px solid #374151' : 'none',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                color: tooltipColor
+                            }}
+                            itemStyle={{ color: tooltipColor }}
+                            labelStyle={{ color: axisColor }}
+                            formatter={(value) => value.toLocaleString()}
+                        />
+                        <Legend wrapperStyle={{ color: axisColor }} />
+                        <Line
+                            type="monotone"
+                            dataKey="inventory"
+                            name="Projected Inventory"
+                            stroke="#3B82F6"
+                            strokeWidth={3}
+                            dot={false}
+                            activeDot={{ r: 6 }}
+                        />
+                        <Line
+                            type="step"
+                            dataKey="safetyStock"
+                            name="Safety Stock"
+                            stroke="#EF4444"
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            dot={false}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
         </div>
     );
 }

@@ -384,7 +384,7 @@ export const useSupabaseSync = () => {
     const saveUserProfile = async (userId, updates) => {
         // updates: { lead_time_days, safety_stock_loads, dashboard_layout }
         // Ensure ID matches
-        const payload = { id: userId, ...updates, updated_at: new Date() };
+        const payload = { id: userId, ...updates, updated_at: new Date().toISOString() };
         const { error } = await supabase.from('profiles').upsert(payload);
         if (error) console.error("Error saving profile:", error);
     };
