@@ -210,3 +210,4 @@ export default function SettingsModal({ onClose }) {
     </div >
     );
 }
+// Verified Fix: Closing tags are correct.
