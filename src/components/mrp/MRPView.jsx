@@ -11,10 +11,13 @@ import { useSettings } from '../../context/SettingsContext';
 import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
 import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { supabase } from '../../services/supabaseClient';
+import { useAuth } from '../../context/AuthContext';
 import { formatLocalDate, getLocalISOString } from '../../utils/dateUtils';
 
 export default function MRPView({ state, setters, results }) {
     const { bottleSizes, leadTimeDays } = useSettings();
+    const { user } = useAuth();
     const [isEditingFloor, setIsEditingFloor] = useState(false);
     const [isEditingYard, setIsEditingYard] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -317,6 +320,45 @@ export default function MRPView({ state, setters, results }) {
                         className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
                     >
                         Share Plan
+                    </button>
+
+                    <button
+                        onClick={async () => {
+                            if (!user) return alert("No User");
+                            const date = getLocalISOString();
+                            const sku = state.selectedSize || "12oz";
+                            // 1. Get Product ID
+                            const { data: prod } = await supabase.from('products').select('id').eq('name', sku).single();
+                            if (!prod) return alert("Product Not Found for " + sku);
+
+                            // 2. Write
+                            const val = 999;
+                            const { error: wErr } = await supabase.from('inventory_snapshots').upsert({
+                                product_id: prod.id,
+                                user_id: user.id,
+                                date: date,
+                                location: 'yard',
+                                quantity_pallets: val,
+                                is_latest: true
+                            }, { onConflict: 'product_id, date, location' });
+
+                            if (wErr) return alert("Write Error: " + wErr.message);
+
+                            // 3. Read
+                            const { data: read, error: rErr } = await supabase.from('inventory_snapshots')
+                                .select('*')
+                                .eq('product_id', prod.id)
+                                .eq('user_id', user.id)
+                                .eq('location', 'yard')
+                                .eq('date', date)
+                                .maybeSingle();
+
+                            if (rErr) return alert("Read Error: " + rErr.message);
+                            alert(`DEBUG SUCCESS:\nSaved: ${val}\nRead Back: ${read?.quantity_pallets}\nDate: ${read?.date}`);
+                        }}
+                        className="flex items-center text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg font-medium text-xs border border-red-200"
+                    >
+                        🐞 DEBUG DB
                     </button>
 
                     <button
