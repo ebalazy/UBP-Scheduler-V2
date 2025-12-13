@@ -34,8 +34,6 @@ export default function ProductsView() {
                 .order('name', { ascending: true });
 
             if (error) throw error;
-            setProductsList(data || []); // Wait, I used setProductsList in useProducts but setProducts here.
-            // In ProductsView step 3555 it was setProducts. Stick to setProducts.
             setProducts(data || []);
         } catch (err) {
             console.error("Error fetching products:", err);
