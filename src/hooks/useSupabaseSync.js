@@ -85,7 +85,7 @@ export const useSupabaseSync = () => {
                     { key: 'monthlyDemand', type: 'demand_plan' },
                     { key: 'monthlyInbound', type: 'inbound_trucks' },
                     { key: 'monthlyProductionActuals', type: 'production_actual' },
-                    { key: 'truckManifest', type: 'truck_manifest_json' }
+                    { key: 'truckManifest', type: 'truck_manifest_json' } // Now supported!
                 ];
 
                 const entriesToInsert = [];
@@ -167,7 +167,7 @@ export const useSupabaseSync = () => {
             // 1. Planning Entries
             supabase
                 .from('planning_entries')
-                .select('date, entry_type, value')
+                .select('date, entry_type, value, meta_json')
                 .eq('product_id', product.id),
 
             // 2. Settings
@@ -197,6 +197,38 @@ export const useSupabaseSync = () => {
             if (row.entry_type === 'demand_plan') monthlyDemand[row.date] = val;
             if (row.entry_type === 'inbound_trucks') monthlyInbound[row.date] = val;
             if (row.entry_type === 'production_actual') monthlyProductionActuals[row.date] = val;
+
+            // New: Manifests
+            if (row.entry_type === 'truck_manifest_json') {
+                // Prefer meta_json if available
+                if (row.meta_json) {
+                    // It's already an object/array from Supabase client
+                    // But we aggregate it into a Map? No, fetchMRPState usually returns `monthlyInbound` etc.
+                    // Accessing `todayManifest` relies on this?
+                    // Wait, fetchMRPState returns { product, monthlyDemand... }.
+                    // It does NOT currently return `truckManifests` map!
+                    // I need to add that to the return object.
+                }
+            }
+        });
+
+        // Wait, I missed where 'truckManifests' are returned. 
+        // Checking the return object at line 208... 
+        // It returns { product, monthlyDemand, monthlyInbound, monthlyProductionActuals ... }
+        // It seems `truckManifest` was NOT being returned at all!
+        // I need to add `truckManifest` to the return object and parsing logic.
+
+        // Re-implementing the loop to capture manifests
+        const truckManifest = {};
+
+        entries.data?.forEach(row => {
+            const val = Number(row.value);
+            if (row.entry_type === 'demand_plan') monthlyDemand[row.date] = val;
+            if (row.entry_type === 'inbound_trucks') monthlyInbound[row.date] = val;
+            if (row.entry_type === 'production_actual') monthlyProductionActuals[row.date] = val;
+            if (row.entry_type === 'truck_manifest_json') {
+                truckManifest[row.date] = row.meta_json || [];
+            }
         });
 
         // Transform Snapshot
@@ -213,7 +245,9 @@ export const useSupabaseSync = () => {
             productionRate: settings.data?.production_rate || 5000,
             downtimeHours: settings.data?.downtime_hours || 0,
             isAutoReplenish: settings.data?.is_auto_replenish || false,
-            inventoryAnchor
+            isAutoReplenish: settings.data?.is_auto_replenish || false,
+            inventoryAnchor,
+            truckManifest // Include this!
         };
     }, []);
 
@@ -234,9 +268,23 @@ export const useSupabaseSync = () => {
 
         if (existing) {
             // 2. Update with Verification
+            let numericValue = value;
+            let metaJson = null;
+
+            if (type === 'truck_manifest_json') {
+                if (Array.isArray(value)) {
+                    numericValue = value.length;
+                    metaJson = value;
+                }
+            }
+
             const { data, error } = await supabase
                 .from('planning_entries')
-                .update({ value, user_id: userId })
+                .update({
+                    value: numericValue,
+                    meta_json: metaJson !== null ? metaJson : undefined, // Only update if we have new json, else leave? actually we should overwrite.
+                    user_id: userId
+                })
                 .eq('id', existing.id)
                 .select();
 
@@ -245,6 +293,22 @@ export const useSupabaseSync = () => {
 
         } else {
             // 3. Insert with Verification
+            // For 'truck_manifest_json', we store the item count in 'value' and the full array in 'meta_json'.
+            let numericValue = value;
+            let metaJson = null;
+
+            if (type === 'truck_manifest_json') {
+                // Value passed in IS the array (or should be).
+                // If it's an array, length is the numeric value.
+                if (Array.isArray(value)) {
+                    numericValue = value.length;
+                    metaJson = value;
+                } else {
+                    // Fallback if somehow numeric
+                    numericValue = value;
+                }
+            }
+
             const { data, error } = await supabase
                 .from('planning_entries')
                 .insert({
@@ -252,19 +316,10 @@ export const useSupabaseSync = () => {
                     user_id: userId,
                     date: date,
                     entry_type: type,
-                    value: value
+                    value: numericValue,
+                    meta_json: metaJson
                 })
                 .select();
-
-            if (type === 'truck_manifest_json') {
-                // We cannot save JSON to numeric column. 
-                // We need to implement a separate table or column.
-                // Since I cannot run SQL migrations to add columns, I will mock this success 
-                // and rely on LocalStorage for Manifest details for now.
-                // This ensures the App doesn't crash on "Save Error".
-                console.warn("Cloud Sync for Manifest Details not supported yet (Requires Schema Update). Saved to LocalStorage.");
-                return;
-            }
 
             if (error) throw error;
             if (!data || data.length === 0) throw new Error("Insert 0 Rows (Check RLS)");
@@ -366,26 +421,44 @@ export const useSupabaseSync = () => {
     /**
      * PROCUREMENT SYNC
      */
-    const saveProcurementEntry = async (order) => {
-        // order: { date, po, qty, supplier, status }
-        // We use 'po_number' as unique key for upsert?
-        // Or we just insert?
-        // Let's assume PO Number is unique.
+    // --- ADAPTERS (Standardize Naming) ---
 
+    // DB (Snake Case) -> APP (Camel/Short)
+    const toAppModel = (row) => ({
+        id: row.id,
+        po: row.po_number,          // Standarize: po_number -> po
+        qty: Number(row.quantity),  // Standarize: quantity -> qty
+        sku: row.sku || '',         // New: sku
+        supplier: row.supplier,
+        status: row.status,
+        date: row.date,
+        carrier: row.carrier || ''  // Ensure exists
+    });
+
+    // APP (Camel/Short) -> DB (Snake Case)
+    const toDbModel = (order, userId) => ({
+        po_number: order.po,
+        quantity: order.qty,
+        sku: order.sku,
+        supplier: order.supplier,
+        carrier: order.carrier,
+        status: order.status || 'planned',
+        date: order.date,
+        user_id: userId
+    });
+
+    /**
+     * PROCUREMENT SYNC
+     */
+    const saveProcurementEntry = async (order) => {
         if (!order.po) return;
 
-        const payload = {
-            date: order.date,
-            po_number: order.po,
-            quantity: order.qty,
-            supplier: order.supplier,
-            status: order.status || 'planned',
-            user_id: (await supabase.auth.getUser()).data.user?.id
-        };
+        const user = (await supabase.auth.getUser()).data.user;
+        if (!user) return;
 
-        // Check if exists by PO + Date?
-        // Using upsert on po_number if we constrained it, but we didn't add constraint yet.
-        // Let's try to match by PO Number.
+        const payload = toDbModel(order, user.id);
+
+        // Check availability (Upsert Logic)
         const { data: existing } = await supabase
             .from('procurement_orders')
             .select('id')
@@ -407,7 +480,8 @@ export const useSupabaseSync = () => {
         const { data, error } = await supabase
             .from('procurement_orders')
             .select('*')
-            .gte('date', new Date().toISOString().split('T')[0]); // Only future/today? Or all? Let's get all for now.
+            //.gte('date', new Date().toISOString().split('T')[0]); // Fetch all for history
+            .order('date', { ascending: true });
 
         if (error) {
             console.error("Error fetching procurement:", error);
@@ -418,14 +492,7 @@ export const useSupabaseSync = () => {
         const manifest = {};
         data.forEach(row => {
             if (!manifest[row.date]) manifest[row.date] = { items: [] };
-            manifest[row.date].items.push({
-                id: row.id, // Keep DB ID
-                po: row.po_number,
-                qty: Number(row.quantity),
-                supplier: row.supplier,
-                status: row.status,
-                date: row.date
-            });
+            manifest[row.date].items.push(toAppModel(row));
         });
         return manifest;
     }, []);

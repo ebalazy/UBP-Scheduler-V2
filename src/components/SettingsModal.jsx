@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
+import { useProcurement } from '../context/ProcurementContext';
 import { SunIcon, MoonIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 export default function SettingsModal({ onClose }) {
@@ -21,7 +22,29 @@ export default function SettingsModal({ onClose }) {
         deleteBottleDefinition
     } = useSettings();
 
+    const { poManifest } = useProcurement();
+
     const [newSkuName, setNewSkuName] = useState('');
+
+    const handleDeleteSku = (size) => {
+        // 1. Check for usage in POs
+        let usageCount = 0;
+        Object.values(poManifest).forEach(day => {
+            day.items?.forEach(order => {
+                if (order.sku === size) usageCount++;
+            });
+        });
+
+        if (usageCount > 0) {
+            alert(`Cannot delete "${size}".\nIt is currently used by ${usageCount} Active Purchase Orders.\n\nPlease delete or update those orders first.`);
+            return;
+        }
+
+        // 2. Confirm Delete
+        if (confirm(`Delete "${size}"?\nThis cannot be undone.`)) {
+            deleteBottleDefinition(size);
+        }
+    };
 
     const handleAddSku = () => {
         if (newSkuName.trim()) {
@@ -166,9 +189,7 @@ export default function SettingsModal({ onClose }) {
                                     <div className="flex justify-between items-center mb-3 border-b dark:border-gray-600 pb-2">
                                         <h4 className="font-bold text-md text-gray-800 dark:text-white">{size} Configuration</h4>
                                         <button
-                                            onClick={() => {
-                                                if (confirm(`Delete ${size}? This cannot be undone.`)) deleteBottleDefinition(size);
-                                            }}
+                                            onClick={() => handleDeleteSku(size)}
                                             className="text-red-400 hover:text-red-600 p-1"
                                             title="Delete Product"
                                         >

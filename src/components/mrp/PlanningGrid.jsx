@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { formatLocalDate } from '../../utils/dateUtils';
 
 import { useProcurement } from '../../context/ProcurementContext';
@@ -23,16 +23,19 @@ export default function PlanningGrid({
         setIsManagerOpen(true);
     };
 
-    // Generate Date Range
-    const dates = [];
-    const _d = new Date(startDate);
-    _d.setDate(_d.getDate() - 2); // Start 2 days back for context
-    const numDays = 45; // Show lots of days
+    // Generate Date Range (Memoized)
+    const dates = useMemo(() => {
+        const d = [];
+        const _d = new Date(startDate);
+        _d.setDate(_d.getDate() - 2); // Start 2 days back for context
+        const numDays = 45; // Show lots of days
 
-    for (let i = 0; i < numDays; i++) {
-        dates.push(new Date(_d));
-        _d.setDate(_d.getDate() + 1);
-    }
+        for (let i = 0; i < numDays; i++) {
+            d.push(new Date(_d));
+            _d.setDate(_d.getDate() + 1);
+        }
+        return d;
+    }, [startDate]);
 
     const todayStr = formatLocalDate(new Date());
 
