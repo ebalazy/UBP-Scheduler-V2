@@ -130,8 +130,21 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                     {/* Content */}
                     <div className="p-6 overflow-y-auto space-y-4">
                         {orders.length === 0 ? (
-                            <div className="text-center py-10 text-gray-400 italic bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                No deliveries scheduled for this day.
+                            <div className="text-center py-10 bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                                {monthlyInbound && Number(monthlyInbound[date] || 0) > 0 ? (
+                                    <div className="space-y-2">
+                                        <TruckIcon className="w-12 h-12 text-green-400 mx-auto opacity-50" />
+                                        <p className="text-lg font-bold text-gray-600 dark:text-gray-300">
+                                            {Number(monthlyInbound[date])} Planned Trucks
+                                        </p>
+                                        <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                                            These are calculated by Auto-Replenishment. <br />
+                                            Active POs have not been imported/created yet.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="text-gray-400 italic">No deliveries scheduled for this day.</div>
+                                )}
                             </div>
                         ) : (
                             orders.map((order, idx) => (

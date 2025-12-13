@@ -86,7 +86,7 @@ export default function PlanningGrid({
             <ScheduleManagerModal
                 isOpen={!!managerDate}
                 onClose={closeManager}
-                dateStr={managerDate}
+                date={managerDate}
                 existingItems={currentManifest}
                 onSave={async (item) => {
                     // Item: { po, qty, sku, supplier... }
