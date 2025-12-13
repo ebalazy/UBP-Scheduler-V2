@@ -399,7 +399,10 @@ export const useSupabaseSync = () => {
 
         const payload = { id: userId, ...cleanUpdates, updated_at: new Date().toISOString() };
         const { error } = await supabase.from('profiles').upsert(payload);
-        if (error) console.error("Error saving profile:", error);
+        if (error) {
+            console.error("Error saving profile:", error);
+            console.error("Failed Payload:", payload);
+        }
     };
 
     /**

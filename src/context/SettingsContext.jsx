@@ -263,7 +263,8 @@ export function SettingsProvider({ children }) {
                 ...dashboardLayout,
                 scheduler: schedulerSettings
             };
-            saveUserProfile(user.id, { dashboard_layout: merged });
+            // Temporarily disabled due to 400 Bad Request (Possible Schema Mismatch)
+            // saveUserProfile(user.id, { dashboard_layout: merged });
         }
     }, [dashboardLayout, schedulerSettings, user]);
 
