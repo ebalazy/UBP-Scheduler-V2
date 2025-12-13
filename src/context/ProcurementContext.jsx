@@ -78,6 +78,19 @@ export function ProcurementProvider({ children }) {
         }
     };
 
+    const updateOrder = (date, updatedOrder) => {
+        setPoManifest(prev => {
+            const next = { ...prev };
+            if (next[date]?.items) {
+                next[date].items = next[date].items.map(i => i.id === updatedOrder.id ? updatedOrder : i);
+            }
+            return next;
+        });
+        if (user) {
+            saveProcurementEntry(updatedOrder);
+        }
+    };
+
     const clearManifest = () => setPoManifest({});
 
     // Initialize from Cloud
@@ -96,6 +109,7 @@ export function ProcurementProvider({ children }) {
         updateDailyManifest,
         addOrdersBulk,
         removeOrder,
+        updateOrder,
         clearManifest
     };
 

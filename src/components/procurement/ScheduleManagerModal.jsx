@@ -14,38 +14,44 @@ import { useSettings } from '../../context/SettingsContext';
 import { addDays, formatLocalDate } from '../../utils/dateUtils';
 
 export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound }) {
-    const { updateDailyManifest, addOrdersBulk, removeOrder } = useProcurement();
+    const { updateDailyManifest, addOrdersBulk, removeOrder, updateOrder } = useProcurement();
     const { specs } = useSettings();
 
     // Edit State
-    const [editingId, setEditingId] = useState(null); // The ID of the order being edited
-    const [editForm, setEditForm] = useState({}); // Form data for the order being edited
+    const [editingId, setEditingId] = useState(null);
+    const [editForm, setEditForm] = useState({});
     const [moveTargetDate, setMoveTargetDate] = useState('');
-    const [movingId, setMovingId] = useState(null); // The ID of the order being moved
+    const [movingId, setMovingId] = useState(null);
+
+    // Helpers
+    const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
+    const getTruckCount = (qty) => (qty / bottlesPerTruck).toFixed(1);
+    const getTruckFloat = (qty) => Number(qty) / bottlesPerTruck;
+
+    // Recalculate Daily Total based on active orders
+    const syncTruckCount = (targetDate, newOrdersList) => {
+        if (!updateDateInbound) return;
+        const totalQty = newOrdersList.reduce((acc, o) => acc + Number(o.qty || 0), 0);
+        const totalTrucks = totalQty / bottlesPerTruck;
+        updateDateInbound(targetDate, totalTrucks);
+    };
 
     // Actions
     const handleDelete = (orderId) => {
         if (!confirm('Are you sure you want to cancel this order?')) return;
 
-        // 1. Remove from PO Manifest
-        // const newOrders = orders.filter(o => o.id !== orderId); // Old way
-        // updateDailyManifest(date, newOrders); // Old way
-        const order = orders.find(o => o.id === orderId);
-        removeOrder(date, orderId, order?.po);
+        const orderToDelete = orders.find(o => o.id === orderId);
+        removeOrder(date, orderId, orderToDelete?.po);
 
-        // 2. Sync: Decrement Truck Count
-        if (updateDateInbound && monthlyInbound) {
-            const currentCount = Number(monthlyInbound[date] || 0);
-            if (currentCount > 0) {
-                updateDateInbound(date, currentCount - 1);
-            }
-        }
+        // Recalculate remaining
+        const remaining = orders.filter(o => o.id !== orderId);
+        syncTruckCount(date, remaining);
     };
 
     const startMove = (orderId) => {
         setMovingId(orderId);
-        // Default to tomorrow?
-        setMoveTargetDate(formatLocalDate(addDays(new Date(date + 'T00:00:00'), 1))); // Default to tomorrow
+        const tomorrow = addDays(new Date(date + 'T00:00:00'), 1);
+        setMoveTargetDate(formatLocalDate(tomorrow));
     };
 
     const confirmMove = () => {
@@ -54,7 +60,7 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
         const orderToMove = orders.find(o => o.id === movingId);
         if (!orderToMove) return;
 
-        // Apply any pending edits if we are currently editing THIS order
+        // Apply edits if moving AND editing
         const finalOrder = (editingId === movingId)
             ? { ...orderToMove, ...editForm, date: moveTargetDate }
             : { ...orderToMove, date: moveTargetDate };
@@ -62,24 +68,23 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
         // 1. Add to New Date
         addOrdersBulk([finalOrder]);
 
-        // 2. Remove from Old Date
+        // 2. Remove from Old Date (Current)
         removeOrder(date, movingId, orderToMove.po);
 
-        // 3. Sync: Update Truck Counts
-        if (updateDateInbound && monthlyInbound) {
-            // Decrement Old
-            const oldCount = Number(monthlyInbound[date] || 0);
-            if (oldCount > 0) updateDateInbound(date, oldCount - 1);
+        // 3. Sync: Recalculate Source Date (Locally known)
+        const remaining = orders.filter(o => o.id !== movingId);
+        syncTruckCount(date, remaining);
 
-            // Increment New
-            const newCount = Number(monthlyInbound[moveTargetDate] || 0);
-            updateDateInbound(moveTargetDate, newCount + 1);
+        // 4. Sync: Increment Target Date (Delta update since we don't know full list)
+        if (updateDateInbound && monthlyInbound) {
+            const currentTargetTrucks = Number(monthlyInbound[moveTargetDate] || 0);
+            const addedTrucks = getTruckFloat(finalOrder.qty);
+            updateDateInbound(moveTargetDate, currentTargetTrucks + addedTrucks);
         }
 
         setMovingId(null);
         setMoveTargetDate('');
-        // onClose(); // Close to refresh view? Or just stay open? 
-        // Stay open to show updated list (item gone).
+        setEditingId(null);
     };
 
     const startEdit = (order) => {
@@ -88,14 +93,18 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
     };
 
     const saveEdit = () => {
-        const newOrders = orders.map(o => o.id === editingId ? { ...o, ...editForm } : o);
-        updateDailyManifest(date, newOrders);
+        if (!editingId) return;
+        const updatedOrder = { ...orders.find(o => o.id === editingId), ...editForm };
+
+        // Update Context & Cloud
+        updateOrder(date, updatedOrder);
+
+        // Recalculate Trucks for THIS day
+        const NewList = orders.map(o => o.id === editingId ? updatedOrder : o);
+        syncTruckCount(date, NewList);
+
         setEditingId(null);
     };
-
-    // Calculate Trucks (Generic heuristic if specs missing)
-    const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
-    const getTruckCount = (qty) => (qty / bottlesPerTruck).toFixed(1);
 
     return (
         <Dialog open={isOpen} onClose={onClose} className="relative z-50">
