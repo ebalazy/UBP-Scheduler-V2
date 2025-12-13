@@ -138,8 +138,8 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                     {editingId === order.id ? (
                                         // EDIT / MOVE MODE
                                         <div className="space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <div className="col-span-1">
                                                     <label className="text-xs font-bold text-gray-500">PO Number</label>
                                                     <input
                                                         type="text"
@@ -148,7 +148,7 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                         onChange={e => setEditForm(prev => ({ ...prev, po: e.target.value }))}
                                                     />
                                                 </div>
-                                                <div>
+                                                <div className="col-span-1">
                                                     <label className="text-xs font-bold text-gray-500">Supplier</label>
                                                     <input
                                                         type="text"
@@ -156,6 +156,20 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                         value={editForm.supplier || ''}
                                                         onChange={e => setEditForm(prev => ({ ...prev, supplier: e.target.value }))}
                                                     />
+                                                </div>
+                                                <div className="col-span-1">
+                                                    <label className="text-xs font-bold text-gray-500">Quantity</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="number"
+                                                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                            value={editForm.qty || 0}
+                                                            onChange={e => setEditForm(prev => ({ ...prev, qty: e.target.value }))}
+                                                        />
+                                                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                                                            = {getTruckCount(editForm.qty || 0)} Trucks
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
 
