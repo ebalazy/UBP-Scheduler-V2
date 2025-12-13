@@ -30,6 +30,7 @@ export function useMRPActions(state, calculationsResult) {
     // --- Actions ---
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const saveTimers = useRef({}); // Store active debounce timers
 
     // Wrapper for Save
     const saveWithStatus = async (fn) => {
@@ -45,12 +46,37 @@ export function useMRPActions(state, calculationsResult) {
         }
     };
 
+    // Debounce Helper
+    const scheduleSave = useCallback((key, fn, delay = 1000) => {
+        if (saveTimers.current[key]) {
+            clearTimeout(saveTimers.current[key]);
+        }
+        saveTimers.current[key] = setTimeout(() => {
+            saveWithStatus(fn);
+            delete saveTimers.current[key];
+        }, delay);
+    }, []);
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(saveTimers.current).forEach(clearTimeout);
+        };
+    }, []);
+
     const updateDateDemand = (date, value) => {
         const val = Number(value);
         const newDemand = { ...monthlyDemand, [date]: val };
         setMonthlyDemand(newDemand);
         saveLocalState('monthlyDemand', newDemand, selectedSize, true);
-        if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'demand_plan', val));
+
+        if (user) {
+            scheduleSave(
+                `demand-${date}`,
+                () => savePlanningEntry(user.id, selectedSize, date, 'demand_plan', val),
+                1000
+            );
+        }
     };
 
     const updateDateActual = (date, value) => {
@@ -60,7 +86,14 @@ export function useMRPActions(state, calculationsResult) {
         else newActuals[date] = val;
         setMonthlyProductionActuals(newActuals);
         saveLocalState('monthlyProductionActuals', newActuals, selectedSize, true);
-        if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'production_actual', val || 0));
+
+        if (user) {
+            scheduleSave(
+                `actual-${date}`,
+                () => savePlanningEntry(user.id, selectedSize, date, 'production_actual', val || 0),
+                1000
+            );
+        }
     };
 
     const updateDateInbound = (date, value) => {
@@ -68,7 +101,14 @@ export function useMRPActions(state, calculationsResult) {
         const newInbound = { ...monthlyInbound, [date]: val };
         setMonthlyInbound(newInbound);
         saveLocalState('monthlyInbound', newInbound, selectedSize, true);
-        if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', val));
+
+        if (user) {
+            scheduleSave(
+                `inbound-${date}`,
+                () => savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', val),
+                1000
+            );
+        }
     };
 
     // Auto-Replenish Logic (Reactive)
