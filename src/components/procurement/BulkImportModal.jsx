@@ -39,20 +39,88 @@ export default function BulkImportModal({ isOpen, onClose }) {
         }
     };
 
+    // Helper: Parse strange Excel dates like "12-Dec" or "Dec-12"
+    const parseFlexibleDate = (input) => {
+        if (!input) return null;
+        const str = input.trim();
+
+        // 1. Try standard YYYY-MM-DD
+        if (str.match(/^\d{4}-\d{2}-\d{2}$/)) return str;
+
+        // 2. Handle "12-Dec" (DD-MMM) or "Dec-12" (MMM-DD)
+        const parts = str.split(/[\-\s\/]/);
+        if (parts.length === 2 || parts.length === 3) {
+            // Check for Month Name
+            const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+            let day, month, year = new Date().getFullYear();
+
+            const p1 = parts[0].toLowerCase();
+            const p2 = parts[1].toLowerCase();
+            const p3 = parts[2] ? parts[2].toLowerCase() : null; // Year is rare in default excel 'dd-mmm'
+
+            if (months[p2] !== undefined) {
+                // "12-Dec" -> p1=12, p2=dec
+                day = parseInt(p1);
+                month = months[p2];
+            } else if (months[p1] !== undefined) {
+                // "Dec-12" -> p1=dec, p2=12
+                month = months[p1];
+                day = parseInt(p2);
+            }
+
+            if (day && month !== undefined) {
+                // Return YYYY-MM-DD
+                return new Date(year, month, day).toISOString().split('T')[0];
+            }
+        }
+
+        // Fallback: Let Browser Try
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+
+        return null;
+    };
+
+    const cleanPO = (val) => {
+        if (!val) return '';
+        // Fix Scientific Notation "4.1E+09" -> "4100000000"
+        if (val.match(/^\d+(\.\d+)?[eE]\+\d+$/)) {
+            return Number(val).toLocaleString('fullwide', { useGrouping: false });
+        }
+        return val;
+    };
+
     const handleImport = () => {
         const data = parseRaw(rawText);
+        let successCount = 0;
+
         // Convert to Objects
         const orders = data.map(row => {
-            // Flexible Date Parsing could go here. For now assume Standard formatting or handle simple transforms
+            const rawDate = row[mapping.date];
+            const parsedDate = parseFlexibleDate(rawDate);
+
+            if (!parsedDate) return null;
+
             return {
-                po: row[mapping.po],
-                date: row[mapping.date], // User must verify date format matches YYYY-MM-DD or we try to parse
+                po: cleanPO(row[mapping.po]),
+                date: parsedDate,
                 qty: row[mapping.qty] ? parseFloat(row[mapping.qty].replace(/,/g, '')) : 0,
                 supplier: row[mapping.supplier] || 'Unknown'
             };
-        }).filter(o => o.po && o.date); // Filter valid
+        }).filter(o => {
+            if (o && o.po && o.date) {
+                successCount++;
+                return true;
+            }
+            return false;
+        });
 
         addOrdersBulk(orders);
+
+        // Success Feedback could be a toast, but for now let's reuse a simple alert or console
+        // Better: Switch step to a "Success" view?
+        alert(`Successfully imported ${successCount} orders! Check the Planning Grid for blue badges.`);
+
         onClose();
         // Reset
         setRawText('');
