@@ -44,14 +44,14 @@ export function useMRPActions(state, calculationsResult) {
     const localSaveTimers = useRef({}); // LocalStorage save timers
 
     // Wrapper for Save
-    const saveWithStatus = async (fn) => {
+    const saveWithStatus = useCallback(async (fn) => {
         setSaveError(null);
         try { await fn(); }
         catch (e) {
             console.error("Save Error", e);
             setSaveError(e.message || "Save Failed");
         }
-    };
+    }, []);
 
     // Debounce Helper (Network)
     const scheduleSave = useCallback((key, fn, delay = 1000) => {
