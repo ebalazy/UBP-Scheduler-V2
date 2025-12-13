@@ -4,8 +4,9 @@
  * 
  * Logic:
  * 1. Start at Shift Start Time (e.g. 06:00).
- * 2. Calculate duration of each load: (Truck_Qty * Bottles_Per_Truck) / Production_Rate_CPH.
- * 3. Next arrival = Previous Arrival + Duration.
+ * 2. Calculate duration of each load based on Burn Rate (Bottles/Truck / CPH).
+ * 3. Schedule next arrival exactly when the previous one runs out.
+ * 4. Round the *Appointment Time* to the nearest hour for clean slots.
  */
 
 export const calculateJITSchedule = (orders, settings) => {
@@ -21,53 +22,53 @@ export const calculateJITSchedule = (orders, settings) => {
     const scheduledOrders = [];
 
     Object.entries(byDate).forEach(([date, dayOrders]) => {
-        // Sort? Assuming import order is sequence for now.
-        // Or we could sort by existing time if present? 
-        // For bulk import, we assume list order = arrival order preference.
+        // 1. Sort by PO Number Ascending (User Request: Sequential Order)
+        dayOrders.sort((a, b) => {
+            // Try numeric sort if possible (clean non-digits), else string
+            const poA = a.po ? String(a.po).replace(/\D/g, '') : '';
+            const poB = b.po ? String(b.po).replace(/\D/g, '') : '';
+            if (poA && poB) {
+                return Number(poA) - Number(poB);
+            }
+            return (a.po || '').localeCompare(b.po || '');
+        });
 
-        let currentTime = settings.schedulerSettings?.shiftStartTime || '06:00';
+        // 2. Initialize Start Time
+        let [startH, startM] = (settings.schedulerSettings?.shiftStartTime || '06:00').split(':').map(Number);
 
-        // Helper to add minutes to HH:mm
-        const addMinutes = (timeStr, minutes) => {
-            const [h, m] = timeStr.split(':').map(Number);
-            const date = new Date();
-            date.setHours(h, m, 0, 0);
-            date.setMinutes(date.getMinutes() + minutes);
-            return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        };
+        // Track EXACT consumption time (The "Running Clock")
+        let exactTime = new Date();
+        exactTime.setHours(startH, startM, 0, 0);
 
         dayOrders.forEach(order => {
-            // Determine SKU specs
-            const sku = order.sku || Object.keys(settings.bottleDefinitions)[0]; // Fallback to first if missing
+            const sku = order.sku || Object.keys(settings.bottleDefinitions)[0]; // Fallback
             const specs = settings.bottleDefinitions[sku];
 
-            if (!specs) {
-                // No specs, cannot calc. Keep original or default?
-                // Use original calculation if possible, else just keep current time.
-                scheduledOrders.push({ ...order, time: currentTime });
-                return;
+            // 3. Assign Current Slot (Rounded to Nearest Hour for the Appointment)
+            const bookingDate = new Date(exactTime);
+            if (bookingDate.getMinutes() >= 30) {
+                bookingDate.setHours(bookingDate.getHours() + 1);
             }
+            bookingDate.setMinutes(0);
 
-            // Calc Duration
-            // Qty = Trucks
-            // Bottles = Qty * bottlesPerTruck
-            // Duration Hours = Bottles / productionRate
-            const totalBottles = (order.qty || 1) * (specs.bottlesPerTruck || 20000);
-            const rate = specs.productionRate || 1000;
-            const durationHours = totalBottles / rate;
-            const durationMinutes = Math.round(durationHours * 60);
-
-            // Assign Time
-            const assignedTime = currentTime;
-
-            // Advance Time for NEXT order
-            currentTime = addMinutes(currentTime, durationMinutes);
+            const timeStr = bookingDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
             scheduledOrders.push({
                 ...order,
-                time: assignedTime,
-                _debug_duration: durationMinutes // Helpful for verification
+                time: timeStr
             });
+
+            if (!specs) return; // Cannot advance accurately without specs
+
+            // 4. Advance Exact Counter based on Burn Rate
+            // Duration = Total Bottles / Run Rate CPH
+            const totalBottles = (order.qty || 1) * (specs.bottlesPerTruck || 20000);
+            const rate = specs.productionRate || 1000;
+            const durationHours = totalBottles / rate;
+            const durationMinutes = durationHours * 60;
+
+            // Add burn time to the running clock
+            exactTime.setMinutes(exactTime.getMinutes() + durationMinutes);
         });
     });
 
