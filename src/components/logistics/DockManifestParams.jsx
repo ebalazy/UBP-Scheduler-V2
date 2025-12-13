@@ -133,7 +133,10 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                 <div key={i} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border-l-4 border-green-500 shadow-sm rounded-r-md">
                     <div>
                         <div className="flex items-center space-x-2">
-                            <span className="font-bold text-gray-900 dark:text-white text-lg">{item.carrier || "Unknown Carrier"}</span>
+                            {/* Prefer Carrier if assigned, else Supplier, else generic */}
+                            <span className="font-bold text-gray-900 dark:text-white text-lg">
+                                {item.carrier || item.supplier || "Pending Assignment"}
+                            </span>
                             {item.time && (
                                 <span className="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex items-center">
                                     <ClockIcon className="w-3 h-3 mr-1 text-gray-500" />
@@ -141,9 +144,17 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                                 </span>
                             )}
                         </div>
-                        <div className="flex items-center text-xs text-gray-500 mt-1">
-                            <QrCodeIcon className="w-3 h-3 mr-1" />
-                            <span className="font-mono">{item.po || "No PO"}</span>
+                        <div className="flex flex-col text-xs text-gray-500 mt-1">
+                            {/* Explicitly show PO and Supplier if available */}
+                            <div className="flex items-center">
+                                <QrCodeIcon className="w-3 h-3 mr-1" />
+                                <span className="font-mono text-gray-700 dark:text-gray-300 font-bold mr-2">
+                                    PO: {item.po || "N/A"}
+                                </span>
+                                {item.supplier && item.carrier && (
+                                    <span className="text-gray-400">({item.supplier})</span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
