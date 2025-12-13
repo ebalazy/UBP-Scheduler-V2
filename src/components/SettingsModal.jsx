@@ -210,4 +210,5 @@ export default function SettingsModal({ onClose }) {
     </div >
     );
 }
-// Verified Fix: Closing tags are correct.
+
+// Verified Fix: Closing tags are correct. (Retrigger)
