@@ -1,33 +1,52 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { formatLocalDate } from '../../utils/dateUtils';
+import React, { useState, useEffect } from 'react';
+import { getLocalISOString, formatLocalDate } from '../../utils/dateUtils';
+import { useSettings } from '../../context/SettingsContext';
+import ScheduleManagerModal from '../logistics/ScheduleManagerModal';
 
-import { useProcurement } from '../../context/ProcurementContext';
-import ScheduleManagerModal from '../procurement/ScheduleManagerModal';
+// Sub-components
+import PlanningHeader from './planning/PlanningHeader';
+import PlanningMobileCard from './planning/PlanningMobileCard';
+import PlanningRowDemand from './planning/PlanningRowDemand';
+import PlanningRowActual from './planning/PlanningRowActual';
+import PlanningRowInbound from './planning/PlanningRowInbound';
+import PlanningRowInventory from './planning/PlanningRowInventory';
+import PlanningRowCoverage from './planning/PlanningRowCoverage';
 
 export default function PlanningGrid({
-    monthlyDemand, updateDateDemand, updateDateDemandBulk,
-    monthlyInbound, updateDateInbound,
-    monthlyProductionActuals, updateDateActual,
-    specs, safetyTarget, dailyLedger
+    monthlyDemand,
+    monthlyProductionActuals,
+    monthlyInbound,
+    truckManifest, // Map: { date: [ { id, po, qty, ... } ] }
+    updateDateDemand,
+    updateDateDemandBulk,
+    updateDateActual,
+    updateDateInbound, // For manual qty overrides
+    saveProcurementEntry,
+    deleteProcurementEntry,
+    ledger,
+    specs,
+    userProfile
 }) {
-    // We display 35 days (5 weeks) from today or selected start date
+    const { bottleSizes } = useSettings();
+
+    // -- State --
     const [startDate, setStartDate] = useState(new Date());
-    const { poManifest } = useProcurement();
+    const [dates, setDates] = useState([]);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-    // Schedule Manager State
-    const [managerDate, setManagerDate] = useState(null); // '2023-10-25'
-    const [isManagerOpen, setIsManagerOpen] = useState(false);
+    // Modal State for PO Management
+    const [managerDate, setManagerDate] = useState(null);
 
-    const openManager = (dateStr) => {
-        setManagerDate(dateStr);
-        setIsManagerOpen(true);
-    };
+    // -- Effects --
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
-    // Generate Date Range (Memoized)
-    const dates = useMemo(() => {
+    useEffect(() => {
+        // Generate 14 days from start date
         const d = [];
-        const _d = new Date(startDate);
-        _d.setDate(_d.getDate() - 2); // Start 2 days back for context
         for (let i = 0; i < 14; i++) {
             const next = new Date(startDate);
             next.setDate(startDate.getDate() + i);
