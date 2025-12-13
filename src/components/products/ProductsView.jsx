@@ -27,7 +27,6 @@ export default function ProductsView() {
                 .select(`
                     *,
                     production_settings (
-                        id,
                         line_name,
                         production_rate
                     )
