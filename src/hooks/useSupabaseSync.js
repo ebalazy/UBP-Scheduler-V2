@@ -140,7 +140,7 @@ export const useSupabaseSync = () => {
 
         if (pErr || !product) return null;
 
-        const [entries, settings, snapshots] = await Promise.all([
+        const [entries, settings, snapshotsFloor, snapshotsYard] = await Promise.all([
             supabase
                 .from('planning_entries')
                 .select('date, entry_type, value, meta_json')
