@@ -62,8 +62,8 @@ export function useMRPState() {
     );
     const [incomingTrucks, setIncomingTrucks] = useState(() => user ? 0 : Number(loadLocalState('incomingTrucks', 0, selectedSize)));
     const [yardInventory, setYardInventory] = useState(() =>
-        user ? { count: 0, timestamp: null, fileName: null } :
-            loadLocalState('yardInventory', { count: 0, timestamp: null, fileName: null }, selectedSize, true)
+        user ? { count: 0, date: null, fileName: null } :
+            loadLocalState('yardInventory', { count: 0, date: null, fileName: null }, selectedSize, true)
     );
 
     const [isAutoReplenish, setIsAutoReplenish] = useState(() => user ? true : loadLocalState('isAutoReplenish', true, selectedSize, true));

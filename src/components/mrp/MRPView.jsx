@@ -11,10 +11,11 @@ import { useSettings } from '../../context/SettingsContext';
 import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
 import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { formatLocalDate } from '../../utils/dateUtils';
+import { formatLocalDate, getLocalISOString } from '../../utils/dateUtils';
 
 export default function MRPView({ state, setters, results }) {
     const { bottleSizes, leadTimeDays } = useSettings();
+    const [isEditingFloor, setIsEditingFloor] = useState(false);
     const [isEditingYard, setIsEditingYard] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
@@ -173,27 +174,50 @@ export default function MRPView({ state, setters, results }) {
 
                 <div className="space-y-3">
                     {/* Floor Inventory */}
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-100 dark:border-gray-600 flex justify-between items-center group relative">
-                        <div>
-                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Floor Stock</span>
-                            <div className="flex items-baseline space-x-1">
-                                <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                                    {Math.round(results.calculatedPallets || 0)}
-                                </span>
-                                <span className="text-xs text-gray-400">plts</span>
-                            </div>
-                            <div className="text-[10px] text-gray-400 mt-1">
-                                Effective: {formatLocalDate(state.inventoryAnchor?.date) || 'N/A'}
-                            </div>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-100 dark:border-gray-600">
+                        <div className="flex justify-between items-start">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Floor Stock</span>
+                            {!isEditingFloor && (
+                                <button onClick={() => setIsEditingFloor(true)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                    <PencilSquareIcon className="h-3 w-3" />
+                                </button>
+                            )}
                         </div>
-                        {/* Morning Reconciliation Trigger */}
-                        <button
-                            onClick={() => setIsReconcileOpen(true)}
-                            className="bg-white dark:bg-gray-800 hover:bg-gray-50 border border-gray-200 dark:border-gray-600 shadow-sm p-2 rounded-lg text-blue-600 dark:text-blue-400 text-xs font-bold transition-all"
-                            title="Perform Morning Count"
-                        >
-                            Update
-                        </button>
+                        {isEditingFloor ? (
+                            <div className="flex items-center space-x-1 mt-1">
+                                <input
+                                    type="number"
+                                    autoFocus
+                                    className="w-full text-sm p-1 rounded border-gray-300 focus:ring-2 focus:ring-gray-500"
+                                    defaultValue={Math.round(results.calculatedPallets || 0)}
+                                    onBlur={(e) => {
+                                        const val = Number(e.target.value);
+                                        setters.setInventoryAnchor({ date: getLocalISOString(), count: val });
+                                        setIsEditingFloor(false);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            const val = Number(e.currentTarget.value);
+                                            setters.setInventoryAnchor({ date: getLocalISOString(), count: val });
+                                            setIsEditingFloor(false);
+                                        }
+                                    }}
+                                    onFocus={(e) => e.target.select()}
+                                />
+                            </div>
+                        ) : (
+                            <div>
+                                <div className="flex items-baseline space-x-1">
+                                    <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                                        {Math.round(results.calculatedPallets || 0)}
+                                    </span>
+                                    <span className="text-xs text-gray-400">plts</span>
+                                </div>
+                                <div className="text-[10px] text-gray-400 mt-1">
+                                    Effective: {formatLocalDate(state.inventoryAnchor?.date) || 'N/A'}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Yard Inventory */}
@@ -293,6 +317,13 @@ export default function MRPView({ state, setters, results }) {
                         className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
                     >
                         Share Plan
+                    </button>
+
+                    <button
+                        onClick={() => setIsReconcileOpen(true)}
+                        className="flex items-center text-orange-600 dark:text-orange-400 hover:text-orange-800 bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
+                    >
+                        ☀️ Morning True-Up
                     </button>
 
                     <button
