@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getLocalISOString, formatLocalDate } from '../../utils/dateUtils';
 import { useSettings } from '../../context/SettingsContext';
-import ScheduleManagerModal from '../logistics/ScheduleManagerModal';
+import ScheduleManagerModal from '../procurement/ScheduleManagerModal';
 
 // Sub-components
 import PlanningHeader from './planning/PlanningHeader';
