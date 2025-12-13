@@ -191,7 +191,7 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                                 {new Date(order.date + 'T00:00:00').toLocaleDateString()}
                                             </td>
                                             <td className="p-4 text-sm text-gray-500 dark:text-gray-400 font-mono">
-                                                {order.time || '-'}
+                                                {formatTime12h(order.time) || '-'}
                                             </td>
                                             <td className="p-4 text-sm font-mono text-gray-600 dark:text-gray-300">
                                                 {order.po}

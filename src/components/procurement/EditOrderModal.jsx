@@ -149,8 +149,12 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                                 >
                                     <option value="">-- TBD --</option>
                                     {Array.from({ length: 24 }).map((_, i) => {
-                                        const t = `${String(i).padStart(2, '0')}:00`;
-                                        return <option key={t} value={t}>{t}</option>;
+                                        const val = `${String(i).padStart(2, '0')}:00`;
+                                        // Display AM/PM
+                                        const ampm = i >= 12 ? 'PM' : 'AM';
+                                        const h12 = i % 12 || 12;
+                                        const label = `${h12}:00 ${ampm}`;
+                                        return <option key={val} value={val}>{label}</option>;
                                     })}
                                 </select>
                             </div>

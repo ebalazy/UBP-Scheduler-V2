@@ -1,37 +1,21 @@
-/**
- * Returns the current date as a YYYY-MM-DD string in the Local Timezone.
- * This prevents UTC rollover issues (e.g. 8PM EST becoming Tomorrow) 
- * which breaks daily inventory buckets.
- */
 export const getLocalISOString = () => {
-    const d = new Date();
-    const offset = d.getTimezoneOffset() * 60000; // Offset in milliseconds
-    const localDate = new Date(d.getTime() - offset);
-    return localDate.toISOString().split('T')[0];
+    const tzOffset = new Date().getTimezoneOffset() * 60000;
+    return new Date(Date.now() - tzOffset).toISOString().split('T')[0];
 };
 
-/**
- * Returns a new YYYY-MM-DD string offset by N days from a given date string.
- * @param {string} dateStr - 'YYYY-MM-DD'
- * @param {number} daysOffset - Positive or negative integer
- */
-export const addDays = (dateStr, daysOffset) => {
-    const d = new Date(dateStr + 'T00:00:00'); // Valid ISO Construction
-    d.setDate(d.getDate() + daysOffset);
-    // Return formatted manually to ensure no UTC shifts
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+export const addDays = (dateStr, days) => {
+    const date = new Date(dateStr);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().split('T')[0];
 };
 
-/**
- * Formats a Date object to YYYY-MM-DD using Local Time.
- * @param {Date} date 
- */
-export const formatLocalDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+export const formatTime12h = (time24) => {
+    if (!time24) return '';
+    const [h, m] = time24.split(':').map(Number);
+    if (isNaN(h)) return time24; // Fallback
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    // Ensure minutes are 2 digits
+    const mStr = m !== undefined ? String(m).padStart(2, '0') : '00';
+    return `${h12}:${mStr} ${ampm}`;
 };
