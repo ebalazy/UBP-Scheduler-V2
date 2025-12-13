@@ -40,7 +40,7 @@ export default function BurnDownChart({ currentInventoryBottles, weeklyDemandBot
     return (
         <div className="w-full h-80 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
             <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Inventory Burn Down (14 Days)</h3>
-            <div style={{ width: '100%', height: 250, minWidth: 0 }}>
+            <div style={{ width: '100%', height: 250, minWidth: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                         data={data}
