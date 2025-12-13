@@ -47,9 +47,12 @@ export default function App() {
 }
 
 function AuthenticatedApp({ user }) {
-  const [activeTab, setActiveTab] = useState('logistics'); // Default to logistics for quick access, or keep 'mrp'? Maybe 'mrp' is better strategic default.
-  // Actually, let's keep 'mrp' default but add 'logistics' as option.
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'logistics');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
 
   const mrp = useMRP();
   const scheduler = useScheduler();
