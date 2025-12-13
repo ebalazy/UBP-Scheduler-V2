@@ -224,12 +224,14 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                 <div>
                                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
                                                         PO #{order.po}
-                                                        <span className="ml-2 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 text-xs rounded-full">
-                                                            {getTruckCount(order.qty)} Trucks
+                                                        <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-xs rounded-full font-bold">
+                                                            1 Truck
                                                         </span>
                                                     </h3>
-                                                    <p className="text-sm text-gray-500">{order.supplier}</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Qty: {Number(String(order.qty || 0).replace(/,/g, '')).toLocaleString()}</p>
+                                                    <p className="text-sm text-gray-500">{order.supplier || 'Unknown Supplier'}</p>
+                                                    {Number(order.qty) > 0 && (
+                                                        <p className="text-xs text-gray-400 mt-1">Qty: {Number(String(order.qty).replace(/,/g, '')).toLocaleString()}</p>
+                                                    )}
                                                 </div>
                                             </div>
 
