@@ -123,7 +123,9 @@ export function useMRPState() {
                         if (data.productionRate) updateBottleDefinition(selectedSize, 'productionRate', data.productionRate);
                         setDowntimeHours(data.downtimeHours);
                         setIsAutoReplenish(data.isAutoReplenish);
+                        setIsAutoReplenish(data.isAutoReplenish);
                         if (data.inventoryAnchor) setInventoryAnchor(data.inventoryAnchor);
+                        if (data.yardInventory) setYardInventory(data.yardInventory);
                     } else {
                         // No Cloud Data found. Attempting Migration...
                         const result = await migrateLocalStorage(user, bottleSizes);
@@ -138,6 +140,7 @@ export function useMRPState() {
                                 setDowntimeHours(retry.downtimeHours);
                                 setIsAutoReplenish(retry.isAutoReplenish);
                                 if (retry.inventoryAnchor) setInventoryAnchor(retry.inventoryAnchor);
+                                if (retry.yardInventory) setYardInventory(retry.yardInventory);
                             }
                         }
                     }
