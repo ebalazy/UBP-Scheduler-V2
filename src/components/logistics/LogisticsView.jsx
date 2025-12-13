@@ -338,7 +338,7 @@ export default function LogisticsView({ state, setters, results }) {
                                         onUpdate={(d, list) => {
                                             console.log("LogisticsView onUpdate Called", { d, listLength: list.length });
                                             try {
-                                                constspecs = results.specs;
+                                                const specs = results.specs;
                                                 const qtyPerTruck = specs?.bottlesPerTruck || 20000;
                                                 const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
 

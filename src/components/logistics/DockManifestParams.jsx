@@ -100,13 +100,13 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                                     onChange={e => handleChange(idx, 'time', e.target.value)}
                                 >
                                     <option value="" className="text-gray-500">TBD</option>
-                                    {Array.from({ length: 48 }).map((_, i) => {
-                                        const h = Math.floor(i / 2);
-                                        const m = (i % 2) * 30;
+                                    {Array.from({ length: 24 }).map((_, i) => {
+                                        const h = i;
+                                        const m = 0;
                                         const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                                         const ampm = h >= 12 ? 'PM' : 'AM';
                                         const h12 = h % 12 || 12;
-                                        const label = `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+                                        const label = `${h12}:00 ${ampm}`;
                                         return <option key={timeStr} value={timeStr} className="dark:bg-gray-800">{label}</option>
                                     })}
                                 </select>
