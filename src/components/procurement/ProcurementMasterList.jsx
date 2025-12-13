@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Dialog } from '@headlessui/react';
+import { Dialog, Menu } from '@headlessui/react';
 import {
     XMarkIcon,
     TrashIcon,
@@ -7,7 +7,8 @@ import {
     TableCellsIcon,
     PencilSquareIcon,
     PlusIcon,
-    TagIcon
+    TagIcon,
+    ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
