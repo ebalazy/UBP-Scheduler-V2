@@ -328,10 +328,24 @@ export default function MRPView({ state, setters, results }) {
                             const date = getLocalISOString();
                             const sku = state.selectedSize || "12oz";
                             // 1. Get Product ID
-                            const { data: prod } = await supabase.from('products').select('id').eq('name', sku).single();
-                            if (!prod) return alert("Product Not Found for " + sku);
+                            let { data: prod } = await supabase.from('products').select('id').eq('name', sku).maybeSingle();
 
-                            // 2. Write
+                            // 2. Create if Missing (Self-Healing)
+                            if (!prod) {
+                                const { data: newProd, error: createErr } = await supabase.from('products').insert({
+                                    name: sku,
+                                    user_id: user.id,
+                                    bottles_per_case: 12,
+                                    bottles_per_truck: 20000,
+                                    cases_per_pallet: 100
+                                }).select('id').single();
+
+                                if (createErr) return alert("Error Creating Product: " + createErr.message);
+                                prod = newProd;
+                                alert(`Created Missing Product: ${sku}`);
+                            }
+
+                            // 3. Write Snapshot
                             const val = 999;
                             const { error: wErr } = await supabase.from('inventory_snapshots').upsert({
                                 product_id: prod.id,
