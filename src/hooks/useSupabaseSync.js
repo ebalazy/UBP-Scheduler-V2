@@ -432,6 +432,7 @@ export const useSupabaseSync = () => {
         supplier: row.supplier,
         status: row.status,
         date: row.date,
+        time: row.delivery_time || '', // New: time
         carrier: row.carrier || ''  // Ensure exists
     });
 
@@ -444,6 +445,7 @@ export const useSupabaseSync = () => {
         carrier: order.carrier,
         status: order.status || 'planned',
         date: order.date,
+        delivery_time: order.time, // New: delivery_time
         user_id: userId
     });
 

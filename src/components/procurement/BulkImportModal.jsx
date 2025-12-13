@@ -2,9 +2,12 @@ import { useState, useMemo } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon, ArrowUpTrayIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
+import { useSettings } from '../../context/SettingsContext';
+import { calculateJITSchedule } from '../../utils/jitScheduler';
 
 export default function BulkImportModal({ isOpen, onClose }) {
     const { addOrdersBulk } = useProcurement();
+    const { bottleDefinitions, schedulerSettings } = useSettings();
     const [step, setStep] = useState(1); // 1: Paste, 2: Map, 3: Review
     const [rawText, setRawText] = useState('');
     const [parsedPreview, setParsedPreview] = useState([]);
@@ -112,11 +115,13 @@ export default function BulkImportModal({ isOpen, onClose }) {
             if (!parsedDate) return null;
 
             return {
+                id: crypto.randomUUID(),
                 po: cleanPO(row[mapping.po]),
                 date: parsedDate,
                 qty: cleanQty(row[mapping.qty]),
                 supplier: row[mapping.supplier] || 'Unknown',
-                sku: row[mapping.sku] || '' // Optional SKU
+                sku: row[mapping.sku] || mapping.defaultSku || '', // Optional SKU
+                status: 'planned'
             };
         }).filter(o => {
             if (o && o.po && o.date) {
@@ -126,7 +131,13 @@ export default function BulkImportModal({ isOpen, onClose }) {
             return false;
         });
 
-        addOrdersBulk(orders);
+        // Apply Smart Scheduling (JIT)
+        const scheduledOrders = calculateJITSchedule(orders, {
+            bottleDefinitions,
+            schedulerSettings
+        });
+
+        addOrdersBulk(scheduledOrders);
 
         // Success Feedback
         alert(`Successfully imported ${successCount} orders! Check the Planning Grid for blue badges.`);

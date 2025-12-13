@@ -160,6 +160,7 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                         />
                                     </th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Date</th>
+                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Time</th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">PO Number</th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">SKU</th>
                                     <th className="p-4 text-xs font-bold text-gray-500 uppercase border-b dark:border-gray-700">Supplier</th>
@@ -188,6 +189,9 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                             </td>
                                             <td className="p-4 text-sm font-medium text-gray-900 dark:text-white text-nowrap">
                                                 {new Date(order.date + 'T00:00:00').toLocaleDateString()}
+                                            </td>
+                                            <td className="p-4 text-sm text-gray-500 dark:text-gray-400 font-mono">
+                                                {order.time || '-'}
                                             </td>
                                             <td className="p-4 text-sm font-mono text-gray-600 dark:text-gray-300">
                                                 {order.po}

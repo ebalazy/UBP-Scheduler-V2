@@ -28,6 +28,7 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                 setFormData({
                     po: order.po,
                     date: date || order.date, // 'date' prop overrides order.date? Usually they match.
+                    time: order.time || '',
                     qty: order.qty,
                     supplier: order.supplier,
                     carrier: order.carrier || '',
@@ -38,6 +39,7 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                 setFormData({
                     po: '',
                     date: date || new Date().toISOString().split('T')[0],
+                    time: '',
                     qty: '',
                     supplier: '',
                     carrier: '',
@@ -58,6 +60,7 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
             id: order?.id || crypto.randomUUID(), // Preserve ID if editing
             po: formData.po,
             date: formData.date,
+            time: formData.time,
             qty: Number(formData.qty),
             supplier: formData.supplier || 'Unknown',
             carrier: formData.carrier,
@@ -108,16 +111,27 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                             />
                         </div>
 
-                        {/* Date (Reschedule) */}
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Delivery Date</label>
-                            <div className="relative">
-                                <CalendarIcon className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
+                        {/* Date & Time */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Delivery Date</label>
+                                <div className="relative">
+                                    <CalendarIcon className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="date"
+                                        className="w-full pl-8 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        value={formData.date}
+                                        onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Time</label>
                                 <input
-                                    type="date"
-                                    className="w-full pl-8 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    value={formData.date}
-                                    onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                    type="time"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    value={formData.time}
+                                    onChange={e => setFormData({ ...formData, time: e.target.value })}
                                 />
                             </div>
                         </div>
