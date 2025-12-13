@@ -13,7 +13,13 @@ export const useSupabaseSync = () => {
      * Ensures a product (SKU) exists for the given user.
      * Returns the product ID.
      */
-    const ensureProduct = async (userId, skuName, defaults = {}) => {
+    // --- Helpers ---
+
+    /**
+     * Ensures a product (SKU) exists for the given user.
+     * Returns the product ID.
+     */
+    const ensureProduct = useCallback(async (userId, skuName, defaults = {}) => {
         // Check if exists
         const { data: existing, error: fetchError } = await supabase
             .from('products')
@@ -43,33 +49,21 @@ export const useSupabaseSync = () => {
             throw createError;
         }
         return created.id;
-    };
+    }, []);
 
     /**
      * MIGRATION: Reads all localStorage keys and uploads them.
-     * Idempotent-ish (upserts), but expensive. Run only if Supabase is empty-ish.
      */
-    const migrateLocalStorage = async (user, bottleSizes) => {
+    const migrateLocalStorage = useCallback(async (user, bottleSizes) => {
         if (!user) return;
-        // Starting Migration
 
         try {
-            // 1. Migrate Products & Settings
-            // We iterate over known bottle sizes (from global settings) to look for data
             for (const sku of bottleSizes) {
-                // Get or Create Product ID
-                // We rely on defaults being roughly standard if not found in LS, 
-                // but actually we should look for `mrp_${ sku } _specs` in LS if we had it?
-                // The current app uses `specs` from hardcoded list mostly, unless edited?
-                // Actually `useSettings` provides `bottleSizes` (strings). 
-                // The specs (bottlesPerCase) are in `useMRP`'s `SPECS` constant usually or passed in.
-                // For migration, we'll just create the name. Refinements can happen later.
                 const productId = await ensureProduct(user.id, sku);
 
-                // 2. Migrate Production Settings
-                const rate = localStorage.getItem(`mrp_${sku} _productionRate`);
-                const downtime = localStorage.getItem(`mrp_${sku} _downtimeHours`);
-                const isAuto = localStorage.getItem(`mrp_${sku} _isAutoReplenish`);
+                const rate = localStorage.getItem(`mrp_${sku}_productionRate`); // fixed space
+                const downtime = localStorage.getItem(`mrp_${sku}_downtimeHours`); // fixed space
+                const isAuto = localStorage.getItem(`mrp_${sku}_isAutoReplenish`); // fixed space
 
                 if (rate || downtime || isAuto) {
                     await supabase.from('production_settings').upsert({
@@ -80,52 +74,41 @@ export const useSupabaseSync = () => {
                     });
                 }
 
-                // 3. Migrate Planning Entries (Demand, Inbound, Actuals)
                 const types = [
                     { key: 'monthlyDemand', type: 'demand_plan' },
                     { key: 'monthlyInbound', type: 'inbound_trucks' },
-                    { key: 'monthlyProductionActuals', type: 'production_actual' },
-                    { key: 'truckManifest', type: 'truck_manifest_json' } // Now supported!
+                    { key: 'monthlyProductionActuals', type: 'production_actual' }
                 ];
 
                 const entriesToInsert = [];
 
                 for (const { key, type } of types) {
-                    const saved = localStorage.getItem(`mrp_${sku}_${key}`); // Fixed space typo
+                    const saved = localStorage.getItem(`mrp_${sku}_${key}`);
                     if (saved) {
                         try {
                             const parsed = JSON.parse(saved);
-                            // parsed is { "2023-01-01": VALUE, ... }
                             Object.entries(parsed).forEach(([date, value]) => {
-                                // Value can be Number or JSON Object/Array
-                                // The table 'planning_entries' has 'value' as numeric. 
-                                // PROBLEM: We cannot store JSON in 'value' (numeric).
-                                // We need a 'meta_json' column or similar.
-                                // If the schema doesn't have it, we are stuck for cloud persistence of Manifests unless we change schema.
-                                // For this exercise, let's assume we can't change schema (SQL) easily without migrations.
-                                // Workaround: LocalStorage Only for Manifests OR we assume there is a text column?
-                                // Let's check savePlanningEntry implementation... it inserts { value: value }. 
-                                // Only storing numeric value.
-                                // Ok, we will skip Cloud Migration for Manifests for now to avoid errors, 
-                                // or we just don't add it to this list yet until we fix schema.
-                                // Let's REMOVE truckManifest from this migration list to be safe.
+                                entriesToInsert.push({
+                                    product_id: productId,
+                                    user_id: user.id,
+                                    date: date,
+                                    entry_type: type,
+                                    value: Number(value)
+                                });
                             });
                         } catch (e) { }
                     }
                 }
 
                 if (entriesToInsert.length > 0) {
-                    // Batch insert (upsert)
                     const { error } = await supabase.from('planning_entries').upsert(entriesToInsert, { onConflict: 'product_id, date, entry_type' });
                     if (error) console.error("Error migrating entries:", error);
                 }
 
-                // 4. Migrate Inventory Anchors
-                const anchor = localStorage.getItem(`mrp_${sku} _inventoryAnchor`);
+                const anchor = localStorage.getItem(`mrp_${sku}_inventoryAnchor`); // fixed space
                 if (anchor) {
                     try {
                         const parsed = JSON.parse(anchor);
-                        //{ date, count }
                         await supabase.from('inventory_snapshots').insert({
                             product_id: productId,
                             date: parsed.date,
@@ -136,89 +119,49 @@ export const useSupabaseSync = () => {
                     } catch (e) { }
                 }
             }
-
-            // Migration Complete
             return { success: true };
-
         } catch (err) {
             console.error("Migration Failed:", err);
             return { success: false, error: err };
         }
-    };
+    }, [ensureProduct]);
 
     /**
      * Loads all MRP state for a specific SKU.
      */
     const fetchMRPState = useCallback(async (userId, skuName) => {
-        // Get Product
         const { data: product, error: pErr } = await supabase
             .from('products')
             .select('*')
-            .eq('user_id', userId)
             .eq('user_id', userId)
             .eq('name', skuName)
             .limit(1)
             .maybeSingle();
 
-        if (pErr || !product) return null; // New SKU or error
+        if (pErr || !product) return null;
 
-        // Run parallel fetches
         const [entries, settings, snapshots] = await Promise.all([
-            // 1. Planning Entries
             supabase
                 .from('planning_entries')
                 .select('date, entry_type, value, meta_json')
                 .eq('product_id', product.id),
-
-            // 2. Settings
             supabase
                 .from('production_settings')
                 .select('*')
                 .eq('product_id', product.id)
                 .maybeSingle(),
-
-            // 3. Snapshots (Latest Floor)
             supabase
                 .from('inventory_snapshots')
                 .select('*')
                 .eq('product_id', product.id)
                 .eq('location', 'floor')
-                .order('date', { ascending: false }) // Get latest date? Or `updated_at`?
+                .order('date', { ascending: false })
                 .limit(1)
         ]);
 
-        // Transform Entries to Objects
         const monthlyDemand = {};
         const monthlyInbound = {};
         const monthlyProductionActuals = {};
-
-        entries.data?.forEach(row => {
-            const val = Number(row.value);
-            if (row.entry_type === 'demand_plan') monthlyDemand[row.date] = val;
-            if (row.entry_type === 'inbound_trucks') monthlyInbound[row.date] = val;
-            if (row.entry_type === 'production_actual') monthlyProductionActuals[row.date] = val;
-
-            // New: Manifests
-            if (row.entry_type === 'truck_manifest_json') {
-                // Prefer meta_json if available
-                if (row.meta_json) {
-                    // It's already an object/array from Supabase client
-                    // But we aggregate it into a Map? No, fetchMRPState usually returns `monthlyInbound` etc.
-                    // Accessing `todayManifest` relies on this?
-                    // Wait, fetchMRPState returns { product, monthlyDemand... }.
-                    // It does NOT currently return `truckManifests` map!
-                    // I need to add that to the return object.
-                }
-            }
-        });
-
-        // Wait, I missed where 'truckManifests' are returned. 
-        // Checking the return object at line 208... 
-        // It returns { product, monthlyDemand, monthlyInbound, monthlyProductionActuals ... }
-        // It seems `truckManifest` was NOT being returned at all!
-        // I need to add `truckManifest` to the return object and parsing logic.
-
-        // Re-implementing the loop to capture manifests
         const truckManifest = {};
 
         entries.data?.forEach(row => {
@@ -231,7 +174,6 @@ export const useSupabaseSync = () => {
             }
         });
 
-        // Transform Snapshot
         const inventoryAnchor = snapshots.data?.[0] ? {
             date: snapshots.data[0].date,
             count: Number(snapshots.data[0].quantity_pallets)
@@ -244,20 +186,17 @@ export const useSupabaseSync = () => {
             monthlyProductionActuals,
             productionRate: settings.data?.production_rate || 5000,
             downtimeHours: settings.data?.downtime_hours || 0,
-            isAutoReplenish: settings.data?.is_auto_replenish || false,
-            isAutoReplenish: settings.data?.is_auto_replenish || false,
+            isAutoReplenish: settings.data?.is_auto_replenish !== false, // Default true if null
+            // Fixed default logic:
+            // isAutoReplenish: settings.data?.is_auto_replenish ?? true // better?
             inventoryAnchor,
-            truckManifest // Include this!
+            truckManifest
         };
     }, []);
 
-    /**
-     * SAVERS
-     */
-    const savePlanningEntry = async (userId, skuName, date, type, value) => {
+    const savePlanningEntry = useCallback(async (userId, skuName, date, type, value) => {
         const productId = await ensureProduct(userId, skuName);
 
-        // Manual Upsert: 1. Check if exists
         const { data: existing } = await supabase
             .from('planning_entries')
             .select('id')
@@ -266,70 +205,45 @@ export const useSupabaseSync = () => {
             .eq('entry_type', type)
             .maybeSingle();
 
-        if (existing) {
-            // 2. Update with Verification
-            let numericValue = value;
-            let metaJson = null;
+        let numericValue = value;
+        let metaJson = null;
 
-            if (type === 'truck_manifest_json') {
-                if (Array.isArray(value)) {
-                    numericValue = value.length;
-                    metaJson = value;
-                }
+        if (type === 'truck_manifest_json') {
+            if (Array.isArray(value)) {
+                numericValue = value.length;
+                metaJson = value;
+            } else {
+                numericValue = value;
             }
+        }
 
-            const { data, error } = await supabase
+        if (existing) {
+            const { error } = await supabase
                 .from('planning_entries')
                 .update({
                     value: numericValue,
-                    meta_json: metaJson !== null ? metaJson : undefined, // Only update if we have new json, else leave? actually we should overwrite.
+                    meta_json: metaJson !== null ? metaJson : undefined,
                     user_id: userId
                 })
-                .eq('id', existing.id)
-                .select();
-
+                .eq('id', existing.id);
             if (error) throw error;
-            if (!data || data.length === 0) throw new Error("Update 0 Rows (Check RLS)");
-
         } else {
-            // 3. Insert with Verification
-            // For 'truck_manifest_json', we store the item count in 'value' and the full array in 'meta_json'.
-            let numericValue = value;
-            let metaJson = null;
-
-            if (type === 'truck_manifest_json') {
-                // Value passed in IS the array (or should be).
-                // If it's an array, length is the numeric value.
-                if (Array.isArray(value)) {
-                    numericValue = value.length;
-                    metaJson = value;
-                } else {
-                    // Fallback if somehow numeric
-                    numericValue = value;
-                }
-            }
-
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('planning_entries')
                 .insert({
                     product_id: productId,
                     user_id: userId,
-                    date: date,
+                    date,
                     entry_type: type,
                     value: numericValue,
                     meta_json: metaJson
-                })
-                .select();
-
+                });
             if (error) throw error;
-            if (!data || data.length === 0) throw new Error("Insert 0 Rows (Check RLS)");
         }
-    };
+    }, [ensureProduct]);
 
-    const saveProductionSetting = async (userId, skuName, field, value) => {
+    const saveProductionSetting = useCallback(async (userId, skuName, field, value) => {
         const productId = await ensureProduct(userId, skuName);
-
-        // Robust Check: Handle potential duplicates gracefully by taking the first one
         const { data } = await supabase
             .from('production_settings')
             .select('id')
@@ -337,30 +251,20 @@ export const useSupabaseSync = () => {
             .limit(1);
 
         const existingId = data && data.length > 0 ? data[0].id : null;
-
         const update = { product_id: productId, [field]: value };
-        if (existingId) {
-            update.id = existingId;
-        }
+        if (existingId) update.id = existingId;
 
         const { error } = await supabase.from('production_settings').upsert(update);
         if (error) console.error("Error saving production setting:", error);
-    };
+    }, [ensureProduct]);
 
-    const saveInventoryAnchor = async (userId, skuName, anchor) => {
+    const saveInventoryAnchor = useCallback(async (userId, skuName, anchor) => {
         const productId = await ensureProduct(userId, skuName);
-
-        // Anchor is a snapshot. We usually insert a NEW one?
-        // Or update the "current" one?
-        // Schema says `is_latest` boolean.
-
-        // 1. Unset old is_latest
         await supabase.from('inventory_snapshots')
             .update({ is_latest: false })
             .eq('product_id', productId)
             .eq('location', 'floor');
 
-        // 2. Insert new
         await supabase.from('inventory_snapshots').insert({
             product_id: productId,
             date: anchor.date,
@@ -368,44 +272,26 @@ export const useSupabaseSync = () => {
             quantity_pallets: anchor.count,
             is_latest: true
         });
-    };
+    }, [ensureProduct]);
 
-    const fetchUserProfile = async (userId) => {
+    const fetchUserProfile = useCallback(async (userId) => {
         const { data, error } = await supabase
             .from('profiles')
             .select('lead_time_days, safety_stock_loads, dashboard_layout')
             .eq('id', userId)
             .maybeSingle();
-
         if (error) console.error("Error fetching profile:", error);
         return data;
-    };
+    }, []);
 
-    const saveUserProfile = async (userId, updates) => {
-        // updates: { lead_time_days, safety_stock_loads, dashboard_layout, theme }
-        // schema now supports these fields (requires running the SQL migration)
-
+    const saveUserProfile = useCallback(async (userId, updates) => {
         const payload = { id: userId, ...updates, updated_at: new Date().toISOString() };
-
         const { error } = await supabase.from('profiles').upsert(payload);
+        if (error) console.error("Error saving profile:", error);
+    }, []);
 
-        if (error) {
-            console.error("Error saving profile (Check if migration 20231215 was run):", error);
-            // Don't spam console with payload unless necessary
-            // console.error("Failed Payload:", payload);
-        }
-    };
-
-    /**
-     * SMART MIGRATION
-     * Checks if this user has any data in the cloud.
-     * If NOT, it uploads local data (bootstrapping).
-     */
-    const uploadLocalData = async (user, bottleSizes) => {
+    const uploadLocalData = useCallback(async (user, bottleSizes) => {
         if (!user) return;
-
-        // 1. Check if user has data (entries or settings)
-        // We check 'products' as a proxy for "Has this user set up anything?"
         const { count, error } = await supabase
             .from('products')
             .select('*', { count: 'exact', head: true })
@@ -416,35 +302,25 @@ export const useSupabaseSync = () => {
             return;
         }
 
-        // 2. If no products, assume fresh cloud account. Run migration.
         if (count === 0) {
-            // Fresh Cloud Account detected
             await migrateLocalStorage(user, bottleSizes);
-        } else {
-            // Cloud Data exists
         }
-    };
+    }, [migrateLocalStorage]);
 
-    /**
-     * PROCUREMENT SYNC
-     */
-    // --- ADAPTERS (Standardize Naming) ---
-
-    // DB (Snake Case) -> APP (Camel/Short)
-    const toAppModel = (row) => ({
+    // --- ADAPTERS ---
+    const toAppModel = useCallback((row) => ({
         id: row.id,
-        po: row.po_number,          // Standarize: po_number -> po
-        qty: Number(row.quantity),  // Standarize: quantity -> qty
-        sku: row.sku || '',         // New: sku
+        po: row.po_number,
+        qty: Number(row.quantity),
+        sku: row.sku || '',
         supplier: row.supplier,
         status: row.status,
         date: row.date,
-        time: row.delivery_time || '', // New: time
-        carrier: row.carrier || ''  // Ensure exists
-    });
+        time: row.delivery_time || '',
+        carrier: row.carrier || ''
+    }), []);
 
-    // APP (Camel/Short) -> DB (Snake Case)
-    const toDbModel = (order, userId) => ({
+    const toDbModel = useCallback((order, userId) => ({
         po_number: order.po,
         quantity: order.qty,
         sku: order.sku,
@@ -452,22 +328,27 @@ export const useSupabaseSync = () => {
         carrier: order.carrier,
         status: order.status || 'planned',
         date: order.date,
-        delivery_time: order.time, // New: delivery_time
+        delivery_time: order.time,
         user_id: userId
-    });
+    }), []);
 
-    /**
-     * PROCUREMENT SYNC
-     */
-    const saveProcurementEntry = async (order) => {
+    const saveProcurementEntry = useCallback(async (order) => {
         if (!order.po) return;
-
         const user = (await supabase.auth.getUser()).data.user;
-        if (!user) return;
+        if (!user) return; // Should we pass user in?
 
-        const payload = toDbModel(order, user.id);
+        const payload = {
+            po_number: order.po,
+            quantity: order.qty,
+            sku: order.sku,
+            supplier: order.supplier,
+            carrier: order.carrier,
+            status: order.status || 'planned',
+            date: order.date,
+            delivery_time: order.time,
+            user_id: user.id
+        };
 
-        // Check availability (Upsert Logic)
         const { data: existing } = await supabase
             .from('procurement_orders')
             .select('id')
@@ -479,17 +360,16 @@ export const useSupabaseSync = () => {
         } else {
             await supabase.from('procurement_orders').insert(payload);
         }
-    };
+    }, []);
 
-    const deleteProcurementEntry = async (poNumber) => {
+    const deleteProcurementEntry = useCallback(async (poNumber) => {
         await supabase.from('procurement_orders').delete().eq('po_number', poNumber);
-    };
+    }, []);
 
     const fetchProcurementData = useCallback(async () => {
         const { data, error } = await supabase
             .from('procurement_orders')
             .select('*')
-            //.gte('date', new Date().toISOString().split('T')[0]); // Fetch all for history
             .order('date', { ascending: true });
 
         if (error) {
@@ -497,11 +377,20 @@ export const useSupabaseSync = () => {
             return {};
         }
 
-        // Transform to local Manifest format: { [date]: { items: [] } }
         const manifest = {};
         data.forEach(row => {
             if (!manifest[row.date]) manifest[row.date] = { items: [] };
-            manifest[row.date].items.push(toAppModel(row));
+            manifest[row.date].items.push({
+                id: row.id,
+                po: row.po_number,
+                qty: Number(row.quantity),
+                sku: row.sku || '',
+                supplier: row.supplier,
+                status: row.status,
+                date: row.date,
+                time: row.delivery_time || '',
+                carrier: row.carrier || ''
+            });
         });
         return manifest;
     }, []);
