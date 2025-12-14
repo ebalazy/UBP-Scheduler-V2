@@ -20,7 +20,7 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
         return list;
     }, [poManifest]);
 
-    const futureOrders = allOrders.filter(o => new Date(o.date) >= new Date().setHours(0, 0, 0, 0));
+    const futureOrders = useMemo(() => allOrders.filter(o => new Date(o.date) >= new Date().setHours(0, 0, 0, 0)), [allOrders]);
 
     // Selection State
     const [selectedIds, setSelectedIds] = useState(new Set());
