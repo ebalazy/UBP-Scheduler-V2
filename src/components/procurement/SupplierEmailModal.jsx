@@ -7,44 +7,85 @@ import { formatLocalDate } from '../../utils/dateUtils';
 export default function SupplierEmailModal({ isOpen, onClose }) {
     const { poManifest } = useProcurement();
     const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
-    const [emailTemplate, setEmailTemplate] = useState('standard'); // standard, urgent
+    const [emailTemplate, setEmailTemplate] = useState('new'); // new, add, cancel
 
-    // Default to 'Next Week'
-    useMemo(() => {
-        if (!isOpen) return;
-        const today = new Date();
-        const nextWeek = new Date(today);
-        nextWeek.setDate(today.getDate() + 7);
-        // setSelectedDateRange... (actually let's just show all future POs by default or simple filter)
-    }, [isOpen]);
+    // --- SMART TEMPLATES ---
+    const emailTemplates = {
+        new: {
+            subject: (count, dateRange) => `New Orders for Approval`,
+            body: (orders) => `Hello Team,
 
-    // Flatten Manifest to List
-    const allOrders = useMemo(() => {
-        const list = [];
-        Object.entries(poManifest).sort().forEach(([date, data]) => {
-            data.items.forEach(item => {
-                list.push({ ...item, date });
-            });
-        });
-        return list;
-    }, [poManifest]);
+Please confirm the following NEW orders:
 
-    const futureOrders = allOrders.filter(o => new Date(o.date) >= new Date().setHours(0, 0, 0, 0));
+${orders}
 
-    // Selection State
-    const [selectedIds, setSelectedIds] = useState(new Set());
+Please configure delivery appointments for each.
 
-    const toggleWrapper = (id) => {
-        const next = new Set(selectedIds);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        setSelectedIds(next);
+Thanks,
+Planner`
+        },
+        add: {
+            subject: (count, dateRange) => `URGENT: ADD to Schedule (Week of ${dateRange.start})`,
+            body: (orders) => `Hello Team,
+
+Please ADD the following loads to our existing schedule:
+
+${orders}
+
+This is an addition to the already confirmed plan.
+
+Thanks,
+Planner`
+        },
+        cancel: {
+            subject: (count, dateRange) => `URGENT: CANCELLATION REQUEST - ${count} Orders`,
+            body: (orders) => `Hello Team,
+
+Please CANCEL the following purchase orders immediately:
+
+${orders}
+
+Please confirm cancellation.
+
+Thanks,
+Planner`
+        }
     };
 
-    const toggleAll = () => {
-        if (selectedIds.size === futureOrders.length) setSelectedIds(new Set());
-        else setSelectedIds(new Set(futureOrders.map(o => o.po + o.date))); // composite key fallback
-    };
+    // --- AUTO-DETECT TEMPLATE ---
+    useEffect(() => {
+        if (selectedIds.size === 0) return;
+
+        const selectedList = futureOrders.filter(o => selectedIds.has(o.po + o.date));
+
+        // 1. Detection: Cancellation
+        // If ANY selected order has status 'cancelled', assume cancellation mode.
+        const hasCancelled = selectedList.some(o => o.status === 'cancelled');
+        if (hasCancelled) {
+            setEmailTemplate('cancel');
+            return;
+        }
+
+        // 2. Detection: Add vs New
+        // If there are already CONFIRMED orders in this same week that are NOT in the current selection,
+        // then this is likely an ADDITION to an existing plan.
+        const selectedDates = new Set(selectedList.map(o => o.date));
+        // Find weeks involved... simplified to just check if "other confirmed" exist nearby.
+        // Let's check if there are confirmed orders on the same dates that are NOT selected.
+        const hasExistingConfirmedOnSameDates = allOrders.some(o =>
+            selectedDates.has(o.date) &&
+            !selectedIds.has(o.po + o.date) &&
+            o.status === 'confirmed'
+        );
+
+        if (hasExistingConfirmedOnSameDates) {
+            setEmailTemplate('add');
+        } else {
+            setEmailTemplate('new');
+        }
+
+    }, [selectedIds, futureOrders, allOrders]);
+
 
     // Generate Email Body
     const generateBody = () => {
@@ -52,24 +93,26 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
         if (selected.length === 0) return '';
 
         const lines = selected.map(o => {
-            return `- PO #${o.po}: Deliver on ${o.date} (${o.qty} units)`;
+            const prefix = o.status === 'cancelled' ? '[CANCEL] ' : '';
+            return `- ${prefix}PO #${o.po}: ${o.date} (${Number(o.qty).toLocaleString()} units)`;
         }).join('\n');
 
-        return `Hello Team,
+        const template = emailTemplates[emailTemplate] || emailTemplates.new;
+        return template.body(lines);
+    };
 
-Please confirm the following orders:
-
-${lines}
-
-Please confirm delivery times for each.
-
-Thanks,
-Planner`;
+    const getSubject = () => {
+        const selected = futureOrders.filter(o => selectedIds.has(o.po + o.date));
+        const template = emailTemplates[emailTemplate] || emailTemplates.new;
+        // Calculate dynamic range string... for now simplified
+        return template.subject(selected.length, { start: selected[0]?.date || '...' });
     };
 
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(generateBody());
-        // Show toast?
+        const text = `Subject: ${getSubject()}\n\n${generateBody()}`;
+        navigator.clipboard.writeText(text);
+        // Show status could be added here
+        alert("Email copied to clipboard!");
     };
 
     return (
@@ -87,6 +130,25 @@ Planner`;
                         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                             <XMarkIcon className="w-6 h-6" />
                         </button>
+                    </div>
+
+                    {/* Template Selector */}
+                    <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center gap-4">
+                        <span className="text-xs font-bold text-gray-500 uppercase">Email Type:</span>
+                        <div className="flex gap-2">
+                            {['new', 'add', 'cancel'].map(t => (
+                                <button
+                                    key={t}
+                                    onClick={() => setEmailTemplate(t)}
+                                    className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-colors ${emailTemplate === t
+                                            ? 'bg-blue-600 text-white shadow-sm'
+                                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {t === 'new' ? 'New Orders' : t === 'add' ? 'Add to Schedule' : 'Cancellation'}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="flex flex-1 overflow-hidden">

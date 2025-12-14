@@ -210,6 +210,12 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                                     >
                                                         Mark as Ordered
                                                     </button>
+                                                    <button
+                                                        onClick={() => handleBulkSetStatus('cancelled')}
+                                                        className="w-full text-left px-2 py-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded text-sm text-red-600 dark:text-red-400 font-bold"
+                                                    >
+                                                        Mark for Cancellation
+                                                    </button>
 
                                                     <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                                                     <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Set properties</div>
