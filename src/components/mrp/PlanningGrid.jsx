@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getLocalISOString, formatLocalDate } from '../../utils/dateUtils';
+import { getLocalISOString, formatLocalDate, addDays } from '../../utils/dateUtils';
 import { useSettings } from '../../context/SettingsContext';
 import { useProcurement } from '../../context/ProcurementContext';
 import ScheduleManagerModal from '../procurement/ScheduleManagerModal';
+import { ClipboardDocumentListIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 // Sub-components
 import PlanningHeader from './planning/PlanningHeader';
@@ -157,28 +158,100 @@ export default function PlanningGrid({
         return acc;
     }, {});
 
+    const { schedulerSettings } = useSettings();
+    const [copied, setCopied] = useState(false);
+
+    const handleExportMonth = () => {
+        // Start from Today (or StartDate? Usually "Next 30 Days" from Today is most useful for planning)
+        const baseDate = new Date();
+        let text = `Monthly Replenishment Plan - Generated ${new Date().toLocaleDateString()}\n`;
+        text += `--------------------------------------------------\n\n`;
+
+        let hasData = false;
+        const rate = specs?.productionRate || 0;
+        const capacity = specs?.casesPerTruck || ((specs?.bottlesPerTruck || 20000) / (specs?.bottlesPerCase || 1));
+        const [startH, startM] = (schedulerSettings?.shiftStartTime || '00:00').split(':').map(Number);
+        const startDecimal = startH + (startM / 60);
+
+        for (let i = 0; i < 30; i++) {
+            const d = addDays(baseDate, i);
+            const dateStr = formatLocalDate(d);
+            const count = Math.round(Number(monthlyInbound[dateStr] || 0));
+
+            if (count > 0) {
+                hasData = true;
+                text += `DATE: ${d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric', year: 'numeric' })}\n`;
+                text += `TRUCKS: ${count}\n`;
+
+                // Details
+                if (rate > 0) {
+                    const hoursPerTruck = capacity / rate;
+                    for (let truckIdx = 0; truckIdx < count; truckIdx++) {
+                        const arrivalDecimal = startDecimal + (truckIdx * hoursPerTruck);
+                        const roundedH = Math.round(arrivalDecimal % 24) % 24;
+                        const period = roundedH >= 12 ? 'PM' : 'AM';
+                        const displayH = roundedH % 12 || 12;
+
+                        text += `  - Load #${truckIdx + 1}: Est. ${displayH}:00 ${period}\n`;
+                    }
+                }
+                text += `\n`;
+            }
+        }
+
+        if (!hasData) text += "No planned replenishment needs for the next 30 days.\n";
+
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     return (
         <div className="overflow-x-auto pb-4 relative">
             {/* Header Controls */}
-            <div className="sticky left-0 flex gap-2 mb-2 p-2 bg-white dark:bg-gray-900 z-20 w-fit">
-                <button
-                    onClick={() => shiftDate(-7)}
-                    className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                >
-                    &lt;&lt; Prev Week
-                </button>
-                <button
-                    onClick={resetDate}
-                    className="px-3 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold rounded"
-                >
-                    Today
-                </button>
-                <button
-                    onClick={() => shiftDate(7)}
-                    className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                >
-                    Next Week &gt;&gt;
-                </button>
+            <div className="sticky left-0 flex justify-between mb-2 p-2 bg-white dark:bg-gray-900 z-20 min-w-full">
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => shiftDate(-7)}
+                        className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                    >
+                        &lt;&lt; Prev Week
+                    </button>
+                    <button
+                        onClick={resetDate}
+                        className="px-3 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold rounded"
+                    >
+                        Today
+                    </button>
+                    <button
+                        onClick={() => shiftDate(7)}
+                        className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                    >
+                        Next Week &gt;&gt;
+                    </button>
+                </div>
+
+                <div className="pr-4">
+                    <button
+                        onClick={handleExportMonth}
+                        className={`flex items-center px-4 py-1 text-xs font-bold rounded border transition-all ${copied
+                                ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                                : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
+                            }`}
+                    >
+                        {copied ? (
+                            <>
+                                <CheckCircleIcon className="w-4 h-4 mr-1.5" />
+                                Copied Full Month!
+                            </>
+                        ) : (
+                            <>
+                                <ClipboardDocumentListIcon className="w-4 h-4 mr-1.5" />
+                                Export 30-Day Plan
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
 
             <table className="w-full border-collapse text-sm">
