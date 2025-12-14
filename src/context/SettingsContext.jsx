@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { useSupabaseSync } from '../hooks/useSupabaseSync';
 
