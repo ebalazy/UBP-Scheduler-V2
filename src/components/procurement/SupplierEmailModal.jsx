@@ -47,6 +47,15 @@ export default function SupplierEmailModal({ isOpen, onClose, mrpResults }) {
     }, [isOpen, results?.trucksToCancel]); // Re-run when calculation completes
     const [selectedIds, setSelectedIds] = useState(new Set());
 
+    // --- CLEANUP ON CLOSE ---
+    useEffect(() => {
+        if (!isOpen) {
+            setSelectedIds(new Set());
+            // Reset ignores
+            ignoreAutoDetect.current = false;
+        }
+    }, [isOpen]);
+
     const toggleWrapper = (id) => {
         const next = new Set(selectedIds);
         if (next.has(id)) next.delete(id);
