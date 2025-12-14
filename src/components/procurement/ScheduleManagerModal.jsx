@@ -14,6 +14,7 @@ import {
 import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
 import { addDays, formatLocalDate, formatTime12h } from '../../utils/dateUtils';
+import { calculateDeliveryTime } from '../../utils/schedulerUtils';
 
 export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound, specs }) {
     const { updateDailyManifest, addOrdersBulk, removeOrder, updateOrder } = useProcurement();
@@ -44,40 +45,19 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
     const getTruckCount = (qty) => "1.0"; // Always 1 truck
     const getTruckFloat = (qty) => 1.0;
 
-    // --- ESTIMATION LOGIC ---
+    // --- ESTIMATION LOGIC (Shared with Import) ---
     const getEstimatedTime = (index) => {
         if (!schedulerSettings || !specs) return 'TBD';
 
-        const rate = specs.productionRate || 0; // Cases per Hour
-        const capacity = specs.casesPerTruck || (specs.bottlesPerTruck / specs.bottlesPerCase);
+        const time24 = calculateDeliveryTime(
+            index,
+            schedulerSettings.shiftStartTime,
+            specs.bottlesPerTruck,
+            specs.productionRate,
+            specs.bottlesPerCase
+        );
 
-        if (!rate || rate <= 0) return 'TBD (Set Rate)';
-
-        const hoursPerTruck = capacity / rate;
-
-        // Parse Start Time
-        const [startH, startM] = (schedulerSettings.shiftStartTime || '00:00').split(':').map(Number);
-        const startDecimal = startH + (startM / 60);
-
-        // Calc Arrival: Start + (Index * Interval)
-        // Index is 0-based for calculation purposes? 
-        // Scheduler usually assumes Truck 1 arrives AT Start Time? Or after 1 interval?
-        // Let's assume Truck 1 arrives *after* producing 1 truck worth? Or Just-In-Time?
-        // Usually JIT means it arrives *before* needed.
-        // Let's stick to Scheduler View logic: 
-        // Scheduler: validArrival = currentHour + (hoursPerTruck * i)
-        // So Truck 1 (Index 0) arrives at Start Time.
-
-        const arrivalDecimal = startDecimal + (index * hoursPerTruck);
-        const normalized = arrivalDecimal % 24;
-
-        const roundedH = Math.round(normalized) % 24;
-
-        const period = roundedH >= 12 ? 'PM' : 'AM';
-        const displayH = roundedH % 12 || 12;
-        const displayM = '00';
-
-        return `${displayH}:${displayM} ${period}`;
+        return time24 ? formatTime12h(time24) : 'TBD';
     };
 
     // Recalculate Daily Total based on active orders

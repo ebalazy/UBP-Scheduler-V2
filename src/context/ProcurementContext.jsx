@@ -4,9 +4,13 @@ import { useSupabaseSync } from '../hooks/useSupabaseSync';
 
 const ProcurementContext = createContext();
 
+import { useSettings } from './SettingsContext';
+import { calculateDeliveryTime } from '../utils/schedulerUtils';
+
 export function ProcurementProvider({ children }) {
     const { user } = useAuth();
     const { fetchProcurementData, saveProcurementEntry, deleteProcurementEntry } = useSupabaseSync();
+    const { bottleDefinitions, schedulerSettings, activeSku } = useSettings();
 
     // State: Manifest of POs keyed by Date (YYYY-MM-DD)
     // Structure: { "2023-12-15": { items: [ { id, po, qty, supplier, status } ] } }
@@ -47,21 +51,66 @@ export function ProcurementProvider({ children }) {
         // orders = [{ date, po, qty, ... }]
         setPoManifest(prev => {
             const next = { ...prev };
-            orders.forEach(order => {
-                // Ensure ID exists
-                if (!order.id) {
-                    order.id = crypto.randomUUID();
-                }
-                const date = order.date;
+
+            // Group new orders by Date to handle indexing correctly
+            const ordersByDate = orders.reduce((acc, order) => {
+                if (!acc[order.date]) acc[order.date] = [];
+                acc[order.date].push(order);
+                return acc;
+            }, {});
+
+            Object.entries(ordersByDate).forEach(([date, dayOrders]) => {
                 const existingItems = next[date]?.items || [];
-                next[date] = {
-                    items: [...existingItems, order]
-                };
-                // Sync to Cloud
-                if (user) {
-                    saveProcurementEntry(order);
-                }
+                let startIndex = existingItems.length;
+
+                dayOrders.forEach((order, i) => {
+                    // Ensure ID exists
+                    if (!order.id) order.id = crypto.randomUUID();
+
+                    // --- Auto-Schedule Logic ---
+                    // Only apply if time is NOT already set (don't overwrite manual imports)
+                    if (!order.time) {
+                        const sku = order.sku || activeSku; // Fallback to activeSku if order missing it? Or just use what we have.
+                        // Wait, if order.sku is missing, we might not find definition.
+                        // Assuming 'activeSku' from context might be relevant context for the *current view*, but bulk import might be mixed.
+                        // Let's try order.sku first.
+                        const def = bottleDefinitions[sku];
+
+                        // Default Scheduling Params
+                        const start = schedulerSettings?.shiftStartTime || '00:00';
+                        // Use def if available, else defaults? 
+                        // If no def, we can't really calculate duration properly. 
+                        // We could default to '00:00' or '' if we can't calculate.
+
+                        if (def && def.productionRate > 0) {
+                            const bottlesPerTruck = def.bottlesPerTruck || 20000;
+                            const rate = def.productionRate; // CPH or BPH?
+                            const bpc = def.bottlesPerCase || 1;
+
+                            // Calculate
+                            // Index = existing + i
+                            order.time = calculateDeliveryTime(startIndex + i, start, bottlesPerTruck, rate, bpc);
+                        }
+                    }
+
+                    // Append
+                    if (!next[date]) next[date] = { items: [] };
+                    next[date].items.push(order);
+                });
             });
+
+            // Trigger Side-Effect Cloud Sync (Must be done outside strictly pure reducer? 
+            // Hooks logic usually allows side effects in generic functions, but setState callback should be pure-ish.
+            // However, we need 'next' state to be accurate. 
+            // Ideally we do this in a useEffect or after setState, but we don't have 'next' there easily.
+            // We'll iterate the ORIGINAL 'orders' input which we mutated (order.time was added to object ref).
+            // Yes, dayOrders.forEach mutated the order objects in the 'orders' array.
+            if (user) {
+                orders.forEach(order => {
+                    saveProcurementEntry(order).catch(err => console.error("Cloud Sync Error", err));
+                });
+            }
+
             return next;
         });
     };
