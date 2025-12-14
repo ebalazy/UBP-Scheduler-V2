@@ -6,9 +6,10 @@ import { formatLocalDate } from '../../utils/dateUtils';
 import { useMRP } from '../../hooks/useMRP';
 import { useSettings } from '../../context/SettingsContext';
 
-export default function SupplierEmailModal({ isOpen, onClose }) {
+export default function SupplierEmailModal({ isOpen, onClose, mrpResults }) {
     const { poManifest } = useProcurement();
-    const { results } = useMRP(poManifest);
+    const { results: hookResults } = useMRP(poManifest);
+    const results = mrpResults || hookResults;
     const { activeSku } = useSettings();
     const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
     const [emailTemplate, setEmailTemplate] = useState('new'); // new, add, cancel

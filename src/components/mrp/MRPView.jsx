@@ -546,6 +546,7 @@ export default function MRPView({ state, setters, results }) {
             <SupplierEmailModal
                 isOpen={isEmailOpen}
                 onClose={() => setIsEmailOpen(false)}
+                mrpResults={results}
             />
 
             <YMSExportModal
