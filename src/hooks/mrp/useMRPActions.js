@@ -160,18 +160,7 @@ export function useMRPActions(state, calculationsResult) {
 
         // Final Safety Check
         const sortObj = o => Object.keys(o).sort().reduce((acc, k) => ({ ...acc, [k]: o[k] }), {});
-        const oldStr = JSON.stringify(sortObj(inboundMap));
-        const newStr = JSON.stringify(sortObj(newInbound));
-
-        if (oldStr === newStr) {
-            // console.warn("No Changes Detected (Bailout)");
-            return;
-        }
-
-        console.warn("CHANGE DETECTED in Auto-Replenish! DIFF:",
-            "\nOLD:", oldStr,
-            "\nNEW:", newStr
-        );
+        if (JSON.stringify(sortObj(newInbound)) === JSON.stringify(sortObj(inboundMap))) return;
 
         // Apply
         setMonthlyInbound(newInbound);
