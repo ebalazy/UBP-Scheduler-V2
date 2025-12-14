@@ -26,7 +26,7 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
 
     // --- AUTO-SUGGEST CANCELLATION ---
     useEffect(() => {
-        if (isOpen && results.trucksToCancel > 0 && selectedIds.size === 0) {
+        if (isOpen && results?.trucksToCancel > 0 && selectedIds.size === 0) {
             // Find candidates: Confirmed orders, furthest out first (LIFOish for supply chain)
             const candidates = futureOrders
                 .filter(o => o.status === 'confirmed')
@@ -40,7 +40,7 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
                 setEmailTemplate('cancel');
             }
         }
-    }, [isOpen, results.trucksToCancel]); // Re-run when calculation completes
+    }, [isOpen, results?.trucksToCancel]); // Re-run when calculation completes
     const [selectedIds, setSelectedIds] = useState(new Set());
 
     const toggleWrapper = (id) => {
