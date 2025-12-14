@@ -29,7 +29,12 @@ export function useMRPCalculations(state, poManifest = {}) {
             if (date >= today) {
                 const actual = monthlyProductionActuals[date];
                 const plan = monthlyDemand[date];
-                const val = (actual !== undefined && actual !== null) ? Number(actual) : Number(plan);
+
+                // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
+                const isFuture = date > today;
+                const useActual = (actual !== undefined && actual !== null) && (!isFuture || Number(actual) !== 0);
+
+                const val = useActual ? Number(actual) : Number(plan);
                 return acc + (val || 0);
             }
             return acc;
@@ -125,7 +130,12 @@ export function useMRPCalculations(state, poManifest = {}) {
 
             const actual = monthlyProductionActuals[dateStr];
             const plan = monthlyDemand[dateStr];
-            const dailyCases = (actual !== undefined && actual !== null) ? Number(actual) : Number(plan || 0);
+
+            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
+            const isFuture = dateStr > todayStr;
+            const useActual = (actual !== undefined && actual !== null) && (!isFuture || Number(actual) !== 0);
+
+            const dailyCases = useActual ? Number(actual) : Number(plan || 0);
 
             const dailyDemand = dailyCases * specs.bottlesPerCase * scrapFactor;
 
