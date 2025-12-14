@@ -156,7 +156,8 @@ export function useMRPState() {
             };
             loadCloud();
         }
-    }, [selectedSize, user?.id, refreshTrigger, updateBottleDefinition, fetchMRPState, migrateLocalStorage, bottleSizes]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedSize, user?.id]); // STRICT DEPENDENCIES PREVENT JITTER
 
     return {
         selectedSize, setSelectedSize,
