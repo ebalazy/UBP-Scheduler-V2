@@ -122,6 +122,17 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
         setSelectedIds(new Set());
     };
 
+    const handleBulkSetStatus = (status) => {
+        if (!confirm(`Update status to "${status.toUpperCase()}" for ${selectedIds.size} orders?`)) return;
+
+        const ordersToUpdate = allOrders
+            .filter(o => selectedIds.has(o.id))
+            .map(o => ({ ...o, status }));
+
+        bulkUpdateOrders(ordersToUpdate);
+        setSelectedIds(new Set());
+    };
+
     return (
         <Dialog open={isOpen} onClose={onClose} className="relative z-50">
             <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
@@ -186,6 +197,21 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                             {/* Visual Box */}
                                             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                                                 <div className="p-2">
+                                                    <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Set Status</div>
+                                                    <button
+                                                        onClick={() => handleBulkSetStatus('confirmed')}
+                                                        className="w-full text-left px-2 py-2 hover:bg-green-50 dark:hover:bg-green-900/30 rounded text-sm text-green-700 dark:text-green-400 font-bold"
+                                                    >
+                                                        Mark as Confirmed
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleBulkSetStatus('ordered')}
+                                                        className="w-full text-left px-2 py-2 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded text-sm text-yellow-700 dark:text-yellow-400"
+                                                    >
+                                                        Mark as Ordered
+                                                    </button>
+
+                                                    <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                                                     <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Set properties</div>
                                                     <button
                                                         onClick={() => {
