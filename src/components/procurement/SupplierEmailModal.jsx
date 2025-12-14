@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon, EnvelopeIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
@@ -141,8 +141,8 @@ Planner`
                                     key={t}
                                     onClick={() => setEmailTemplate(t)}
                                     className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-colors ${emailTemplate === t
-                                            ? 'bg-blue-600 text-white shadow-sm'
-                                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50'
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50'
                                         }`}
                                 >
                                     {t === 'new' ? 'New Orders' : t === 'add' ? 'Add to Schedule' : 'Cancellation'}
