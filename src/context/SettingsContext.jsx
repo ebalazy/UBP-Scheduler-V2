@@ -271,7 +271,7 @@ export function SettingsProvider({ children }) {
     }, [dashboardLayout, schedulerSettings, user]);
 
 
-    const updateBottleDefinition = (size, field, value) => {
+    const updateBottleDefinition = useCallback((size, field, value) => {
         setBottleDefinitions(prev => {
             const val = Number(value);
             const safeVal = !isNaN(val) && val >= 0 ? val : 0;
@@ -283,23 +283,23 @@ export function SettingsProvider({ children }) {
                 }
             };
         });
-    };
+    }, []);
 
-    const updateCsvMapping = (field, value) => {
+    const updateCsvMapping = useCallback((field, value) => {
         setCsvMapping(prev => ({
             ...prev,
             [field]: value
         }));
-    };
+    }, []);
 
-    const updateSchedulerSetting = (field, value) => {
+    const updateSchedulerSetting = useCallback((field, value) => {
         setSchedulerSettings(prev => ({
             ...prev,
             [field]: value
         }));
-    };
+    }, []);
 
-    const addBottleDefinition = (name) => {
+    const addBottleDefinition = useCallback((name) => {
         if (!name) return;
         setBottleDefinitions(prev => {
             if (prev[name]) return prev;
@@ -309,24 +309,24 @@ export function SettingsProvider({ children }) {
                 [name]: { ...DEFAULTS.bottleDefinitions['20oz'] }
             };
         });
-    };
+    }, []);
 
-    const deleteBottleDefinition = (name) => {
+    const deleteBottleDefinition = useCallback((name) => {
         setBottleDefinitions(prev => {
             const copy = { ...prev };
             delete copy[name];
             return copy;
         });
-    };
+    }, []);
 
-    const resetDefaults = () => {
+    const resetDefaults = useCallback(() => {
         setBottleDefinitions(DEFAULTS.bottleDefinitions);
         setSafetyStockLoads(DEFAULTS.safetyStockLoads);
         setLeadTimeDays(DEFAULTS.leadTimeDays || 2);
         setCsvMapping(DEFAULTS.csvMapping);
         setDashboardLayout(DEFAULTS.dashboardLayout);
         setSchedulerSettings({ targetDailyProduction: 0, shiftStartTime: '00:00', poAssignments: {}, cancelledLoads: [] });
-    };
+    }, []);
 
     // Stable Bottle Sizes (derived from constant)
     const staticBottleSizes = Object.keys(DEFAULTS.bottleDefinitions);
