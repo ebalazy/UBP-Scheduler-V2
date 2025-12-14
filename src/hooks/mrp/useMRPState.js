@@ -44,7 +44,7 @@ export function useMRPState() {
     // For anon users, we initialize directly from LocalStorage.
 
     const init = (key, defaultVal, parse = false) => {
-        if (user) return defaultVal; // Return default (empty) if user exists, wait for fetch
+        // if (user) return defaultVal; // Return default (empty) if user exists, wait for fetch
         return loadLocalState(key, defaultVal, selectedSize, parse);
     };
 
