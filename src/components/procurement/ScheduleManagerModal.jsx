@@ -25,6 +25,19 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
     const [moveTargetDate, setMoveTargetDate] = useState('');
     const [movingId, setMovingId] = useState(null);
 
+    // Sorted Orders (Time Ascending, TBD last)
+    const sortedOrders = [...orders].sort((a, b) => {
+        // Treat 00:00 as No Time for sorting purposes if desired, 
+        // or just strict string sort?
+        // User complained about "12am" appearing, implying it's a default/invalid time.
+        // Let's treat falsy OR "00:00" as TBD.
+        const getVal = (o) => {
+            if (!o.time || o.time === '00:00') return 'ZZZZ'; // End of list
+            return o.time;
+        };
+        return getVal(a).localeCompare(getVal(b));
+    });
+
     // Helpers
     // Business Rule: 1 PO = 1 Truck (Always)
     const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
@@ -248,7 +261,7 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                 )}
                             </>
                         ) : (
-                            orders.map((order, idx) => (
+                            sortedOrders.map((order, idx) => (
                                 <div key={order.id || idx} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-sm p-4 relative group hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                                     {editingId === order.id ? (
                                         // EDIT / MOVE MODE
@@ -355,7 +368,7 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                 </div>
                                                 <div>
                                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
-                                                        <span className="font-mono">{order.time ? formatTime12h(order.time) : 'TBD'}</span>
+                                                        <span className="font-mono">{(order.time && order.time !== '00:00') ? formatTime12h(order.time) : 'TBD'}</span>
                                                         <span className="mx-2 text-gray-300">|</span>
                                                         PO #{order.po}
                                                         {order.loadId && (
