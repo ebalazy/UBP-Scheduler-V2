@@ -97,13 +97,19 @@ export function useMRPCalculations(state, poManifest = {}) {
         const diffTime = todayDate - anchorDate;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+        // Anchor Loop Logic Update
+        // Ensure todayStr is available (already defined above at line 54)
         if (diffDays > 0 && diffDays < 365) {
             for (let i = 0; i < diffDays; i++) {
                 const ds = addDays(inventoryAnchor.date, i);
 
                 const actual = monthlyProductionActuals[ds];
                 const plan = monthlyDemand[ds];
-                const dDemandCases = (actual !== undefined && actual !== null) ? Number(actual) : Number(plan || 0);
+
+                // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0
+                const isFuture = ds > todayStr;
+                const useActual = (actual !== undefined && actual !== null) && (!isFuture || Number(actual) !== 0);
+                const dDemandCases = useActual ? Number(actual) : Number(plan || 0);
 
                 // Use Unified Truck Count
                 const dInboundTrucks = getDailyTrucks(ds);
@@ -125,6 +131,8 @@ export function useMRPCalculations(state, poManifest = {}) {
         let firstStockoutDate = null;
         let firstOverflowDate = null;
 
+        console.warn(`[Ledger] StartBal:${currentBalance} Today:${todayStr} Anchor:${inventoryAnchor.date}`);
+
         for (let i = 0; i < 30; i++) {
             const dateStr = addDays(getLocalISOString(), i);
 
@@ -144,6 +152,10 @@ export function useMRPCalculations(state, poManifest = {}) {
             const dailySupply = dailyTrucks * specs.bottlesPerTruck;
 
             currentBalance = currentBalance + dailySupply - dailyDemand;
+
+            if (i < 5) {
+                console.warn(`[Ledger i=${i}] Date:${dateStr} Plan:${plan} Act:${actual} UseActual:${useActual} Cases:${dailyCases} Dem:${dailyDemand} Bal:${currentBalance}`);
+            }
 
             dailyLedger.push({
                 date: dateStr,
