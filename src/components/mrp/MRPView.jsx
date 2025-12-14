@@ -112,13 +112,16 @@ export default function MRPView({ state, setters, results }) {
                 {/* KPI 3: REPLENISHMENT */}
                 <div className={`p-5 rounded-xl border flex flex-col justify-between shadow-sm transition-all ${displayTrucks > 0
                     ? 'bg-blue-600 border-blue-700 text-white'
-                    : (runwayStatus === 'CRITICAL' ? 'bg-red-50 border-red-200' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')
+                    : results.trucksToCancel > 0
+                        ? 'bg-orange-100 border-orange-200 text-orange-900 dark:bg-orange-900/40 dark:border-orange-800 dark:text-orange-200'
+                        : (runwayStatus === 'CRITICAL' ? 'bg-red-50 border-red-200' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')
                     }`}>
                     <div className="flex justify-between items-center mb-2">
                         <h3 className={`text-xs font-bold uppercase tracking-wider ${displayTrucks > 0 ? 'text-blue-100' : 'text-gray-400'}`}>
                             Replenishment
                         </h3>
                         {displayTrucks > 0 && <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>}
+                        {results.trucksToCancel > 0 && !displayTrucks && <span className="text-xl">📉</span>}
                     </div>
 
                     {displayTrucks > 0 ? (
@@ -129,6 +132,16 @@ export default function MRPView({ state, setters, results }) {
                             </div>
                             <p className="text-xs opacity-80 mt-2 font-medium">
                                 {state.isAutoReplenish ? 'Planned orders due today.' : 'Deficit based on target.'}
+                            </p>
+                        </div>
+                    ) : results.trucksToCancel > 0 ? (
+                        <div>
+                            <div className="flex items-baseline space-x-2">
+                                <span className="text-4xl font-black leading-none">{results.trucksToCancel}</span>
+                                <span className="text-sm font-bold opacity-90">Cancel Trucks</span>
+                            </div>
+                            <p className="text-xs opacity-80 mt-2 font-medium">
+                                Excess inventory confirmed.
                             </p>
                         </div>
                     ) : (
