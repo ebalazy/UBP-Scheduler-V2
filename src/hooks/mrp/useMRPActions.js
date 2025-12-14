@@ -155,6 +155,8 @@ export function useMRPActions(state, calculationsResult) {
 
         const todayStr = getLocalISOString();
 
+        console.log(`[AutoReplenish] Today:${todayStr} LeadTime:${leadTimeDays} Offset:${startOffset} Safety:${localSafetyTarget} Bal:${runningBalance} Auto:${isAutoReplenish}`);
+
         // 1. Simulator: Walk through locked period
         for (let i = 0; i < startOffset; i++) {
             const ds = addDays(todayStr, i);
@@ -187,11 +189,15 @@ export function useMRPActions(state, calculationsResult) {
             let dTrucks = 0;
             let bal = runningBalance - dDem;
 
+            if (i < 5) {
+                console.log(`[Planner i=${i}] Date:${ds} Plan:${plan} Act:${act} Count:${caseCount} Dem:${dDem} Bal:${bal} Target:${localSafetyTarget}`);
+            }
+
             if (bal < localSafetyTarget) {
                 const needed = Math.ceil((localSafetyTarget - bal) / specs.bottlesPerTruck);
                 dTrucks = needed;
                 bal += needed * specs.bottlesPerTruck;
-                if (i < 5) console.log(`  -> ORDERING ${dTrucks} trucks. NewBal:${bal}`);
+                if (i < 5) console.log(`   -> ORDER ${dTrucks} trucks. NewBal:${bal}`);
             }
             // Only set if non-zero to keep map clean, or explicitly set 0 if it was previously set?
             // To ensure stability, we should reflect the calculated state.
