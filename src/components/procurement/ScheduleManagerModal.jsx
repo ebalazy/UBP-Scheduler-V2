@@ -8,7 +8,8 @@ import {
     PencilSquareIcon,
     ArrowRightCircleIcon,
     CheckCircleIcon,
-    ClockIcon
+    ClockIcon,
+    ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -57,13 +58,11 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
         const arrivalDecimal = startDecimal + (index * hoursPerTruck);
         const normalized = arrivalDecimal % 24;
 
-        const h = Math.floor(normalized);
-        const m = Math.round((normalized - h) * 60);
+        const roundedH = Math.round(normalized) % 24;
 
-        // Format
-        const period = h >= 12 ? 'PM' : 'AM';
-        const displayH = h % 12 || 12;
-        const displayM = m.toString().padStart(2, '0');
+        const period = roundedH >= 12 ? 'PM' : 'AM';
+        const displayH = roundedH % 12 || 12;
+        const displayM = '00';
 
         return `${displayH}:${displayM} ${period}`;
     };
@@ -127,6 +126,23 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
         setEditingId(null);
     };
 
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyPlan = () => {
+        const count = Math.round(Number(monthlyInbound[date] || 0));
+        let text = `Replenishment Plan - ${new Date(date + 'T00:00:00').toLocaleDateString()}\n`;
+        text += `Total Planned Trucks: ${count}\n`;
+        text += `--------------------------------\n`;
+
+        for (let i = 0; i < count; i++) {
+            text += `Load #${i + 1}: ${getEstimatedTime(i)}\n`;
+        }
+
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     const startEdit = (order) => {
         setEditingId(order.id);
         setEditForm({ ...order });
@@ -172,12 +188,33 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                             <>
                                 {monthlyInbound && Number(monthlyInbound[date] || 0) > 0 ? (
                                     <div className="space-y-4">
-                                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                                            <span className="text-xl">ℹ️</span>
-                                            <span>
-                                                <strong>{Number(monthlyInbound[date])} Trucks Planned</strong> via Auto-Replenishment.
-                                                <br />Purchase Orders have not been imported yet.
-                                            </span>
+                                        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
+                                            <div className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                                                <span className="text-xl">ℹ️</span>
+                                                <span>
+                                                    <strong>{Number(monthlyInbound[date])} Trucks Planned</strong> via Auto-Replenishment.
+                                                    <br />Purchase Orders have not been imported yet.
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={handleCopyPlan}
+                                                className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${copied
+                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600'
+                                                    }`}
+                                            >
+                                                {copied ? (
+                                                    <>
+                                                        <CheckCircleIcon className="w-4 h-4 mr-1.5" />
+                                                        Copied!
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <ClipboardDocumentCheckIcon className="w-4 h-4 mr-1.5" />
+                                                        Copy Plan
+                                                    </>
+                                                )}
+                                            </button>
                                         </div>
                                         {Array.from({ length: Math.round(Number(monthlyInbound[date])) }).map((_, i) => (
                                             <div key={`planned-${i}`} className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 flex items-center justify-between opacity-75 grayscale">
