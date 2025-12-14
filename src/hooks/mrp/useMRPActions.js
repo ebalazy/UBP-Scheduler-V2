@@ -185,6 +185,7 @@ export function useMRPActions(state, calculationsResult) {
         flushSync(() => {
             setMonthlyDemand(newDemand);
             if (isAutoReplenish) {
+                console.warn("MANUAL SYNC RUN (FlushSync)");
                 lastManualRun.current = Date.now();
                 runAutoReplenishment(newDemand, monthlyProductionActuals, monthlyInbound);
             }
@@ -276,9 +277,11 @@ export function useMRPActions(state, calculationsResult) {
         // If we just ran a manual update (Sync) < 250ms ago, ignore this Effect trigger.
         // This swallows "Echo" renders and prevents double-calculation loops.
         if (Date.now() - lastManualRun.current < 250) {
+            console.warn("GUARD BLOCKED EFFECT (Echo Protection)");
             return;
         }
 
+        console.warn("EFFECT TRIGGERED (Running Auto-Replenish)");
         const timer = setTimeout(() => {
             runAutoReplenishment(monthlyDemand, monthlyProductionActuals, monthlyInbound);
         }, 50);
