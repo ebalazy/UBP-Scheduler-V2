@@ -51,7 +51,7 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
             clearTimeout(timer);
             timer = setTimeout(() => {
                 updateDateDemand(d, v);
-            }, 300);
+            }, 50);
         };
     }, [updateDateDemand]);
 
