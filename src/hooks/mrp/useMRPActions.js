@@ -155,7 +155,7 @@ export function useMRPActions(state, calculationsResult) {
 
         const todayStr = getLocalISOString();
 
-        console.warn(`[AutoReplenish] Today:${todayStr} LeadTime:${leadTimeDays} Offset:${startOffset} Safety:${localSafetyTarget} Bal:${runningBalance} Auto:${isAutoReplenish}`);
+
 
         // 1. Simulator: Walk through locked period
         for (let i = 0; i < startOffset; i++) {
@@ -173,7 +173,7 @@ export function useMRPActions(state, calculationsResult) {
             runningBalance = runningBalance + (existingTrucks * specs.bottlesPerTruck) - dDem;
         }
 
-        console.warn(`[AutoReplenish] Simulator Result Balance: ${runningBalance}`);
+
 
         // 2. Planner: Walk from LeadTime onwards
         for (let i = startOffset; i < 60; i++) {
@@ -191,15 +191,13 @@ export function useMRPActions(state, calculationsResult) {
             let dTrucks = 0;
             let bal = runningBalance - dDem;
 
-            if (i < 5) {
-                console.warn(`[Planner i=${i}] Date:${ds} Plan:${plan} Act:${act} Count:${caseCount} Dem:${dDem} Bal:${bal} Target:${localSafetyTarget}`);
-            }
+
 
             if (bal < localSafetyTarget) {
                 const needed = Math.ceil((localSafetyTarget - bal) / specs.bottlesPerTruck);
                 dTrucks = needed;
                 bal += needed * specs.bottlesPerTruck;
-                if (i < 5) console.warn(`   -> ORDER ${dTrucks} trucks. NewBal:${bal}`);
+
             }
             // Only set if non-zero to keep map clean, or explicitly set 0 if it was previously set?
             // To ensure stability, we should reflect the calculated state.
@@ -217,7 +215,7 @@ export function useMRPActions(state, calculationsResult) {
         });
 
         if (!hasChanges) {
-            console.log('[AutoReplenish] No changes detected.');
+
             return;
         }
 
@@ -229,12 +227,12 @@ export function useMRPActions(state, calculationsResult) {
             if (newInbound[k] === 0) delete newInbound[k];
         });
 
-        console.log('[AutoReplenish] Applying Update:', next60Days);
+
 
         // Final Safety Check via JSON stringify just in case (sorted keys)
         const sortObj = o => Object.keys(o).sort().reduce((acc, k) => ({ ...acc, [k]: o[k] }), {});
         if (JSON.stringify(sortObj(newInbound)) === JSON.stringify(sortObj(inboundMap))) {
-            console.log('[AutoReplenish] Safety Check: Maps identical.');
+
             return;
         }
 

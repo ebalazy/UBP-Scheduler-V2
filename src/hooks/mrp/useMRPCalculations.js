@@ -131,7 +131,7 @@ export function useMRPCalculations(state, poManifest = {}) {
         let firstStockoutDate = null;
         let firstOverflowDate = null;
 
-        console.warn(`[Ledger] StartBal:${currentBalance} Today:${todayStr} Anchor:${inventoryAnchor.date}`);
+
 
         for (let i = 0; i < 30; i++) {
             const dateStr = addDays(getLocalISOString(), i);
@@ -153,9 +153,7 @@ export function useMRPCalculations(state, poManifest = {}) {
 
             currentBalance = currentBalance + dailySupply - dailyDemand;
 
-            if (i < 5) {
-                console.warn(`[Ledger i=${i}] Date:${dateStr} Plan:${plan} Act:${actual} UseActual:${useActual} Cases:${dailyCases} Dem:${dailyDemand} Bal:${currentBalance}`);
-            }
+
 
             dailyLedger.push({
                 date: dateStr,
