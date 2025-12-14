@@ -71,15 +71,16 @@ export default function SupplierEmailModal({ isOpen, onClose, mrpResults }) {
         const selected = futureOrders.filter(o => selectedIds.has(o.po + o.date));
         if (selected.length === 0) return '';
 
-        const lines = selected.map(o => {
+        const lines = selected.map((o, index) => {
             const prefix = o.status === 'cancelled' ? '[CANCEL] ' : '';
-            // New Format: PO #123: 2025-01-01 (1 Truck) - Time: 08:00 AM
-            const timeStr = o.time ? ` - Time: ${o.time}` : ' - Time: TBD';
-            return `- ${prefix}PO #${o.po}: ${o.date} (1 Truck)${timeStr}`;
+            // New Format: 1. PO #123: 2025-01-01 @ 08:00 AM (1 Truck)
+            const timeStr = o.time ? ` @ ${o.time}` : ' @ TBD';
+            return `${index + 1}. ${prefix}PO #${o.po}: ${o.date}${timeStr} (1 Truck)`;
         }).join('\n');
 
+        const grandTotal = `${selected.length} Truck${selected.length !== 1 ? 's' : ''}`;
         const template = emailTemplates[emailTemplate] || emailTemplates.new;
-        return template.body(lines);
+        return template.body(lines, grandTotal);
     };
 
     const toggleAll = () => {
@@ -91,11 +92,13 @@ export default function SupplierEmailModal({ isOpen, onClose, mrpResults }) {
     const emailTemplates = {
         new: {
             subject: (count, dateRange) => `New Orders for Approval - ${activeSku}`,
-            body: (orders) => `Hello Team,
+            body: (orders, grandTotal) => `Hello Team,
 
 Please confirm the following NEW orders for ${activeSku}:
 
 ${orders}
+
+Total: ${grandTotal}
 
 Please configure delivery appointments for each.
 
@@ -104,11 +107,13 @@ Planner`
         },
         add: {
             subject: (count, dateRange) => `URGENT: ADD to Schedule (Week of ${dateRange.start}) - ${activeSku}`,
-            body: (orders) => `Hello Team,
+            body: (orders, grandTotal) => `Hello Team,
 
 Please ADD the following loads to our existing schedule for ${activeSku}:
 
 ${orders}
+
+Total: ${grandTotal}
 
 This is an addition to the already confirmed plan.
 
@@ -117,11 +122,13 @@ Planner`
         },
         cancel: {
             subject: (count, dateRange) => `URGENT: CANCELLATION REQUEST - ${count} Orders - ${activeSku}`,
-            body: (orders) => `Hello Team,
+            body: (orders, grandTotal) => `Hello Team,
 
 Please CANCEL the following purchase orders immediately:
 
 ${orders}
+
+Total: ${grandTotal}
 
 Please confirm cancellation.
 
