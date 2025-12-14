@@ -144,6 +144,8 @@ export function useMRPActions(state, calculationsResult) {
     const runAutoReplenishment = useCallback((demandMap, actualMap, inboundMap) => {
         if (!calculations || !isAutoReplenish) return;
 
+        console.log('--- AutoReplenish Run ---');
+
         const specs = bottleDefinitions[selectedSize];
         const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
         const localSafetyTarget = safetyStockLoads * specs.bottlesPerTruck;
@@ -184,10 +186,12 @@ export function useMRPActions(state, calculationsResult) {
 
             let dTrucks = 0;
             let bal = runningBalance - dDem;
+
             if (bal < localSafetyTarget) {
                 const needed = Math.ceil((localSafetyTarget - bal) / specs.bottlesPerTruck);
                 dTrucks = needed;
                 bal += needed * specs.bottlesPerTruck;
+                if (i < 5) console.log(`  -> ORDERING ${dTrucks} trucks. NewBal:${bal}`);
             }
             // Only set if non-zero to keep map clean, or explicitly set 0 if it was previously set?
             // To ensure stability, we should reflect the calculated state.
