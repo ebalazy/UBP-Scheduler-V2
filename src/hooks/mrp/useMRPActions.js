@@ -151,22 +151,36 @@ export function useMRPActions(state, calculationsResult) {
         const startOffset = leadTimeDays || 2;
         const next60Days = {};
 
+        const todayStr = getLocalISOString();
+
         // 1. Simulator: Walk through locked period
         for (let i = 0; i < startOffset; i++) {
-            const ds = addDays(getLocalISOString(), i);
+            const ds = addDays(todayStr, i);
             const act = actualMap[ds];
             const plan = demandMap[ds];
-            const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase * scrapFactor;
+
+            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
+            const isFuture = ds > todayStr;
+            const useActual = (act !== undefined && act !== null) && (!isFuture || Number(act) !== 0);
+            const caseCount = useActual ? Number(act) : Number(plan || 0);
+
+            const dDem = caseCount * specs.bottlesPerCase * scrapFactor;
             const existingTrucks = inboundMap[ds] || 0;
             runningBalance = runningBalance + (existingTrucks * specs.bottlesPerTruck) - dDem;
         }
 
         // 2. Planner: Walk from LeadTime onwards
         for (let i = startOffset; i < 60; i++) {
-            const ds = addDays(getLocalISOString(), i);
+            const ds = addDays(todayStr, i);
             const act = actualMap[ds];
             const plan = demandMap[ds];
-            const dDem = ((act !== undefined && act !== null) ? Number(act) : Number(plan || 0)) * specs.bottlesPerCase * scrapFactor;
+
+            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
+            const isFuture = ds > todayStr;
+            const useActual = (act !== undefined && act !== null) && (!isFuture || Number(act) !== 0);
+            const caseCount = useActual ? Number(act) : Number(plan || 0);
+
+            const dDem = caseCount * specs.bottlesPerCase * scrapFactor;
 
             let dTrucks = 0;
             let bal = runningBalance - dDem;
