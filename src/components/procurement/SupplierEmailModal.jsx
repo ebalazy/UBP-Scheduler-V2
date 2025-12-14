@@ -9,6 +9,29 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
     const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
     const [emailTemplate, setEmailTemplate] = useState('new'); // new, add, cancel
 
+    // Flatten Manifest to List
+    const allOrders = useMemo(() => {
+        const list = [];
+        Object.entries(poManifest).sort().forEach(([date, data]) => {
+            data.items.forEach(item => {
+                list.push({ ...item, date });
+            });
+        });
+        return list;
+    }, [poManifest]);
+
+    const futureOrders = allOrders.filter(o => new Date(o.date) >= new Date().setHours(0, 0, 0, 0));
+
+    // Selection State
+    const [selectedIds, setSelectedIds] = useState(new Set());
+
+    const toggleWrapper = (id) => {
+        const next = new Set(selectedIds);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        setSelectedIds(next);
+    };
+
 
 
 
