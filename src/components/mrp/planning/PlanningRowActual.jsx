@@ -34,12 +34,8 @@ const ActualCell = React.memo(({ date, dateStr, initialValue, updateDateActual }
     }, [initialValue]);
 
     const debouncedUpdate = React.useMemo(() => {
-        let timer;
         return (d, v) => {
-            clearTimeout(timer);
-            timer = setTimeout(() => {
-                updateDateActual(d, v);
-            }, 300);
+            updateDateActual(d, v);
         };
     }, [updateDateActual]);
 
