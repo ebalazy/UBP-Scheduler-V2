@@ -3,7 +3,7 @@ import { Dialog } from '@headlessui/react';
 import { XMarkIcon, EnvelopeIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { formatLocalDate } from '../../utils/dateUtils';
-import useMRP from '../../hooks/useMRP';
+import { useMRP } from '../../hooks/useMRP';
 
 export default function SupplierEmailModal({ isOpen, onClose }) {
     const { poManifest } = useProcurement();
