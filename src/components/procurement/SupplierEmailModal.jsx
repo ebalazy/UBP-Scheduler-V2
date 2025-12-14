@@ -3,9 +3,11 @@ import { Dialog } from '@headlessui/react';
 import { XMarkIcon, EnvelopeIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { formatLocalDate } from '../../utils/dateUtils';
+import useMRP from '../../hooks/useMRP';
 
 export default function SupplierEmailModal({ isOpen, onClose }) {
     const { poManifest } = useProcurement();
+    const { results } = useMRP();
     const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
     const [emailTemplate, setEmailTemplate] = useState('new'); // new, add, cancel
 
@@ -22,7 +24,23 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
 
     const futureOrders = useMemo(() => allOrders.filter(o => new Date(o.date) >= new Date().setHours(0, 0, 0, 0)), [allOrders]);
 
-    // Selection State
+    // --- AUTO-SUGGEST CANCELLATION ---
+    useEffect(() => {
+        if (isOpen && results.trucksToCancel > 0 && selectedIds.size === 0) {
+            // Find candidates: Confirmed orders, furthest out first (LIFOish for supply chain)
+            const candidates = futureOrders
+                .filter(o => o.status === 'confirmed')
+                .sort((a, b) => new Date(b.date) - new Date(a.date)); // Descending Date
+
+            const toCancel = candidates.slice(0, results.trucksToCancel);
+
+            if (toCancel.length > 0) {
+                const keys = new Set(toCancel.map(o => o.po + o.date));
+                setSelectedIds(keys);
+                setEmailTemplate('cancel');
+            }
+        }
+    }, [isOpen]); // Only run once on open to avoid overriding user interaction
     const [selectedIds, setSelectedIds] = useState(new Set());
 
     const toggleWrapper = (id) => {
