@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSupabaseSync } from '../useSupabaseSync';
 import { addDays, getLocalISOString } from '../../utils/dateUtils';
 import { saveLocalState } from './useMRPState';
+import { flushSync } from 'react-dom';
 
 export function useMRPActions(state, calculationsResult) {
     const { bottleDefinitions, updateBottleDefinition, safetyStockLoads, leadTimeDays } = useSettings();
@@ -180,7 +181,15 @@ export function useMRPActions(state, calculationsResult) {
         // Only convert to Number for DB/Calculations if needed (Calculations handle strings)
         const val = value;
         const newDemand = { ...demandRef.current, [date]: val };
-        setMonthlyDemand(newDemand);
+
+        flushSync(() => {
+            setMonthlyDemand(newDemand);
+            if (isAutoReplenish) {
+                skipNextAutoRun.current = true;
+                runAutoReplenishment(newDemand, monthlyProductionActuals, monthlyInbound);
+            }
+        });
+
         scheduleLocalSave('monthlyDemand', () => {
             saveLocalState('monthlyDemand', newDemand, selectedSize, true);
         }, 500);
@@ -207,7 +216,14 @@ export function useMRPActions(state, calculationsResult) {
         if (val === undefined) delete newActuals[date];
         else newActuals[date] = val;
 
-        setMonthlyProductionActuals(newActuals);
+        flushSync(() => {
+            setMonthlyProductionActuals(newActuals);
+            if (isAutoReplenish) {
+                skipNextAutoRun.current = true;
+                runAutoReplenishment(monthlyDemand, newActuals, monthlyInbound);
+            }
+        });
+
         scheduleLocalSave('monthlyProductionActuals', () => {
             saveLocalState('monthlyProductionActuals', newActuals, selectedSize, true);
         }, 500);
