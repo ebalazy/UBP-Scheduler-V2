@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
-import { addDays, formatLocalDate } from '../../utils/dateUtils';
+import { addDays, formatLocalDate, formatTime12h } from '../../utils/dateUtils';
 
 export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound, specs }) {
     const { updateDailyManifest, addOrdersBulk, removeOrder, updateOrder } = useProcurement();
@@ -264,6 +264,24 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                     />
                                                 </div>
                                                 <div className="col-span-1">
+                                                    <label className="text-xs font-bold text-gray-500">Appointment Time</label>
+                                                    <input
+                                                        type="time"
+                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                        value={editForm.time || ''}
+                                                        onChange={e => setEditForm(prev => ({ ...prev, time: e.target.value }))}
+                                                    />
+                                                </div>
+                                                <div className="col-span-1">
+                                                    <label className="text-xs font-bold text-gray-500">Appointment Time</label>
+                                                    <input
+                                                        type="time"
+                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                        value={editForm.time || ''}
+                                                        onChange={e => setEditForm(prev => ({ ...prev, time: e.target.value }))}
+                                                    />
+                                                </div>
+                                                <div className="col-span-1">
                                                     <label className="text-xs font-bold text-gray-500">Supplier</label>
                                                     <input
                                                         type="text"
@@ -337,7 +355,14 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                 </div>
                                                 <div>
                                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                                                        <span className="font-mono">{order.time ? formatTime12h(order.time) : 'TBD'}</span>
+                                                        <span className="mx-2 text-gray-300">|</span>
                                                         PO #{order.po}
+                                                        {order.loadId && (
+                                                            <span className="ml-2 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-full font-bold">
+                                                                Load ID: {order.loadId}
+                                                            </span>
+                                                        )}
                                                         <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-xs rounded-full font-bold">
                                                             1 Truck
                                                         </span>
@@ -350,18 +375,24 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                                 updateOrder(date, { ...order, status: newStatus });
                                                             }}
                                                             className={`ml-2 px-2 py-0.5 text-xs rounded-full font-bold border transition-colors ${(order.status === 'confirmed')
-                                                                    ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'
-                                                                    : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
+                                                                ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'
+                                                                : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
                                                                 }`}
                                                             title="Click to Toggle Status (Ordered/Confirmed)"
                                                         >
                                                             {order.status === 'confirmed' ? 'Confirmed' : 'Ordered'}
                                                         </button>
                                                     </h3>
-                                                    <p className="text-sm text-gray-500">{order.supplier || 'Unknown Supplier'}</p>
-                                                    {Number(order.qty) > 0 && (
-                                                        <p className="text-xs text-gray-400 mt-1">Qty: {Number(String(order.qty).replace(/,/g, '')).toLocaleString()}</p>
-                                                    )}
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                            {order.supplier || order.vendor || 'Unknown Supplier'}
+                                                        </p>
+                                                        {Number(order.qty) > 0 && (
+                                                            <span className="text-xs text-gray-400">
+                                                                ({Number(String(order.qty).replace(/,/g, '')).toLocaleString()} units)
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
