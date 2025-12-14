@@ -1,15 +1,18 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon, EnvelopeIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { formatLocalDate } from '../../utils/dateUtils';
 import { useMRP } from '../../hooks/useMRP';
+import { useSettings } from '../../context/SettingsContext';
 
 export default function SupplierEmailModal({ isOpen, onClose }) {
     const { poManifest } = useProcurement();
     const { results } = useMRP(poManifest);
+    const { activeSku } = useSettings();
     const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
     const [emailTemplate, setEmailTemplate] = useState('new'); // new, add, cancel
+    const ignoreAutoDetect = useRef(false);
 
     // Flatten Manifest to List
     const allOrders = useMemo(() => {
@@ -36,8 +39,10 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
 
             if (toCancel.length > 0) {
                 const keys = new Set(toCancel.map(o => o.po + o.date));
+                ignoreAutoDetect.current = true; // Block auto-detect
                 setSelectedIds(keys);
                 setEmailTemplate('cancel');
+                setTimeout(() => ignoreAutoDetect.current = false, 500);
             }
         }
     }, [isOpen, results?.trucksToCancel]); // Re-run when calculation completes
@@ -60,7 +65,9 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
 
         const lines = selected.map(o => {
             const prefix = o.status === 'cancelled' ? '[CANCEL] ' : '';
-            return `- ${prefix}PO #${o.po}: ${o.date} (${Number(o.qty).toLocaleString()} units)`;
+            // New Format: PO #123: 2025-01-01 (1 Truck) - Time: 08:00 AM
+            const timeStr = o.time ? ` - Time: ${o.time}` : ' - Time: TBD';
+            return `- ${prefix}PO #${o.po}: ${o.date} (1 Truck)${timeStr}`;
         }).join('\n');
 
         const template = emailTemplates[emailTemplate] || emailTemplates.new;
@@ -75,10 +82,10 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
     // --- SMART TEMPLATES ---
     const emailTemplates = {
         new: {
-            subject: (count, dateRange) => `New Orders for Approval`,
+            subject: (count, dateRange) => `New Orders for Approval - ${activeSku}`,
             body: (orders) => `Hello Team,
 
-Please confirm the following NEW orders:
+Please confirm the following NEW orders for ${activeSku}:
 
 ${orders}
 
@@ -88,10 +95,10 @@ Thanks,
 Planner`
         },
         add: {
-            subject: (count, dateRange) => `URGENT: ADD to Schedule (Week of ${dateRange.start})`,
+            subject: (count, dateRange) => `URGENT: ADD to Schedule (Week of ${dateRange.start}) - ${activeSku}`,
             body: (orders) => `Hello Team,
 
-Please ADD the following loads to our existing schedule:
+Please ADD the following loads to our existing schedule for ${activeSku}:
 
 ${orders}
 
@@ -101,7 +108,7 @@ Thanks,
 Planner`
         },
         cancel: {
-            subject: (count, dateRange) => `URGENT: CANCELLATION REQUEST - ${count} Orders`,
+            subject: (count, dateRange) => `URGENT: CANCELLATION REQUEST - ${count} Orders - ${activeSku}`,
             body: (orders) => `Hello Team,
 
 Please CANCEL the following purchase orders immediately:
@@ -118,6 +125,7 @@ Planner`
     // --- AUTO-DETECT TEMPLATE ---
     useEffect(() => {
         if (selectedIds.size === 0) return;
+        if (ignoreAutoDetect.current) return;
 
         const selectedList = futureOrders.filter(o => selectedIds.has(o.po + o.date));
 
