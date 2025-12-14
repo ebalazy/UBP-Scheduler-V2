@@ -40,7 +40,7 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
                 setEmailTemplate('cancel');
             }
         }
-    }, [isOpen]); // Only run once on open to avoid overriding user interaction
+    }, [isOpen, results.trucksToCancel]); // Re-run when calculation completes
     const [selectedIds, setSelectedIds] = useState(new Set());
 
     const toggleWrapper = (id) => {
