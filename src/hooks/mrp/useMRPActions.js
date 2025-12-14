@@ -83,6 +83,97 @@ export function useMRPActions(state, calculationsResult) {
         };
     }, []);
 
+    const runAutoReplenishment = useCallback((demandMap, actualMap, inboundMap) => {
+        if (!calculations || !isAutoReplenish) return;
+
+        const specs = bottleDefinitions[selectedSize];
+        const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
+        const localSafetyTarget = safetyStockLoads * specs.bottlesPerTruck;
+        let runningBalance = calculations.initialInventory;
+        const startOffset = leadTimeDays || 2;
+        const next60Days = {};
+
+        const todayStr = getLocalISOString();
+
+        // 1. Simulator: Walk through locked period
+        for (let i = 0; i < startOffset; i++) {
+            const ds = addDays(todayStr, i);
+            const act = actualMap[ds];
+            const plan = demandMap[ds];
+
+            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
+            const isFuture = ds > todayStr;
+            const useActual = (act !== undefined && act !== null) && (!isFuture || Number(act) !== 0);
+            const caseCount = useActual ? Number(act) : Number(plan || 0);
+
+            const dDem = caseCount * specs.bottlesPerCase * scrapFactor;
+            const existingTrucks = inboundMap[ds] || 0;
+            runningBalance = runningBalance + (existingTrucks * specs.bottlesPerTruck) - dDem;
+        }
+
+        // 2. Planner: Walk from LeadTime onwards
+        for (let i = startOffset; i < 60; i++) {
+            const ds = addDays(todayStr, i);
+            const act = actualMap[ds];
+            const plan = demandMap[ds];
+
+            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
+            const isFuture = ds > todayStr;
+            const useActual = (act !== undefined && act !== null) && (!isFuture || Number(act) !== 0);
+            const caseCount = useActual ? Number(act) : Number(plan || 0);
+
+            const dDem = caseCount * specs.bottlesPerCase * scrapFactor;
+
+            let dTrucks = 0;
+            let bal = runningBalance - dDem;
+
+            if (bal < localSafetyTarget) {
+                const needed = Math.ceil((localSafetyTarget - bal) / specs.bottlesPerTruck);
+                dTrucks = needed;
+                bal += needed * specs.bottlesPerTruck;
+            }
+
+            if (dTrucks > 0) next60Days[ds] = dTrucks;
+            else if (inboundMap[ds]) next60Days[ds] = 0;
+
+            runningBalance = bal;
+        }
+
+        // 3. Diff Check
+        let hasChanges = false;
+        Object.entries(next60Days).forEach(([date, qty]) => {
+            const current = inboundMap[date] || 0;
+            if (current !== qty) hasChanges = true;
+        });
+
+        if (!hasChanges) return;
+
+        // 4. Construct New Map
+        const newInbound = { ...inboundMap, ...next60Days };
+
+        // Remove 0s 
+        Object.keys(newInbound).forEach(k => {
+            if (newInbound[k] === 0) delete newInbound[k];
+        });
+
+        // Final Safety Check
+        const sortObj = o => Object.keys(o).sort().reduce((acc, k) => ({ ...acc, [k]: o[k] }), {});
+        if (JSON.stringify(sortObj(newInbound)) === JSON.stringify(sortObj(inboundMap))) return;
+
+        // Apply
+        setMonthlyInbound(newInbound);
+        saveLocalState('monthlyInbound', newInbound, selectedSize, true);
+
+        if (user) {
+            saveWithStatus(async () => {
+                const promises = Object.entries(next60Days).map(([date, trucks]) => {
+                    return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
+                });
+                await Promise.all(promises);
+            });
+        }
+    }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, savePlanningEntry, setMonthlyInbound, saveLocalState, saveWithStatus]);
+
     const updateDateDemand = useCallback((date, value) => {
         // Allow raw value flow for decimals/empty string. 
         // Only convert to Number for DB/Calculations if needed (Calculations handle strings)
@@ -100,7 +191,11 @@ export function useMRPActions(state, calculationsResult) {
                 1000
             );
         }
-    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyDemand, savePlanningEntry]);
+
+        if (isAutoReplenish) {
+            runAutoReplenishment(newDemand, monthlyProductionActuals, monthlyInbound);
+        }
+    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyDemand, savePlanningEntry, isAutoReplenish, runAutoReplenishment, monthlyProductionActuals, monthlyInbound]);
 
     const updateDateActual = useCallback((date, value) => {
         // Allow raw value flow
@@ -121,7 +216,11 @@ export function useMRPActions(state, calculationsResult) {
                 1000
             );
         }
-    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyProductionActuals, savePlanningEntry]);
+
+        if (isAutoReplenish) {
+            runAutoReplenishment(monthlyDemand, newActuals, monthlyInbound);
+        }
+    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyProductionActuals, savePlanningEntry, isAutoReplenish, runAutoReplenishment, monthlyDemand, monthlyInbound]);
 
     const updateDateInbound = useCallback((date, value) => {
         const val = value; // Allow raw string
@@ -141,115 +240,7 @@ export function useMRPActions(state, calculationsResult) {
     }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyInbound, savePlanningEntry]);
 
     // Auto-Replenish Logic (Reactive)
-    const runAutoReplenishment = useCallback((demandMap, actualMap, inboundMap) => {
-        if (!calculations || !isAutoReplenish) return;
 
-        console.log('--- AutoReplenish Run ---');
-
-        const specs = bottleDefinitions[selectedSize];
-        const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
-        const localSafetyTarget = safetyStockLoads * specs.bottlesPerTruck;
-        let runningBalance = calculations.initialInventory;
-        const startOffset = leadTimeDays || 2;
-        const next60Days = {};
-
-        const todayStr = getLocalISOString();
-
-
-
-        // 1. Simulator: Walk through locked period
-        for (let i = 0; i < startOffset; i++) {
-            const ds = addDays(todayStr, i);
-            const act = actualMap[ds];
-            const plan = demandMap[ds];
-
-            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
-            const isFuture = ds > todayStr;
-            const useActual = (act !== undefined && act !== null) && (!isFuture || Number(act) !== 0);
-            const caseCount = useActual ? Number(act) : Number(plan || 0);
-
-            const dDem = caseCount * specs.bottlesPerCase * scrapFactor;
-            const existingTrucks = inboundMap[ds] || 0;
-            runningBalance = runningBalance + (existingTrucks * specs.bottlesPerTruck) - dDem;
-        }
-
-
-
-        // 2. Planner: Walk from LeadTime onwards
-        for (let i = startOffset; i < 60; i++) {
-            const ds = addDays(todayStr, i);
-            const act = actualMap[ds];
-            const plan = demandMap[ds];
-
-            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
-            const isFuture = ds > todayStr;
-            const useActual = (act !== undefined && act !== null) && (!isFuture || Number(act) !== 0);
-            const caseCount = useActual ? Number(act) : Number(plan || 0);
-
-            const dDem = caseCount * specs.bottlesPerCase * scrapFactor;
-
-            let dTrucks = 0;
-            let bal = runningBalance - dDem;
-
-
-
-            if (bal < localSafetyTarget) {
-                const needed = Math.ceil((localSafetyTarget - bal) / specs.bottlesPerTruck);
-                dTrucks = needed;
-                bal += needed * specs.bottlesPerTruck;
-
-            }
-            // Only set if non-zero to keep map clean, or explicitly set 0 if it was previously set?
-            // To ensure stability, we should reflect the calculated state.
-            if (dTrucks > 0) next60Days[ds] = dTrucks;
-            else if (inboundMap[ds]) next60Days[ds] = 0; // Only explicitly zero out if it existed
-
-            runningBalance = bal;
-        }
-
-        // 3. Diff Check: Compare 'next60Days' with 'inboundMap'
-        let hasChanges = false;
-        Object.entries(next60Days).forEach(([date, qty]) => {
-            const current = inboundMap[date] || 0;
-            if (current !== qty) hasChanges = true;
-        });
-
-        if (!hasChanges) {
-
-            return;
-        }
-
-        // 4. Construct New Map
-        const newInbound = { ...inboundMap, ...next60Days };
-
-        // Remove 0s to keep it clean (optional, but good for storage)
-        Object.keys(newInbound).forEach(k => {
-            if (newInbound[k] === 0) delete newInbound[k];
-        });
-
-
-
-        // Final Safety Check via JSON stringify just in case (sorted keys)
-        const sortObj = o => Object.keys(o).sort().reduce((acc, k) => ({ ...acc, [k]: o[k] }), {});
-        if (JSON.stringify(sortObj(newInbound)) === JSON.stringify(sortObj(inboundMap))) {
-
-            return;
-        }
-
-        // Apply
-        setMonthlyInbound(newInbound);
-        saveLocalState('monthlyInbound', newInbound, selectedSize, true);
-
-        if (user) {
-            saveWithStatus(async () => {
-                const promises = Object.entries(next60Days).map(([date, trucks]) => {
-                    // Save explicit 0s or new values
-                    return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
-                });
-                await Promise.all(promises);
-            });
-        }
-    }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, savePlanningEntry, setMonthlyInbound]);
     // Removed 'monthlyInbound' from deps to prevent loop, passing it as arg is sufficient for logic.
     // The effect below will control triggering.
     // Added setMonthlyInbound, monthlyInbound to dep array, logic seems fine? 
