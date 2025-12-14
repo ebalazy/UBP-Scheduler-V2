@@ -261,7 +261,7 @@ export function useMRPActions(state, calculationsResult) {
 
         const timer = setTimeout(() => {
             runAutoReplenishment(monthlyDemand, monthlyProductionActuals, monthlyInbound);
-        }, 500);
+        }, 50);
 
         return () => clearTimeout(timer);
     }, [
