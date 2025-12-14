@@ -91,8 +91,8 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
                 return;
             }
 
-            // Normal Enter: Move Focus (Data already saved via onChange)
-            // updateDateDemand(dateStr, rawVal); // Removed: Redundant since onChange is instant
+            // Normal Enter: Save and Move Focus
+            updateDateDemand(dateStr, rawVal);
 
             const nextDate = new Date(date);
             nextDate.setDate(nextDate.getDate() + 1);
@@ -114,8 +114,7 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
                 defaultValue={initialValue || ''}
                 placeholder="-"
                 onChange={(e) => {
-                    // Update global state after delay without re-rendering component
-                    debouncedUpdate(dateStr, e.target.value);
+                    // debouncedUpdate(dateStr, e.target.value); // Disabled Live Update
                 }}
                 onBlur={handleBlur}
                 onKeyDown={handleKeyDown}

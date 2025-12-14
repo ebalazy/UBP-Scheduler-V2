@@ -48,8 +48,8 @@ const ActualCell = React.memo(({ date, dateStr, initialValue, updateDateActual }
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            // const rawVal = e.target.value.replace(/,/g, '');
-            // updateDateActual(dateStr, rawVal); // Removed: Redundant since onChange is instant
+            const rawVal = e.target.value.replace(/,/g, '');
+            updateDateActual(dateStr, rawVal);
 
             const nextDate = new Date(date);
             nextDate.setDate(nextDate.getDate() + 1);
@@ -71,11 +71,13 @@ const ActualCell = React.memo(({ date, dateStr, initialValue, updateDateActual }
                 defaultValue={initialValue !== undefined && initialValue !== null ? initialValue : ''}
                 placeholder="-"
                 onChange={(e) => {
+                    // Live update disabled to prevent calculation jitter
+                    /*
                     const v = e.target.value.replace(/,/g, '');
-                    // Allow empty string to clear
                     if (v === '' || !isNaN(v)) {
-                        debouncedUpdate(dateStr, v);
+                         debouncedUpdate(dateStr, v);
                     }
+                    */
                 }}
                 onBlur={handleBlur}
                 onKeyDown={handleKeyDown}
