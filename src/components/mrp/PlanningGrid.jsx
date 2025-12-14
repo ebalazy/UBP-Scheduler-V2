@@ -162,8 +162,9 @@ export default function PlanningGrid({
     const [copied, setCopied] = useState(false);
 
     const handleExportMonth = () => {
-        // Start from Today (or StartDate? Usually "Next 30 Days" from Today is most useful for planning)
-        const baseDate = new Date();
+        // Start from Today
+        // FIX: addDays expects a string (YYYY-MM-DD), not a Date object.
+        const baseDate = formatLocalDate(new Date());
         let text = `Monthly Replenishment Plan - Generated ${new Date().toLocaleDateString()}\n`;
         text += `--------------------------------------------------\n\n`;
 
@@ -235,8 +236,8 @@ export default function PlanningGrid({
                     <button
                         onClick={handleExportMonth}
                         className={`flex items-center px-4 py-1 text-xs font-bold rounded border transition-all ${copied
-                                ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                                : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
+                            ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                            : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
                             }`}
                     >
                         {copied ? (
