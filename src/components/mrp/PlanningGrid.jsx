@@ -81,7 +81,8 @@ export default function PlanningGrid({
     // -- Modal --
     const renderManagerModal = () => {
         if (!managerDate) return null;
-        const currentManifest = truckManifest[managerDate] || []; // Array of items
+        const currentManifest = truckManifest[managerDate];
+        const currentItems = currentManifest?.items || [];
 
         return (
             <ScheduleManagerModal
@@ -90,7 +91,7 @@ export default function PlanningGrid({
                 date={managerDate}
                 monthlyInbound={monthlyInbound}
                 specs={specs}
-                existingItems={currentManifest}
+                orders={currentItems}
                 onSave={async (item) => {
                     // Item: { po, qty, sku, supplier... }
                     // We need to save to DB via prop
