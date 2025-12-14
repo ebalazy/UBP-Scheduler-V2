@@ -341,6 +341,22 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                         <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-xs rounded-full font-bold">
                                                             1 Truck
                                                         </span>
+                                                        {/* STATUS TOGGLE */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const currentStatus = order.status || 'ordered';
+                                                                const newStatus = currentStatus === 'confirmed' ? 'ordered' : 'confirmed';
+                                                                updateOrder(date, { ...order, status: newStatus });
+                                                            }}
+                                                            className={`ml-2 px-2 py-0.5 text-xs rounded-full font-bold border transition-colors ${(order.status === 'confirmed')
+                                                                    ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'
+                                                                    : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
+                                                                }`}
+                                                            title="Click to Toggle Status (Ordered/Confirmed)"
+                                                        >
+                                                            {order.status === 'confirmed' ? 'Confirmed' : 'Ordered'}
+                                                        </button>
                                                     </h3>
                                                     <p className="text-sm text-gray-500">{order.supplier || 'Unknown Supplier'}</p>
                                                     {Number(order.qty) > 0 && (
