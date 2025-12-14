@@ -212,7 +212,14 @@ export function useMRPCalculations(state, poManifest = {}) {
             plannedOrders: (() => {
                 const orders = {};
                 Object.entries(monthlyInbound).forEach(([needDateStr, trucks]) => {
+                    // Filter 1: Valid Truck Count
                     if (Number(trucks) <= 0) return;
+
+                    // Filter 2: PO Coverage
+                    // If we already have confirmed POs for this date, we don't need the Ghost prediction.
+                    // The "Health" math uses the POs, so suppressing the Ghost visual prevents double-signaling.
+                    if (poManifest[needDateStr]?.items?.length > 0) return;
+
                     const needDate = new Date(needDateStr);
                     const orderDate = new Date(needDate);
                     orderDate.setDate(orderDate.getDate() - (leadTimeDays || 0));
