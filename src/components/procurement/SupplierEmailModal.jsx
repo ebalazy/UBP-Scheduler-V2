@@ -3,13 +3,11 @@ import { Dialog } from '@headlessui/react';
 import { XMarkIcon, EnvelopeIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { formatLocalDate } from '../../utils/dateUtils';
-import { useMRP } from '../../hooks/useMRP';
 import { useSettings } from '../../context/SettingsContext';
 
 export default function SupplierEmailModal({ isOpen, onClose, mrpResults }) {
     const { poManifest } = useProcurement();
-    const { results: hookResults } = useMRP(poManifest);
-    const results = mrpResults || hookResults;
+    const results = mrpResults || {};
     const { activeSku } = useSettings();
     const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
     const [emailTemplate, setEmailTemplate] = useState('new'); // new, add, cancel
