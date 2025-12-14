@@ -7,7 +7,7 @@ import { useMRP } from '../../hooks/useMRP';
 
 export default function SupplierEmailModal({ isOpen, onClose }) {
     const { poManifest } = useProcurement();
-    const { results } = useMRP();
+    const { results } = useMRP(poManifest);
     const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
     const [emailTemplate, setEmailTemplate] = useState('new'); // new, add, cancel
 
