@@ -214,11 +214,10 @@ export function useMRPActions(state, calculationsResult) {
             if (current !== qty) hasChanges = true;
         });
 
-        // Also check if we are missing any keys that should be zeroed? 
-        // We handled "else next60Days[ds] = 0" above only if inboundMap[ds] existed. 
-        // So next60Days contains ALL changes needed.
-
-        if (!hasChanges) return;
+        if (!hasChanges) {
+            console.log('[AutoReplenish] No changes detected.');
+            return;
+        }
 
         // 4. Construct New Map
         const newInbound = { ...inboundMap, ...next60Days };
@@ -228,9 +227,14 @@ export function useMRPActions(state, calculationsResult) {
             if (newInbound[k] === 0) delete newInbound[k];
         });
 
+        console.log('[AutoReplenish] Applying Update:', next60Days);
+
         // Final Safety Check via JSON stringify just in case (sorted keys)
         const sortObj = o => Object.keys(o).sort().reduce((acc, k) => ({ ...acc, [k]: o[k] }), {});
-        if (JSON.stringify(sortObj(newInbound)) === JSON.stringify(sortObj(inboundMap))) return;
+        if (JSON.stringify(sortObj(newInbound)) === JSON.stringify(sortObj(inboundMap))) {
+            console.log('[AutoReplenish] Safety Check: Maps identical.');
+            return;
+        }
 
         // Apply
         setMonthlyInbound(newInbound);
