@@ -30,7 +30,7 @@ export function useMRPActions(state, calculationsResult) {
 
     // --- Refs for Stable Actions (Prevent Re-renders) ---
     // Use useLayoutEffect to ensure refs are updated synchronously before any effects/callbacks run
-    const skipNextAutoRun = useRef(false);
+    const lastManualRun = useRef(0);
     const demandRef = useRef(monthlyDemand);
     const actualRef = useRef(monthlyProductionActuals);
     const inboundRef = useRef(monthlyInbound);
@@ -185,7 +185,7 @@ export function useMRPActions(state, calculationsResult) {
         flushSync(() => {
             setMonthlyDemand(newDemand);
             if (isAutoReplenish) {
-                skipNextAutoRun.current = true;
+                lastManualRun.current = Date.now();
                 runAutoReplenishment(newDemand, monthlyProductionActuals, monthlyInbound);
             }
         });
@@ -204,7 +204,7 @@ export function useMRPActions(state, calculationsResult) {
 
 
         if (isAutoReplenish) {
-            skipNextAutoRun.current = true;
+            lastManualRun.current = Date.now();
             runAutoReplenishment(newDemand, monthlyProductionActuals, monthlyInbound);
         }
     }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyDemand, savePlanningEntry, isAutoReplenish, runAutoReplenishment, monthlyProductionActuals, monthlyInbound]);
@@ -219,7 +219,7 @@ export function useMRPActions(state, calculationsResult) {
         flushSync(() => {
             setMonthlyProductionActuals(newActuals);
             if (isAutoReplenish) {
-                skipNextAutoRun.current = true;
+                lastManualRun.current = Date.now();
                 runAutoReplenishment(monthlyDemand, newActuals, monthlyInbound);
             }
         });
@@ -238,7 +238,7 @@ export function useMRPActions(state, calculationsResult) {
 
 
         if (isAutoReplenish) {
-            skipNextAutoRun.current = true;
+            lastManualRun.current = Date.now();
             runAutoReplenishment(monthlyDemand, newActuals, monthlyInbound);
         }
     }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyProductionActuals, savePlanningEntry, isAutoReplenish, runAutoReplenishment, monthlyDemand, monthlyInbound]);
@@ -268,11 +268,14 @@ export function useMRPActions(state, calculationsResult) {
     // Wait, monthlyInbound is passed as arg inboundMap to avoid closure issues in the useMRP effect.
 
     // Reactive Trigger for Auto-Replenishment
+    // Reactive Trigger for Auto-Replenishment
     useEffect(() => {
         if (!isAutoReplenish || !calculations) return;
 
-        if (skipNextAutoRun.current) {
-            skipNextAutoRun.current = false;
+        // TIMESTAMP GUARD:
+        // If we just ran a manual update (Sync) < 250ms ago, ignore this Effect trigger.
+        // This swallows "Echo" renders and prevents double-calculation loops.
+        if (Date.now() - lastManualRun.current < 250) {
             return;
         }
 
