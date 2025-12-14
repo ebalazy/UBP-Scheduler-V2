@@ -175,13 +175,16 @@ export default function PlanningGrid({
         const startDecimal = startH + (startM / 60);
 
         for (let i = 0; i < 30; i++) {
-            const d = addDays(baseDate, i);
-            const dateStr = formatLocalDate(d);
+            const dateStr = addDays(baseDate, i); // Returns String "YYYY-MM-DD"
             const count = Math.round(Number(monthlyInbound[dateStr] || 0));
 
             if (count > 0) {
                 hasData = true;
-                text += `DATE: ${d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric', year: 'numeric' })}\n`;
+                // Parse for display (Force local timezone interpretation)
+                const [y, m, da] = dateStr.split('-').map(Number);
+                const dateObj = new Date(y, m - 1, da);
+
+                text += `DATE: ${dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric', year: 'numeric' })}\n`;
                 text += `TRUCKS: ${count}\n`;
 
                 // Details
