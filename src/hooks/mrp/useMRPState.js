@@ -72,19 +72,24 @@ export function useMRPState() {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
+        /* 
+           DISABLE AUTO-REFRESH ON FOCUS
+           This causes race conditions where pending saves (debounced) are overwritten 
+           by stale cloud data if the user switches tabs quickly.
+           Until we have 'Realtime Subscriptions' or 'isDirty' tracking, 
+           we must rely on manual refresh to see other users' changes.
+        */
         const onTrigger = () => {
-            // Only auto-refresh if user is logged in (cloud mode) and app is visible
-            if (user && document.visibilityState === 'visible') {
-                // App Focused/Visible: Refreshing Cloud Data...
-                setRefreshTrigger(t => t + 1);
-            }
+            // if (user && document.visibilityState === 'visible') {
+            //     setRefreshTrigger(t => t + 1);
+            // }
         };
 
-        document.addEventListener('visibilitychange', onTrigger);
-        window.addEventListener('focus', onTrigger);
+        // document.addEventListener('visibilitychange', onTrigger);
+        // window.addEventListener('focus', onTrigger);
         return () => {
-            document.removeEventListener('visibilitychange', onTrigger);
-            window.removeEventListener('focus', onTrigger);
+            // document.removeEventListener('visibilitychange', onTrigger);
+            // window.removeEventListener('focus', onTrigger);
         };
     }, [user]);
 
