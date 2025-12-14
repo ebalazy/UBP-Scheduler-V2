@@ -44,14 +44,10 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
         }
     }, [initialValue]);
 
-    // Simple Debounce for Global Update
+    // Simple Debounce for Global Update (Removed for Instant Feedback)
     const debouncedUpdate = React.useMemo(() => {
-        let timer;
         return (d, v) => {
-            clearTimeout(timer);
-            timer = setTimeout(() => {
-                updateDateDemand(d, v);
-            }, 50);
+            updateDateDemand(d, v);
         };
     }, [updateDateDemand]);
 
