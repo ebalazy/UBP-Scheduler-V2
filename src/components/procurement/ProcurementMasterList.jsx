@@ -181,30 +181,34 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                         <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                                             Bulk Actions
                                         </button>
-                                        <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50 hidden group-hover:block">
-                                            <div className="p-2">
-                                                <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Set properties</div>
-                                                <button
-                                                    onClick={() => {
-                                                        const year = prompt("Enter Target Year (e.g. 2025):", new Date().getFullYear());
-                                                        if (year) handleBulkSetYear(year);
-                                                    }}
-                                                    className="w-full text-left px-2 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-sm text-gray-700 dark:text-gray-200"
-                                                >
-                                                    Set Year...
-                                                </button>
-
-                                                <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-                                                <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Assign SKU</div>
-                                                {Object.keys(bottleDefinitions).map(sku => (
+                                        {/* Dropdown Container (Invisible Bridge method) */}
+                                        <div className="absolute top-full left-0 pt-2 w-48 z-50 hidden group-hover:block">
+                                            {/* Visual Box */}
+                                            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                                <div className="p-2">
+                                                    <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Set properties</div>
                                                     <button
-                                                        key={sku}
-                                                        onClick={() => handleBulkSetSku(sku)}
-                                                        className="w-full text-left px-2 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded text-sm text-gray-700 dark:text-gray-200"
+                                                        onClick={() => {
+                                                            const year = prompt("Enter Target Year (e.g. 2025):", new Date().getFullYear());
+                                                            if (year) handleBulkSetYear(year);
+                                                        }}
+                                                        className="w-full text-left px-2 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-sm text-gray-700 dark:text-gray-200"
                                                     >
-                                                        {sku}
+                                                        Set Year...
                                                     </button>
-                                                ))}
+
+                                                    <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                                                    <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Assign SKU</div>
+                                                    {Object.keys(bottleDefinitions).map(sku => (
+                                                        <button
+                                                            key={sku}
+                                                            onClick={() => handleBulkSetSku(sku)}
+                                                            className="w-full text-left px-2 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded text-sm text-gray-700 dark:text-gray-200"
+                                                        >
+                                                            {sku}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
