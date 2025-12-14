@@ -125,7 +125,8 @@ export function useMRPState() {
                         setMonthlyInbound(data.monthlyInbound || {});
                         setTruckManifest(data.truckManifest || {});
                         // Update Settings Context
-                        if (data.productionRate) updateBottleDefinition(selectedSize, 'productionRate', data.productionRate);
+                        // FIX: Do not overwrite Master Data with stale Scenario Data
+                        // if (data.productionRate) updateBottleDefinition(selectedSize, 'productionRate', data.productionRate);
                         setDowntimeHours(data.downtimeHours);
                         setIsAutoReplenish(data.isAutoReplenish);
                         setIsAutoReplenish(data.isAutoReplenish);
@@ -137,11 +138,10 @@ export function useMRPState() {
                         if (result.success) {
                             const retry = await fetchMRPState(user.id, selectedSize);
                             if (retry) {
-                                setMonthlyDemand(retry.monthlyDemand || {});
-                                setMonthlyProductionActuals(retry.monthlyProductionActuals || {});
                                 setMonthlyInbound(retry.monthlyInbound || {});
                                 setTruckManifest(retry.truckManifest || {});
-                                if (retry.productionRate) updateBottleDefinition(selectedSize, 'productionRate', retry.productionRate);
+                                // FIX: Do not overwrite Master Data with stale Scenario Data
+                                // if (retry.productionRate) updateBottleDefinition(selectedSize, 'productionRate', retry.productionRate);
                                 setDowntimeHours(retry.downtimeHours);
                                 setIsAutoReplenish(retry.isAutoReplenish);
                                 if (retry.inventoryAnchor) setInventoryAnchor(retry.inventoryAnchor);
