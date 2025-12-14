@@ -9,6 +9,28 @@ export default function SupplierEmailModal({ isOpen, onClose }) {
     const [selectedDateRange, setSelectedDateRange] = useState({ start: '', end: '' });
     const [emailTemplate, setEmailTemplate] = useState('new'); // new, add, cancel
 
+
+
+
+    // Generate Email Body
+    const generateBody = () => {
+        const selected = futureOrders.filter(o => selectedIds.has(o.po + o.date));
+        if (selected.length === 0) return '';
+
+        const lines = selected.map(o => {
+            const prefix = o.status === 'cancelled' ? '[CANCEL] ' : '';
+            return `- ${prefix}PO #${o.po}: ${o.date} (${Number(o.qty).toLocaleString()} units)`;
+        }).join('\n');
+
+        const template = emailTemplates[emailTemplate] || emailTemplates.new;
+        return template.body(lines);
+    };
+
+    const toggleAll = () => {
+        if (selectedIds.size === futureOrders.length) setSelectedIds(new Set());
+        else setSelectedIds(new Set(futureOrders.map(o => o.po + o.date))); // composite key fallback
+    };
+
     // --- SMART TEMPLATES ---
     const emailTemplates = {
         new: {
@@ -85,22 +107,6 @@ Planner`
         }
 
     }, [selectedIds, futureOrders, allOrders]);
-
-
-    // Generate Email Body
-    const generateBody = () => {
-        const selected = futureOrders.filter(o => selectedIds.has(o.po + o.date));
-        if (selected.length === 0) return '';
-
-        const lines = selected.map(o => {
-            const prefix = o.status === 'cancelled' ? '[CANCEL] ' : '';
-            return `- ${prefix}PO #${o.po}: ${o.date} (${Number(o.qty).toLocaleString()} units)`;
-        }).join('\n');
-
-        const template = emailTemplates[emailTemplate] || emailTemplates.new;
-        return template.body(lines);
-    };
-
     const getSubject = () => {
         const selected = futureOrders.filter(o => selectedIds.has(o.po + o.date));
         const template = emailTemplates[emailTemplate] || emailTemplates.new;
