@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon, EnvelopeIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
-import { formatLocalDate } from '../../utils/dateUtils';
+import { formatLocalDate, formatTime12h } from '../../utils/dateUtils';
 import { useSettings } from '../../context/SettingsContext';
 
 export default function SupplierEmailModal({ isOpen, onClose, mrpResults }) {
@@ -74,7 +74,7 @@ export default function SupplierEmailModal({ isOpen, onClose, mrpResults }) {
         const lines = selected.map((o, index) => {
             const prefix = o.status === 'cancelled' ? '[CANCEL] ' : '';
             // New Format: 1. PO #123: 2025-01-01 @ 08:00 AM (1 Truck)
-            const timeStr = o.time ? ` @ ${o.time}` : ' @ TBD';
+            const timeStr = o.time ? ` @ ${formatTime12h(o.time)}` : ' @ TBD';
             return `${index + 1}. ${prefix}PO #${o.po}: ${o.date}${timeStr} (1 Truck)`;
         }).join('\n');
 
