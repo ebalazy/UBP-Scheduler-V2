@@ -154,23 +154,24 @@ export function useMRPState() {
                     // setSaveError("Data Load Failed"); // Handled in Actions
                 }
             };
-            loadCloud();
-        }
-    }, [selectedSize, user, refreshTrigger, updateBottleDefinition, fetchMRPState, migrateLocalStorage, bottleSizes]);
+        };
+        loadCloud();
+    }
+    }, [selectedSize, user?.id, refreshTrigger, updateBottleDefinition, fetchMRPState, migrateLocalStorage, bottleSizes]);
 
-    return {
-        selectedSize, setSelectedSize,
-        monthlyDemand, setMonthlyDemand,
-        monthlyProductionActuals, setMonthlyProductionActuals,
-        monthlyInbound, setMonthlyInbound,
-        truckManifest, setTruckManifest,
-        downtimeHours, setDowntimeHours,
-        currentInventoryPallets, setCurrentInventoryPallets,
-        inventoryAnchor, setInventoryAnchor,
-        incomingTrucks, setIncomingTrucks,
-        yardInventory, setYardInventory,
+return {
+    selectedSize, setSelectedSize,
+    monthlyDemand, setMonthlyDemand,
+    monthlyProductionActuals, setMonthlyProductionActuals,
+    monthlyInbound, setMonthlyInbound,
+    truckManifest, setTruckManifest,
+    downtimeHours, setDowntimeHours,
+    currentInventoryPallets, setCurrentInventoryPallets,
+    inventoryAnchor, setInventoryAnchor,
+    incomingTrucks, setIncomingTrucks,
+    yardInventory, setYardInventory,
 
-        isAutoReplenish, setIsAutoReplenish,
-        refreshTrigger // Exposed if needed
-    };
+    isAutoReplenish, setIsAutoReplenish,
+    refreshTrigger // Exposed if needed
+};
 }
