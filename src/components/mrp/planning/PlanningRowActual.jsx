@@ -48,8 +48,8 @@ const ActualCell = React.memo(({ date, dateStr, initialValue, updateDateActual }
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            const rawVal = e.target.value.replace(/,/g, '');
-            updateDateActual(dateStr, rawVal); // Force sync
+            // const rawVal = e.target.value.replace(/,/g, '');
+            // updateDateActual(dateStr, rawVal); // Removed: Redundant since onChange is instant
 
             const nextDate = new Date(date);
             nextDate.setDate(nextDate.getDate() + 1);

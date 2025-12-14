@@ -91,8 +91,8 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
                 return;
             }
 
-            // Normal Enter: Save Immediately & Move Focus
-            updateDateDemand(dateStr, rawVal); // Force sync
+            // Normal Enter: Move Focus (Data already saved via onChange)
+            // updateDateDemand(dateStr, rawVal); // Removed: Redundant since onChange is instant
 
             const nextDate = new Date(date);
             nextDate.setDate(nextDate.getDate() + 1);
