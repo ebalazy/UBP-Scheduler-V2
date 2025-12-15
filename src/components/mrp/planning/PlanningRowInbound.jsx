@@ -4,7 +4,7 @@ import { formatLocalDate } from '../../../utils/dateUtils';
 export default function PlanningRowInbound({ dates, poManifest, monthlyInbound, updateDateInbound, openManager }) {
     return (
         <tr>
-            <th className="sticky left-0 bg-white dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-emerald-700 dark:text-emerald-400 z-10 shadow-md">
+            <th className="sticky left-0 min-w-[140px] w-[140px] bg-white dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-emerald-700 dark:text-emerald-400 z-10 shadow-md">
                 Inbound Trucks
             </th>
             {dates.map(date => {

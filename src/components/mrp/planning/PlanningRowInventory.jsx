@@ -4,7 +4,7 @@ import { formatLocalDate } from '../../../utils/dateUtils';
 function PlanningRowInventory({ dates, ledgerMap, specs, safetyTarget }) {
     return (
         <tr className="bg-slate-100 dark:bg-slate-800 border-t-2 border-slate-300 dark:border-slate-600">
-            <th className="sticky left-0 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-slate-800 dark:text-white z-10 shadow-md">
+            <th className="sticky left-0 min-w-[140px] w-[140px] bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-slate-800 dark:text-white z-10 shadow-md">
                 End Inventory
             </th>
             {dates.map(date => {

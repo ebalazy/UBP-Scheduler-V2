@@ -5,7 +5,7 @@ export default function PlanningHeader({ dates, todayStr }) {
     return (
         <thead className="sticky top-0 z-10">
             <tr>
-                <th className="sticky left-0 min-w-[140px] bg-slate-100 dark:bg-slate-800 border-b border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider z-20 shadow-md">
+                <th className="sticky left-0 min-w-[140px] w-[140px] bg-slate-100 dark:bg-slate-800 border-b border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider z-20 shadow-md">
                     <span>Metric</span>
                 </th>
                 {dates.map(date => {

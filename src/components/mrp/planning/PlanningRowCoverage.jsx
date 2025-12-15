@@ -4,7 +4,7 @@ import { formatLocalDate } from '../../../utils/dateUtils';
 function PlanningRowCoverage({ dates, ledgerMap, monthlyDemand, specs }) {
     return (
         <tr className="border-t border-gray-300 dark:border-gray-600">
-            <th className="sticky left-0 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-500 uppercase z-10 shadow-md">
+            <th className="sticky left-0 min-w-[140px] w-[140px] bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-500 uppercase z-10 shadow-md">
                 Coverage (DOS)
             </th>
             {dates.map((date) => {

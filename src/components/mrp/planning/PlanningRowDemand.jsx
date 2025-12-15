@@ -7,7 +7,7 @@ export default function PlanningRowDemand({ dates, monthlyDemand, updateDateDema
 
     return (
         <tr className="group/row">
-            <th className="sticky left-0 bg-white dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 z-10 shadow-md relative">
+            <th className="sticky left-0 min-w-[140px] w-[140px] bg-white dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 z-10 shadow-md relative">
                 Production (Plan)
                 {/* Tooltip Trick */}
                 <div className="hidden group-hover/row:block absolute left-full top-0 ml-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg z-50 pointer-events-none transform translate-y-2 opacity-0 group-hover/row:opacity-100 transition-opacity">

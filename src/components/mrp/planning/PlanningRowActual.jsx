@@ -4,7 +4,7 @@ import { formatLocalDate } from '../../../utils/dateUtils';
 export default function PlanningRowActual({ dates, monthlyProductionActuals, updateDateActual }) {
     return (
         <tr className="bg-sky-50/20 dark:bg-sky-900/10">
-            <th className="sticky left-0 bg-sky-50 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-sky-700 dark:text-sky-400 z-10 shadow-md">
+            <th className="sticky left-0 min-w-[140px] w-[140px] bg-sky-50 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-sky-700 dark:text-sky-400 z-10 shadow-md">
                 Actual / Prod
             </th>
             {dates.map((date) => {
