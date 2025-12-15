@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../services/supabaseClient';
-import { UserPlusIcon, TrashIcon, ShieldCheckIcon, ClipboardDocumentIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon, TrashIcon, ShieldCheckIcon, ClipboardDocumentIcon, InformationCircleIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 const ROLES = [
     {
@@ -50,7 +51,7 @@ export default function UserManagement() {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                if (error.code === '42P01' || error.message?.includes('Could not find the table')) { // undefined_table or schema cache error
+                if (error.code === '42P01' || error.message?.includes('Could not find the table')) {
                     setShowSqlHelp(true);
                     setUsers([]);
                     return;
@@ -67,20 +68,70 @@ export default function UserManagement() {
         }
     };
 
-    const handleAddUser = async (e) => {
+    // --- PROVISIONING LOGIC ---
+    // Uses a temporary client to sign up users directly (server-side simulation)
+    const provisionUser = async (e) => {
         e.preventDefault();
-        try {
-            setError(null);
-            const { data, error } = await supabase.from('user_roles').insert([
-                { email: newUserEmail.toLowerCase(), role: newUserRole }
-            ]).select();
+        if (!newUserEmail) return;
 
-            if (error) throw error;
-            setUsers([data[0], ...users]);
+        setLoading(true);
+        setError(null);
+
+        // 1. Generate Temp Password (random 12 chars)
+        const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4) + "!";
+
+        try {
+            // 2. Create a temporary client to sign up WITHOUT logging out admin
+            // We use the environment variables exposed by Vite
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+            const tempClient = createClient(supabaseUrl, supabaseKey, {
+                auth: { persistSession: false, autoRefreshToken: false }
+            });
+
+            // 3. Sign Up the User
+            // Note: This requires "Disable Signup" to be OFF in Supabase settings.
+            const { data: authData, error: authError } = await tempClient.auth.signUp({
+                email: newUserEmail,
+                password: tempPassword,
+            });
+
+            if (authError) throw authError;
+
+            // 4. Add to User Roles (Authorizing)
+            const { error: dbError } = await supabase
+                .from('user_roles')
+                .upsert({
+                    email: newUserEmail.toLowerCase(),
+                    role: newUserRole,
+                }, { onConflict: 'email' });
+
+            if (dbError) throw dbError;
+
+            // 5. Update Local State
+            setUsers(prev => [
+                { email: newUserEmail.toLowerCase(), role: newUserRole, created_at: new Date().toISOString() },
+                ...prev.filter(u => u.email !== newUserEmail.toLowerCase())
+            ]);
+
+            // 6. Show Credentials
+            alert(
+                `USER CREATED SUCCESSFULLY!\n\n` +
+                `Email: ${newUserEmail}\n` +
+                `Temp Password: ${tempPassword}\n\n` +
+                `ACTION REQUIRED: Copy this password and send it to the user via Slack/Email.\n` +
+                `They will also receive a confirmation email they must click.`
+            );
+
             setNewUserEmail('');
-            alert(`User '${newUserEmail}' authorized! Now go to Supabase Dashboard to send them an Invite.`);
+
         } catch (err) {
+            console.error("Provisioning Error:", err);
             setError(err.message);
+        } finally {
+            setLoading(false);
+            fetchUsers(); // Refresh to be safe
         }
     };
 
@@ -99,7 +150,6 @@ export default function UserManagement() {
         try {
             // Optimistic Update
             setUsers(users.map(u => u.email === email ? { ...u, role: newRole } : u));
-
             const { error } = await supabase.from('user_roles').update({ role: newRole }).match({ email });
             if (error) {
                 fetchUsers();
@@ -163,42 +213,55 @@ create policy "Allow insert/update/delete for authenticated" on user_roles for a
                 ))}
             </div>
 
-            {/* Add User Form */}
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+            {/* Use Provisioning Form: "Create User" */}
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider flex items-center gap-2">
-                    <ShieldCheckIcon className="w-4 h-4" /> Pre-Authorize User
+                    <UserPlusIcon className="w-5 h-5 text-blue-500" /> Provision New User
                 </h3>
-                <p className="text-xs text-slate-500 mb-4 bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 flex items-start gap-2">
-                    <InformationCircleIcon className="w-5 h-5 shrink-0" />
-                    <span>
-                        <strong>Two-Step Account Creation:</strong><br />
-                        1. Add the user's email and role below to authorize access.<br />
-                        2. Go to your <strong>Supabase Dashboard &gt; Authentication</strong> and click "Invite User" to send them a password setup link.
-                    </span>
+                <p className="text-xs text-slate-500 mb-4">
+                    Instantly create a user account. The system will generate a temporary password for you to give to them.
                 </p>
-                <form onSubmit={handleAddUser} className="flex flex-col sm:flex-row gap-2">
-                    <input
-                        type="email"
-                        required
-                        placeholder="new.user@email.com"
-                        value={newUserEmail}
-                        onChange={e => setNewUserEmail(e.target.value)}
-                        className="flex-1 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-blue-500"
-                    />
-                    <select
-                        value={newUserRole}
-                        onChange={e => setNewUserRole(e.target.value)}
-                        className="rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white text-sm font-medium focus:ring-2 focus:ring-blue-500"
-                    >
-                        {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                    </select>
-                    <button
-                        type="submit"
-                        className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 sm:py-0 flex items-center justify-center font-bold text-sm shadow-sm transition-transform active:scale-95"
-                    >
-                        <UserPlusIcon className="w-5 h-5 mr-2 sm:mr-0" />
-                        <span className="sm:hidden">Add User</span>
-                    </button>
+
+                <form onSubmit={provisionUser} className="flex flex-col sm:flex-row gap-4 items-end">
+                    <div className="flex-1 w-full">
+                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">User Email</label>
+                        <input
+                            type="email"
+                            required
+                            placeholder="colleague@company.com"
+                            value={newUserEmail}
+                            onChange={(e) => setNewUserEmail(e.target.value)}
+                            className="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2.5 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                        />
+                    </div>
+
+                    <div className="w-full sm:w-48">
+                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Role</label>
+                        <select
+                            value={newUserRole}
+                            onChange={(e) => setNewUserRole(e.target.value)}
+                            className="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2.5 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                        >
+                            {ROLES.map(role => (
+                                <option key={role.id} value={role.id}>{role.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="w-full sm:w-auto">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-lg transition-colors shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {loading ? 'Processing...' : (
+                                <>
+                                    <PlusIcon className="w-5 h-5" />
+                                    <span>Create User</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </form>
             </div>
 
@@ -214,7 +277,7 @@ create policy "Allow insert/update/delete for authenticated" on user_roles for a
                     {loading ? (
                         <div className="p-8 text-center text-slate-500 animate-pulse text-sm">Loading users...</div>
                     ) : users.length === 0 ? (
-                        <div className="p-8 text-center text-slate-400 text-sm italic">No users found. Add one above.</div>
+                        <div className="p-8 text-center text-slate-400 text-sm italic">No users found. Create one above.</div>
                     ) : (
                         users.map(u => {
                             const roleConfig = ROLES.find(r => r.id === u.role) || ROLES[3];
