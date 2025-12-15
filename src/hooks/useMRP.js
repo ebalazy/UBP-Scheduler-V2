@@ -32,7 +32,7 @@ export function useMRP(poManifest = {}) {
             inventoryAnchor: state.inventoryAnchor,
 
             // Merge values from calculations
-            productionRate, // Derived from settings in hook
+            productionRate: actionFormState.productionRate ?? productionRate, // Prefer local optimistic state
             totalScheduledCases,
 
             // Merge values from actions

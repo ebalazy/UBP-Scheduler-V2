@@ -297,6 +297,13 @@ export function useMRPActions(state, calculationsResult) {
         }
     }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyDemand, savePlanningEntry]);
 
+    // Local State for Production Rate (Optimistic UI)
+    const [localProductionRate, setLocalProductionRate] = useState(bottleDefinitions[selectedSize]?.productionRate || 0);
+
+    useEffect(() => {
+        setLocalProductionRate(bottleDefinitions[selectedSize]?.productionRate || 0);
+    }, [selectedSize, bottleDefinitions]);
+
     const setters = {
         setSelectedSize,
         updateDateDemand,
@@ -313,6 +320,7 @@ export function useMRPActions(state, calculationsResult) {
         },
         setProductionRate: (v) => {
             const val = Number(v);
+            setLocalProductionRate(val); // Optimistic Update
             updateBottleDefinition(selectedSize, 'productionRate', val);
             if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'production_rate', val));
         },
@@ -360,7 +368,8 @@ export function useMRPActions(state, calculationsResult) {
         formState: {
             isSaving,
             saveError,
-            selectedSize
+            selectedSize,
+            productionRate: localProductionRate
         }
     }
 }
