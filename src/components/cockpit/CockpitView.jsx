@@ -33,7 +33,7 @@ const MOCK_DATA = {
     }
 };
 
-export default function CockpitView({ mrpData, schedulerData }) {
+export default function CockpitView({ mrpData, schedulerData, readOnly = false }) {
     // Derive Line 1 Data from MRP Context
     const line1Data = useMemo(() => {
         if (!mrpData?.results) return MOCK_DATA.lines[0];
@@ -212,16 +212,19 @@ export default function CockpitView({ mrpData, schedulerData }) {
                         <input
                             type="text"
                             className="bg-transparent border-none focus:ring-0 text-right w-20 font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600"
-                            placeholder="60k"
+                            placeholder={readOnly ? '-' : '60k'}
                             value={morningTrueUp[line.id]}
                             onChange={e => handleTrueUp(line.id, e.target.value)}
+                            disabled={readOnly}
                         />
-                        <button
-                            onClick={() => applyTrueUp(line.id)}
-                            className="text-gray-400 hover:text-green-400"
-                        >
-                            <ArrowPathIcon className="h-4 w-4" />
-                        </button>
+                        {!readOnly && (
+                            <button
+                                onClick={() => applyTrueUp(line.id)}
+                                className="text-gray-400 hover:text-green-400"
+                            >
+                                <ArrowPathIcon className="h-4 w-4" />
+                            </button>
+                        )}
                     </div>
                 ))}
             </div>
@@ -302,10 +305,11 @@ export default function CockpitView({ mrpData, schedulerData }) {
                     </div>
 
                     <textarea
-                        className="w-full h-32 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg p-3 text-sm text-gray-900 dark:text-gray-300 font-mono focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none"
-                        placeholder="Paste list of PO numbers here..."
+                        className="w-full h-32 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg p-3 text-sm text-gray-900 dark:text-gray-300 font-mono focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none disabled:opacity-50"
+                        placeholder={readOnly ? "SAP Import Disabled (Read Only)" : "Paste list of PO numbers here..."}
                         value={sapInput}
                         onChange={(e) => setSapInput(e.target.value)}
+                        disabled={readOnly}
                     />
 
                     {/* Controls */}
@@ -322,12 +326,14 @@ export default function CockpitView({ mrpData, schedulerData }) {
                                 </button>
                             )}
                         </div>
-                        <button
-                            onClick={handleGenerateSchedule}
-                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors shadow-lg shadow-purple-900/20"
-                        >
-                            Generate Schedule
-                        </button>
+                        {!readOnly && (
+                            <button
+                                onClick={handleGenerateSchedule}
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors shadow-lg shadow-purple-900/20"
+                            >
+                                Generate Schedule
+                            </button>
+                        )}
                     </div>
 
                     {/* Results Output (Supplier Table Format) */}

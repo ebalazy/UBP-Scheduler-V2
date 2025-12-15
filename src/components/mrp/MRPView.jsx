@@ -31,7 +31,7 @@ import { useMRPSolver } from '../../hooks/mrp/useMRPSolver';
 import { useProducts } from '../../context/ProductsContext';
 import PlanningGridWorkbench from './PlanningGridWorkbench';
 
-export default function MRPView({ state, setters, results }) {
+export default function MRPView({ state, setters, results, readOnly = false }) {
     const { bottleSizes, leadTimeDays, schedulerSettings } = useSettings();
     const { productMap: bottleDefinitions } = useProducts();
     const { user } = useAuth();
@@ -285,30 +285,36 @@ export default function MRPView({ state, setters, results }) {
                 </div>
 
                 <div className="flex flex-wrap items-center mt-4 md:mt-0 gap-3">
-                    <button
-                        onClick={() => setIsReconcileOpen(true)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
-                        title="Morning Inventory Check"
-                    >
-                        <SunIcon className="w-4 h-4 text-orange-500" />
-                        Morning True-Up
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={() => setIsReconcileOpen(true)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
+                            title="Morning Inventory Check"
+                        >
+                            <SunIcon className="w-4 h-4 text-orange-500" />
+                            Morning True-Up
+                        </button>
+                    )}
 
-                    <button
-                        onClick={() => setIsImportOpen(true)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
-                    >
-                        <ArrowDownTrayIcon className="w-4 h-4 text-emerald-500" />
-                        Import
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={() => setIsImportOpen(true)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
+                        >
+                            <ArrowDownTrayIcon className="w-4 h-4 text-emerald-500" />
+                            Import
+                        </button>
+                    )}
 
-                    <button
-                        onClick={() => setIsMasterListOpen(true)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
-                    >
-                        <ClipboardDocumentListIcon className="w-4 h-4 text-purple-500" />
-                        POs
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={() => setIsMasterListOpen(true)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
+                        >
+                            <ClipboardDocumentListIcon className="w-4 h-4 text-purple-500" />
+                            POs
+                        </button>
+                    )}
 
                     <button
                         onClick={() => setIsEmailOpen(true)}
@@ -320,13 +326,15 @@ export default function MRPView({ state, setters, results }) {
 
                     <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1 hidden md:block"></div>
 
-                    <button
-                        onClick={handleAutoBalance}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-all"
-                    >
-                        <ArrowPathIcon className="w-4 h-4" />
-                        Auto-Balance
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={handleAutoBalance}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-all"
+                        >
+                            <ArrowPathIcon className="w-4 h-4" />
+                            Auto-Balance
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -364,23 +372,25 @@ export default function MRPView({ state, setters, results }) {
                         <div className="flex items-center gap-6 w-full lg:w-auto justify-end">
 
                             {/* Auto-Pilot */}
-                            <label className="flex items-center cursor-pointer group" title="Auto-Pilot">
-                                <div className="relative">
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only"
-                                        checked={state.isAutoReplenish || false}
-                                        onChange={(e) => setters.setIsAutoReplenish(e.target.checked)}
-                                    />
-                                    <div className={`block w-9 h-5 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                    <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-4' : ''}`}></div>
-                                </div>
-                                <span className={`ml-2 text-xs font-bold uppercase tracking-wide ${state.isAutoReplenish ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500'}`}>
-                                    {state.isAutoReplenish ? 'Auto-Pilot' : 'Manual'}
-                                </span>
-                            </label>
+                            {!readOnly && (
+                                <label className="flex items-center cursor-pointer group" title="Auto-Pilot">
+                                    <div className="relative">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={state.isAutoReplenish || false}
+                                            onChange={(e) => setters.setIsAutoReplenish(e.target.checked)}
+                                        />
+                                        <div className={`block w-9 h-5 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                                        <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-4' : ''}`}></div>
+                                    </div>
+                                    <span className={`ml-2 text-xs font-bold uppercase tracking-wide ${state.isAutoReplenish ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500'}`}>
+                                        {state.isAutoReplenish ? 'Auto-Pilot' : 'Manual'}
+                                    </span>
+                                </label>
+                            )}
 
-                            <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 hidden md:block"></div>
+                            {!readOnly && <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 hidden md:block"></div>}
 
                             {/* View Switchers */}
                             <div className="flex bg-white dark:bg-gray-700 p-1 rounded-md shadow-sm border border-gray-200 dark:border-gray-600">
@@ -418,6 +428,7 @@ export default function MRPView({ state, setters, results }) {
                                     dailyLedger={results?.dailyLedger}
                                     safetyTarget={results?.safetyTarget}
                                     poManifest={poManifest}
+                                    readOnly={readOnly}
                                 />
                             </div>
                         ) : viewMode === 'workbench' ? (
@@ -431,6 +442,7 @@ export default function MRPView({ state, setters, results }) {
                                 dailyLedger={results?.dailyLedger}
                                 userProfile={user}
                                 startDate={gridStartDate}
+                                readOnly={readOnly}
                             />
                         ) : (
                             <PlanningGrid
@@ -446,6 +458,7 @@ export default function MRPView({ state, setters, results }) {
                                 dailyLedger={results?.dailyLedger}
                                 userProfile={user}
                                 startDate={gridStartDate}
+                                readOnly={readOnly}
                             />
                         )}
                     </div>

@@ -8,7 +8,7 @@ import { saveLocalState } from './useMRPState';
 
 export function useMRPActions(state, calculationsResult) {
     const { bottleDefinitions, updateBottleDefinition, safetyStockLoads, leadTimeDays } = useSettings();
-    const { user } = useAuth();
+    const { user, userRole } = useAuth();
     const { savePlanningEntry, saveProductionSetting, saveInventoryAnchor } = useSupabaseSync();
 
     const {
@@ -47,13 +47,17 @@ export function useMRPActions(state, calculationsResult) {
 
     // Wrapper for Save
     const saveWithStatus = useCallback(async (fn) => {
+        // PERMISSION CHECK: Only Admins and Planners can save to cloud
+        const canEdit = ['admin', 'planner'].includes(userRole);
+        if (!canEdit) return;
+
         setSaveError(null);
         try { await fn(); }
         catch (e) {
             console.error("Save Error", e);
             setSaveError(e.message || "Save Failed");
         }
-    }, []);
+    }, [userRole]);
 
     // Debounce Helper (Network)
     const scheduleSave = useCallback((key, fn, delay = 1000) => {
@@ -166,7 +170,7 @@ export function useMRPActions(state, calculationsResult) {
         setMonthlyInbound(newInbound);
         saveLocalState('monthlyInbound', newInbound, selectedSize, true);
 
-        if (user) {
+        if (user && ['admin', 'planner'].includes(userRole)) {
             saveWithStatus(async () => {
                 const promises = Object.entries(next60Days).map(([date, trucks]) => {
                     return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
@@ -174,7 +178,7 @@ export function useMRPActions(state, calculationsResult) {
                 await Promise.all(promises);
             });
         }
-    }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, savePlanningEntry, setMonthlyInbound, saveLocalState, saveWithStatus]);
+    }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, userRole, savePlanningEntry, setMonthlyInbound, saveLocalState, saveWithStatus]);
 
     const updateDateDemand = useCallback((date, value) => {
         // Allow raw value flow for decimals/empty string. 

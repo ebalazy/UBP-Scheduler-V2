@@ -24,15 +24,15 @@ import { ProcurementProvider, useProcurement } from './context/ProcurementContex
 import { ProductsProvider } from './context/ProductsContext';
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, userRole } = useAuth();
   const { uploadLocalData } = useSupabaseSync();
   const { bottleSizes } = useSettings();
 
   useEffect(() => {
     if (user) {
-      uploadLocalData(user, bottleSizes);
+      uploadLocalData(user, bottleSizes, userRole);
     }
-  }, [user, bottleSizes, uploadLocalData]);
+  }, [user, bottleSizes, uploadLocalData, userRole]);
 
   useEffect(() => {
     document.title = `UBP Planner v${import.meta.env.PACKAGE_VERSION}`;
@@ -212,6 +212,7 @@ function AuthenticatedApp({ user }) {
             state={mrp.formState}
             setters={mrp.setters}
             results={mrp.results}
+            readOnly={!showPlanning}
           />
         </div>
         <div className={activeTab === 'scheduler' ? 'block' : 'hidden'}>
@@ -230,13 +231,13 @@ function AuthenticatedApp({ user }) {
         </div>
 
         <div className={activeTab === 'products' ? 'block' : 'hidden'}>
-          <ProductsView />
+          <ProductsView readOnly={!canEditLogistics} />
         </div>
 
         <div className={activeTab === 'cockpit' ? 'block' : 'hidden'}>
           {/* Negative margins to expand cockpit to container edges */}
           <div className="-mx-4 md:-mx-6 -my-4 md:-my-6">
-            <CockpitView mrpData={mrp} schedulerData={scheduler} />
+            <CockpitView mrpData={mrp} schedulerData={scheduler} readOnly={!canEditLogistics} />
           </div>
         </div>
       </main>

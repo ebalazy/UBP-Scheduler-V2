@@ -1,7 +1,7 @@
 import React from 'react';
 import { formatLocalDate } from '../../../utils/dateUtils';
 
-export default function PlanningRowDemand({ dates, monthlyDemand, updateDateDemand, updateDateDemandBulk }) {
+export default function PlanningRowDemand({ dates, monthlyDemand, updateDateDemand, updateDateDemandBulk, readOnly = false }) {
     const updateRef = React.useRef(updateDateDemand);
     React.useEffect(() => { updateRef.current = updateDateDemand; }, [updateDateDemand]);
 
@@ -10,10 +10,12 @@ export default function PlanningRowDemand({ dates, monthlyDemand, updateDateDema
             <th className="sticky left-0 min-w-[140px] w-[140px] bg-white dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 z-10 shadow-md relative">
                 Production (Plan)
                 {/* Tooltip Trick */}
-                <div className="hidden group-hover/row:block absolute left-full top-0 ml-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg z-50 pointer-events-none transform translate-y-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                    <strong>⚡ Power Tip:</strong><br />
-                    Type <code>60000*5</code> and hit Enter to fill 5 days at once!
-                </div>
+                {!readOnly && (
+                    <div className="hidden group-hover/row:block absolute left-full top-0 ml-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg z-50 pointer-events-none transform translate-y-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                        <strong>⚡ Power Tip:</strong><br />
+                        Type <code>60000*5</code> and hit Enter to fill 5 days at once!
+                    </div>
+                )}
             </th>
             {dates.map((date) => {
                 const dateStr = formatLocalDate(date);
@@ -27,6 +29,7 @@ export default function PlanningRowDemand({ dates, monthlyDemand, updateDateDema
                         initialValue={val}
                         updateDateDemand={updateDateDemand}
                         updateDateDemandBulk={updateDateDemandBulk}
+                        readOnly={readOnly}
                     />
                 );
             })}
@@ -34,7 +37,7 @@ export default function PlanningRowDemand({ dates, monthlyDemand, updateDateDema
     );
 }
 
-const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, updateDateDemandBulk }) => {
+const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, updateDateDemandBulk, readOnly }) => {
     const inputRef = React.useRef(null);
 
     // Sync from Global State (only if not focused to avoid fighting cursor)
@@ -63,6 +66,7 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
     };
 
     const handleBlur = () => {
+        if (readOnly) return;
         if (inputRef.current) {
             const finalVal = parseValue(inputRef.current.value);
             updateDateDemand(dateStr, finalVal);
@@ -70,6 +74,7 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
     };
 
     const handleKeyDown = (e) => {
+        if (readOnly) return;
         if (e.key === 'Enter') {
             e.preventDefault();
             const rawVal = e.target.value.replace(/,/g, '');
@@ -121,13 +126,14 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
     };
 
     return (
-        <td className="p-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+        <td className={`p-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 transition-colors ${readOnly ? '' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
             <input
                 ref={inputRef}
                 id={`demand-${dateStr}`}
-                className="w-full h-full p-2 text-center text-sm font-bold bg-transparent font-medium text-slate-800 dark:text-slate-200 placeholder-slate-300 focus:bg-blue-50/50 dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400 rounded-sm"
+                className={`w-full h-full p-2 text-center text-sm font-bold bg-transparent font-medium text-slate-800 dark:text-slate-200 placeholder-slate-300 rounded-sm ${readOnly ? 'cursor-default opacity-80' : 'focus:bg-blue-50/50 dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400'}`}
                 defaultValue={initialValue || ''}
-                placeholder="-"
+                placeholder={readOnly ? '' : '-'}
+                disabled={readOnly}
                 onChange={(e) => {
                     // debouncedUpdate(dateStr, e.target.value); // Disabled Live Update
                 }}

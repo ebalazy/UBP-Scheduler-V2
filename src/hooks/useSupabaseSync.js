@@ -313,8 +313,11 @@ export const useSupabaseSync = () => {
         if (error) console.error("Error saving profile:", error);
     }, []);
 
-    const uploadLocalData = useCallback(async (user, bottleSizes) => {
+    const uploadLocalData = useCallback(async (user, bottleSizes, userRole = 'viewer') => {
         if (!user) return;
+        // PERMISSION CHECK: Only Admins and Planners can upload/migrate data
+        if (!['admin', 'planner'].includes(userRole)) return;
+
         const { count, error } = await supabase
             .from('products')
             .select('*', { count: 'exact', head: true })

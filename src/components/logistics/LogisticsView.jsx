@@ -278,6 +278,7 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
                                         date={todayStr}
                                         totalRequired={item.count}
                                         manifest={item.manifest}
+                                        readOnly={readOnly}
                                         onUpdate={(d, list) => {
                                             // LogisticsView onUpdate (Today) Called
                                             try {
@@ -360,6 +361,7 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
                                         date={tomorrowStr}
                                         totalRequired={item.count}
                                         manifest={item.manifest}
+                                        readOnly={readOnly}
                                         onUpdate={(d, list) => {
                                             // LogisticsView onUpdate Called
                                             try {

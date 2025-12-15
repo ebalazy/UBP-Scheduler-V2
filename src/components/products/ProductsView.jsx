@@ -5,7 +5,7 @@ import { PlusIcon, TruckIcon, BoltIcon, ArrowPathIcon } from '@heroicons/react/2
 import { Package } from 'lucide-react';
 import ProductEditModal from './ProductEditModal';
 
-export default function ProductsView() {
+export default function ProductsView({ readOnly = false }) {
     const { user } = useAuth();
     const { products, loading: isLoading, refreshProducts } = useProducts(); // Use Global State
 
@@ -38,13 +38,15 @@ export default function ProductsView() {
                     <p className="text-sm text-gray-500 mt-1">Manage SKUs, dimensions, and run rates.</p>
                 </div>
                 <div className="flex gap-2">
-                    <button
-                        onClick={handleCreate}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all"
-                    >
-                        <PlusIcon className="w-5 h-5" />
-                        Add Product
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={handleCreate}
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all"
+                        >
+                            <PlusIcon className="w-5 h-5" />
+                            Add Product
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -126,6 +128,7 @@ export default function ProductsView() {
                 onClose={() => setIsModalOpen(false)}
                 product={editingProduct}
                 onSave={handleSave}
+                readOnly={readOnly}
             />
 
         </div>

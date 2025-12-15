@@ -4,7 +4,7 @@ import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { TrashIcon, PlusIcon } from '@heroicons/react/24/outline'; // Need to ensure imports exist
 
-export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
+export default function ProductEditModal({ isOpen, onClose, product, onSave, readOnly = false }) {
     const { user } = useAuth();
     const [formData, setFormData] = useState({
         name: '',
@@ -70,7 +70,7 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || readOnly) return;
         setIsSaving(true);
         setError(null);
 
@@ -129,7 +129,7 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
             <div className="fixed inset-0 flex items-center justify-center p-4">
                 <Dialog.Panel className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
                     <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                        {product ? 'Edit Product Configuration' : 'Add New Product'}
+                        {readOnly ? 'View Product Configuration' : (product ? 'Edit Product Configuration' : 'Add New Product')}
                     </Dialog.Title>
 
                     {error && (
@@ -150,7 +150,7 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
                                         required
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        disabled={!!product}
+                                        disabled={!!product || readOnly}
                                         className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                                         placeholder="e.g. 20oz Cola"
                                     />
@@ -162,7 +162,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
                                             type="color"
                                             value={formData.color_tag}
                                             onChange={e => setFormData({ ...formData, color_tag: e.target.value })}
-                                            className="h-9 w-12 rounded cursor-pointer border-0 p-0"
+                                            disabled={readOnly}
+                                            className="h-9 w-12 rounded cursor-pointer border-0 p-0 disabled:opacity-50"
                                         />
                                         <span className="text-xs text-gray-400">Calendar Tag</span>
                                     </div>
@@ -173,7 +174,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
                                         type="text"
                                         value={formData.description}
                                         onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                                        disabled={readOnly}
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm disabled:opacity-50"
                                         placeholder="e.g. Standard 24pk Tray"
                                     />
                                 </div>
@@ -193,7 +195,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
                                             min="1"
                                             value={formData.bottles_per_case}
                                             onChange={e => setFormData({ ...formData, bottles_per_case: e.target.value })}
-                                            className="w-full px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100 text-sm font-bold"
+                                            disabled={readOnly}
+                                            className="w-full px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100 text-sm font-bold disabled:opacity-50"
                                         />
                                         <span className="text-xs text-emerald-600 dark:text-emerald-400">units/case</span>
                                     </div>
@@ -207,7 +210,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
                                             min="1"
                                             value={formData.cases_per_pallet}
                                             onChange={e => setFormData({ ...formData, cases_per_pallet: e.target.value })}
-                                            className="w-full px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100 text-sm font-bold"
+                                            disabled={readOnly}
+                                            className="w-full px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100 text-sm font-bold disabled:opacity-50"
                                         />
                                         <span className="text-xs text-emerald-600 dark:text-emerald-400">cases/plt</span>
                                     </div>
@@ -228,7 +232,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
                                         step="100"
                                         value={formData.bottles_per_truck}
                                         onChange={e => setFormData({ ...formData, bottles_per_truck: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 text-lg font-black tracking-tight"
+                                        disabled={readOnly}
+                                        className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 text-lg font-black tracking-tight disabled:opacity-50"
                                     />
                                     <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">units / truck</span>
                                 </div>
@@ -240,9 +245,11 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
                         <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl space-y-3">
                             <div className="flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-blue-500 uppercase tracking-wider">Production Lines</h3>
-                                <button type="button" onClick={handleAddLine} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-                                    <PlusIcon className="w-3 h-3" /> Add Line
-                                </button>
+                                {!readOnly && (
+                                    <button type="button" onClick={handleAddLine} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                                        <PlusIcon className="w-3 h-3" /> Add Line
+                                    </button>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 {formData.lines.map((line, idx) => (
@@ -252,23 +259,27 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
                                             value={line.line_name}
                                             onChange={e => handleLineChange(idx, 'line_name', e.target.value)}
                                             placeholder="Line Name"
-                                            className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-sm"
+                                            disabled={readOnly}
+                                            className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-sm disabled:opacity-50"
                                         />
                                         <input
                                             type="number"
                                             value={line.production_rate}
                                             onChange={e => handleLineChange(idx, 'production_rate', e.target.value)}
                                             placeholder="CPH"
-                                            className="w-24 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-sm text-right"
+                                            disabled={readOnly}
+                                            className="w-24 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-sm text-right disabled:opacity-50"
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveLine(idx)}
-                                            className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-                                            title="Remove Line"
-                                        >
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
+                                        {!readOnly && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveLine(idx)}
+                                                className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                                                title="Remove Line"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                                 {formData.lines.length === 0 && (
@@ -284,15 +295,17 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
                                 onClick={onClose}
                                 className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
-                                Cancel
+                                {readOnly ? 'Close' : 'Cancel'}
                             </button>
-                            <button
-                                type="submit"
-                                disabled={isSaving}
-                                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 shadow-sm"
-                            >
-                                {isSaving ? 'Saving...' : 'Save Configuration'}
-                            </button>
+                            {!readOnly && (
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 shadow-sm"
+                                >
+                                    {isSaving ? 'Saving...' : 'Save Configuration'}
+                                </button>
+                            )}
                         </div>
                     </form>
                 </Dialog.Panel>

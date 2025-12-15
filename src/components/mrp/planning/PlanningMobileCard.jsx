@@ -12,7 +12,8 @@ export default function PlanningMobileCard({
     monthlyInboundVal, // Raw value from map
     updateDateInbound,
     ledgerItem,
-    openManager
+    openManager,
+    readOnly = false
 }) {
     const dateStr = formatLocalDate(date);
     const isToday = dateStr === todayStr;
@@ -37,9 +38,10 @@ export default function PlanningMobileCard({
                 <div className="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg">
                     <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Production Plan</label>
                     <input
-                        className="w-full bg-white dark:bg-gray-600 rounded border border-gray-200 dark:border-gray-500 p-2 text-sm font-bold text-center focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="-"
+                        className={`w-full bg-white dark:bg-gray-600 rounded border border-gray-200 dark:border-gray-500 p-2 text-sm font-bold text-center outline-none ${readOnly ? 'cursor-default opacity-80' : 'focus:ring-2 focus:ring-blue-500'}`}
+                        placeholder={readOnly ? '' : '-'}
                         value={demandVal || ''}
+                        disabled={readOnly}
                         onChange={e => updateDateDemand(dateStr, e.target.value)}
                     />
                 </div>
@@ -48,9 +50,10 @@ export default function PlanningMobileCard({
                 <div className="bg-blue-50/50 dark:bg-blue-900/10 p-2 rounded-lg border border-blue-100 dark:border-blue-900">
                     <label className="text-[10px] font-bold text-blue-400 uppercase block mb-1">Actual / Prod</label>
                     <input
-                        className="w-full bg-white dark:bg-gray-600 rounded border border-blue-200 dark:border-blue-800 p-2 text-sm font-bold text-center text-blue-700 dark:text-blue-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="-"
+                        className={`w-full bg-white dark:bg-gray-600 rounded border border-blue-200 dark:border-blue-800 p-2 text-sm font-bold text-center text-blue-700 dark:text-blue-300 outline-none ${readOnly ? 'cursor-default opacity-80' : 'focus:ring-2 focus:ring-blue-500'}`}
+                        placeholder={readOnly ? '' : '-'}
                         value={hasActual ? Number(actualVal).toLocaleString() : ''}
+                        disabled={readOnly}
                         onChange={e => {
                             const v = e.target.value.replace(/,/g, '');
                             if (!isNaN(v)) updateDateActual(dateStr, v);
@@ -63,16 +66,18 @@ export default function PlanningMobileCard({
                     <label className="text-[10px] font-bold text-green-400 uppercase block mb-1">Inbound Trucks</label>
                     {hasManifest ? (
                         <button
-                            className="w-full bg-white dark:bg-gray-600 rounded border border-green-200 dark:border-green-800 p-2 text-sm font-bold text-center text-green-700 dark:text-green-400 flex items-center justify-center gap-2"
-                            onClick={() => openManager(dateStr)}
+                            className={`w-full bg-white dark:bg-gray-600 rounded border border-green-200 dark:border-green-800 p-2 text-sm font-bold text-center text-green-700 dark:text-green-400 flex items-center justify-center gap-2 ${readOnly ? 'cursor-default opacity-80' : ''}`}
+                            onClick={() => !readOnly && openManager(dateStr)}
+                            disabled={readOnly}
                         >
                             {inboundVal} <span className="w-2 h-2 rounded-full bg-green-500"></span>
                         </button>
                     ) : (
                         <input
-                            className="w-full bg-white dark:bg-gray-600 rounded border border-green-200 dark:border-green-800 p-2 text-sm font-bold text-center text-green-700 dark:text-green-400 focus:ring-2 focus:ring-green-500 outline-none"
-                            placeholder="0"
+                            className={`w-full bg-white dark:bg-gray-600 rounded border border-green-200 dark:border-green-800 p-2 text-sm font-bold text-center text-green-700 dark:text-green-400 outline-none ${readOnly ? 'cursor-default opacity-80' : 'focus:ring-2 focus:ring-green-500'}`}
+                            placeholder={readOnly ? '' : '0'}
                             value={inboundVal || ''}
+                            disabled={readOnly}
                             onChange={e => {
                                 const v = e.target.value.replace(/,/g, '');
                                 if (!isNaN(v)) updateDateInbound(dateStr, v);
