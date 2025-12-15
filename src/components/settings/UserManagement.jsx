@@ -78,7 +78,7 @@ export default function UserManagement() {
             if (error) throw error;
             setUsers([data[0], ...users]);
             setNewUserEmail('');
-            alert(`User pre-authorized! Send them this link to sign up: ${window.location.origin}`);
+            alert(`User '${newUserEmail}' authorized! Now go to Supabase Dashboard to send them an Invite.`);
         } catch (err) {
             setError(err.message);
         }
@@ -165,9 +165,17 @@ create policy "Allow insert/update/delete for authenticated" on user_roles for a
 
             {/* Add User Form */}
             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 uppercase tracking-wider flex items-center gap-2">
-                    <ShieldCheckIcon className="w-4 h-4" /> Grant Access
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider flex items-center gap-2">
+                    <ShieldCheckIcon className="w-4 h-4" /> Pre-Authorize User
                 </h3>
+                <p className="text-xs text-slate-500 mb-4 bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 flex items-start gap-2">
+                    <InformationCircleIcon className="w-5 h-5 shrink-0" />
+                    <span>
+                        <strong>Two-Step Account Creation:</strong><br />
+                        1. Add the user's email and role below to authorize access.<br />
+                        2. Go to your <strong>Supabase Dashboard &gt; Authentication</strong> and click "Invite User" to send them a password setup link.
+                    </span>
+                </p>
                 <form onSubmit={handleAddUser} className="flex flex-col sm:flex-row gap-2">
                     <input
                         type="email"
