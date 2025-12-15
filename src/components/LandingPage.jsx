@@ -60,7 +60,7 @@ export default function LandingPage() {
                         <div className="h-20 w-20 bg-white rounded-full p-0.5 shadow-xl shadow-blue-900/20 mb-4 overflow-hidden ring-2 ring-slate-800">
                             <img src={ubpLogo} alt="UBP" className="h-full w-full object-contain" />
                         </div>
-                        <h1 className="text-xl font-bold text-white tracking-tight">Operations Portal</h1>
+                        <h1 className="text-xl font-bold text-white tracking-tight">MRP Portal</h1>
                         <div className="flex items-center gap-1.5 text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">
                             <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-500" />
                             <span>Authorized Access Only</span>
