@@ -3,8 +3,8 @@ import { formatLocalDate } from '../../../utils/dateUtils';
 
 export default function PlanningRowActual({ dates, monthlyProductionActuals, updateDateActual }) {
     return (
-        <tr className="bg-blue-50/20 dark:bg-blue-900/10">
-            <th className="sticky left-0 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-blue-600 dark:text-blue-400 z-10 shadow-md">
+        <tr className="bg-sky-50/20 dark:bg-sky-900/10">
+            <th className="sticky left-0 bg-sky-50 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-sky-700 dark:text-sky-400 z-10 shadow-md">
                 Actual / Prod
             </th>
             {dates.map((date) => {
@@ -40,10 +40,10 @@ const ActualCell = React.memo(({ dateStr, initialValue, updateDateActual }) => {
     };
 
     return (
-        <td className="p-0 border-r border-gray-100 dark:border-gray-700 bg-blue-50/10 dark:bg-blue-900/5 min-w-[60px]">
+        <td className="p-0 border-r border-slate-200 dark:border-slate-700 bg-sky-50/10 dark:bg-sky-900/5 min-w-[60px]">
             <input
                 type="number"
-                className="w-full h-full text-center text-xs bg-transparent focus:bg-white dark:focus:bg-gray-700 outline-none p-1 font-bold text-blue-700 dark:text-blue-300"
+                className="w-full h-full text-center text-xs bg-transparent focus:bg-white dark:focus:bg-slate-700 outline-none p-1 font-bold text-sky-700 dark:text-sky-300 focus:ring-2 focus:ring-inset focus:ring-sky-400 rounded-sm"
                 value={val}
                 onChange={(e) => setVal(e.target.value)}
                 onBlur={handleBlur}

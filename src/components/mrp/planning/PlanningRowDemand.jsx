@@ -6,11 +6,11 @@ export default function PlanningRowDemand({ dates, monthlyDemand, updateDateDema
     React.useEffect(() => { updateRef.current = updateDateDemand; }, [updateDateDemand]);
 
     return (
-        <tr>
-            <th className="sticky left-0 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 z-10 shadow-md group relative">
+        <tr className="group/row">
+            <th className="sticky left-0 bg-white dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 z-10 shadow-md relative">
                 Production (Plan)
                 {/* Tooltip Trick */}
-                <div className="hidden group-hover:block absolute left-full top-0 ml-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded shadow-lg z-50 pointer-events-none">
+                <div className="hidden group-hover/row:block absolute left-full top-0 ml-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg z-50 pointer-events-none transform translate-y-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                     <strong>⚡ Power Tip:</strong><br />
                     Type <code>60000*5</code> and hit Enter to fill 5 days at once!
                 </div>
@@ -106,11 +106,11 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
     };
 
     return (
-        <td className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+        <td className="p-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
             <input
                 ref={inputRef}
                 id={`demand-${dateStr}`}
-                className="w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:text-gray-200"
+                className="w-full h-full p-2 text-center text-xs bg-transparent font-medium text-slate-800 dark:text-slate-200 placeholder-slate-300 focus:bg-blue-50/50 dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400 rounded-sm"
                 defaultValue={initialValue || ''}
                 placeholder="-"
                 onChange={(e) => {

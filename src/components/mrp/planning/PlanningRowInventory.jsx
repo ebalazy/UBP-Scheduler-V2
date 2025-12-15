@@ -3,8 +3,8 @@ import { formatLocalDate } from '../../../utils/dateUtils';
 
 function PlanningRowInventory({ dates, ledgerMap, specs, safetyTarget }) {
     return (
-        <tr className="bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-300 dark:border-gray-600">
-            <th className="sticky left-0 bg-gray-100 dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-800 dark:text-white z-10 shadow-md">
+        <tr className="bg-slate-100 dark:bg-slate-800 border-t-2 border-slate-300 dark:border-slate-600">
+            <th className="sticky left-0 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-slate-800 dark:text-white z-10 shadow-md">
                 End Inventory
             </th>
             {dates.map(date => {
@@ -40,7 +40,7 @@ function PlanningRowInventory({ dates, ledgerMap, specs, safetyTarget }) {
                 }
 
                 return (
-                    <td key={dateStr} className={`p-2 text-center text-xs border-r border-gray-200 dark:border-gray-700 ${bgClass}`}>
+                    <td key={dateStr} className={`p-2 text-center text-xs border-r border-slate-300 dark:border-slate-600 ${bgClass}`}>
                         {label}
                     </td>
                 );

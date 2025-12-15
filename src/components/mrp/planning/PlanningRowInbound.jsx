@@ -4,7 +4,7 @@ import { formatLocalDate } from '../../../utils/dateUtils';
 export default function PlanningRowInbound({ dates, poManifest, monthlyInbound, updateDateInbound, openManager }) {
     return (
         <tr>
-            <th className="sticky left-0 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-green-600 dark:text-green-500 z-10 shadow-md">
+            <th className="sticky left-0 bg-white dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-emerald-700 dark:text-emerald-400 z-10 shadow-md">
                 Inbound Trucks
             </th>
             {dates.map(date => {
@@ -14,7 +14,7 @@ export default function PlanningRowInbound({ dates, poManifest, monthlyInbound, 
                 const val = hasManifest ? manifestItems.length : (monthlyInbound[dateStr] || 0);
 
                 return (
-                    <td key={dateStr} className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 relative group">
+                    <td key={dateStr} className="p-0 border-r border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 relative group transition-colors">
                         {hasManifest ? (
                             /* PO MODE: Clickable Number */
                             <button
@@ -22,15 +22,15 @@ export default function PlanningRowInbound({ dates, poManifest, monthlyInbound, 
                                 onClick={() => openManager(dateStr)}
                                 title={`${manifestItems.length} Confirmed POs`}
                             >
-                                <span className="bg-green-600 text-white dark:bg-green-500 rounded px-2 py-0.5 text-xs font-bold shadow-sm whitespace-nowrap">
+                                <span className="bg-emerald-600 text-white dark:bg-emerald-500 rounded px-2 py-0.5 text-xs font-bold shadow-sm whitespace-nowrap hover:bg-emerald-700 transition-colors">
                                     {val} PO
                                 </span>
                             </button>
                         ) : (
                             /* MANUAL MODE: Input */
                             <input
-                                className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-green-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500 font-bold
-                                    ${val > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-300'}
+                                className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-emerald-50 dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-400 font-bold rounded-sm
+                                    ${val > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-300'}
                                 `}
                                 value={val || ''}
                                 placeholder="0"
