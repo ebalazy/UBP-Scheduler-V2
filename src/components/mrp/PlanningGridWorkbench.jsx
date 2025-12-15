@@ -27,14 +27,13 @@ export default function PlanningGridWorkbench({
     monthlyProductionActuals,
     monthlyInbound,
     updateDateDemand,
-    updateDateDemand,
     updateDateActual,
     poManifest = {}, // Default to empty object
     dailyLedger = [],
     specs,
     userProfile
 }) {
-    const { poManifest, saveProcurementEntry, deleteProcurementEntry } = useProcurement();
+    const { saveProcurementEntry, deleteProcurementEntry } = useProcurement();
     const { bottleSizes } = useSettings();
     const [startDate, setStartDate] = useState(new Date());
     const [managerDate, setManagerDate] = useState(null);
