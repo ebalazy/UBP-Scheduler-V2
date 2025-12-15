@@ -110,7 +110,7 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
             <input
                 ref={inputRef}
                 id={`demand-${dateStr}`}
-                className="w-full h-full p-2 text-center text-xs bg-transparent font-medium text-slate-800 dark:text-slate-200 placeholder-slate-300 focus:bg-blue-50/50 dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400 rounded-sm"
+                className="w-full h-full p-2 text-center text-sm font-bold bg-transparent font-medium text-slate-800 dark:text-slate-200 placeholder-slate-300 focus:bg-blue-50/50 dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400 rounded-sm"
                 defaultValue={initialValue || ''}
                 placeholder="-"
                 onChange={(e) => {

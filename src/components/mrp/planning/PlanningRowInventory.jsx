@@ -40,7 +40,7 @@ function PlanningRowInventory({ dates, ledgerMap, specs, safetyTarget }) {
                 }
 
                 return (
-                    <td key={dateStr} className={`p-2 text-center text-xs border-r border-slate-300 dark:border-slate-600 ${bgClass}`}>
+                    <td key={dateStr} className={`p-2 text-center text-sm font-bold border-r border-slate-300 dark:border-slate-600 ${bgClass}`}>
                         {label}
                     </td>
                 );

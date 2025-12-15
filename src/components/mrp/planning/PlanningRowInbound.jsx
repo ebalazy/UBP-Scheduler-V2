@@ -22,14 +22,14 @@ export default function PlanningRowInbound({ dates, poManifest, monthlyInbound, 
                                 onClick={() => openManager(dateStr)}
                                 title={`${manifestItems.length} Confirmed POs`}
                             >
-                                <span className="bg-emerald-600 text-white dark:bg-emerald-500 rounded px-2 py-0.5 text-xs font-bold shadow-sm whitespace-nowrap hover:bg-emerald-700 transition-colors">
+                                <span className="bg-emerald-600 text-white dark:bg-emerald-500 rounded px-2 py-0.5 text-sm font-bold shadow-sm whitespace-nowrap hover:bg-emerald-700 transition-colors">
                                     {val} PO
                                 </span>
                             </button>
                         ) : (
                             /* MANUAL MODE: Input */
                             <input
-                                className={`w-full h-full p-2 text-center text-xs bg-transparent focus:bg-emerald-50 dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-400 font-bold rounded-sm
+                                className={`w-full h-full p-2 text-center text-sm bg-transparent focus:bg-emerald-50 dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-400 font-bold rounded-sm
                                     ${val > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-300'}
                                 `}
                                 value={val || ''}
