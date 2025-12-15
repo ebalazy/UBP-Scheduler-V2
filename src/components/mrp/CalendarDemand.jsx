@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'; // Falling back to text if icons issue, but package.json has heroicons
 
-export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthlyInbound, updateDateInbound, monthlyProductionActuals, updateDateActual, specs, trucksToCancel, dailyLedger, safetyTarget }) {
+export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthlyInbound, updateDateInbound, monthlyProductionActuals, updateDateActual, specs, trucksToCancel, dailyLedger, safetyTarget, poManifest = {} }) {
     const [viewDate, setViewDate] = useState(new Date());
 
     // Generate calendar grid
@@ -59,7 +59,8 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                 isPushCandidate: nextTruckDate === dateStr,
                 endInvCases: endInvCases,
                 isSafetyRisk: endInvBottles !== undefined && endInvBottles < (safetyTarget || 0),
-                isOverflow: endInvBottles !== undefined && endInvBottles > ((safetyTarget || 0) + (specs?.bottlesPerTruck || 0) * 2)
+                isOverflow: endInvBottles !== undefined && endInvBottles > ((safetyTarget || 0) + (specs?.bottlesPerTruck || 0) * 2),
+                isConfirmed: poManifest[dateStr]?.items?.length > 0
             };
         });
 
@@ -80,9 +81,8 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
             days: [...padding, ...dateArray],
             monthLabel: firstDay.toLocaleString('default', { month: 'long', year: 'numeric' }),
             totalMonthlyDemand,
-            totalEstTrucks
         };
-    }, [viewDate, monthlyDemand, monthlyInbound, monthlyProductionActuals, specs, trucksToCancel]);
+    }, [viewDate, monthlyDemand, monthlyInbound, monthlyProductionActuals, specs, trucksToCancel, poManifest]);
 
     const changeMonth = (offset) => {
         setViewDate(prev => {
@@ -244,6 +244,16 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
                                         }}
                                     />
                                 </div>
+
+                                {/* Confirmed Badge (Dot or Check) */}
+                                {day.isConfirmed && (
+                                    <div className="absolute top-1 right-1">
+                                        <span className="flex h-2 w-2 relative">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                        </span>
+                                    </div>
+                                )}
 
                                 {/* Ending Inventory Row */}
                                 {day.endInvCases !== null && (

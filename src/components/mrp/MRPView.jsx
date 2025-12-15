@@ -481,6 +481,7 @@ export default function MRPView({ state, setters, results }) {
                                         trucksToCancel={results?.trucksToCancel}
                                         dailyLedger={results?.dailyLedger}
                                         safetyTarget={results?.safetyTarget}
+                                        poManifest={poManifest}
                                     />
                                 </div>
                             ) : viewMode === 'workbench' ? (

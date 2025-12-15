@@ -18,13 +18,13 @@ export default function PlanningRowInbound({ dates, poManifest, monthlyInbound, 
                         {hasManifest ? (
                             /* PO MODE: Clickable Number */
                             <button
-                                className="w-full h-full p-2 text-center text-xs font-bold text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors flex items-center justify-center gap-1"
+                                className="w-full h-full p-1 flex items-center justify-center"
                                 onClick={() => openManager(dateStr)}
-                                title={`${manifestItems.length} POs - Click to Manage`}
+                                title={`${manifestItems.length} Confirmed POs`}
                             >
-                                {val}
-                                {/* Subtle Dot to indicate this is a Manifest value */}
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                <span className="bg-green-600 text-white dark:bg-green-500 rounded px-2 py-0.5 text-xs font-bold shadow-sm whitespace-nowrap">
+                                    {val} PO
+                                </span>
                             </button>
                         ) : (
                             /* MANUAL MODE: Input */

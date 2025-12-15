@@ -61,7 +61,8 @@ export default function PlanningGridWorkbench({
     // --- Renderers ---
     const renderInboundCell = (dateStr) => {
         const manifest = poManifest[dateStr];
-        const count = manifest?.items?.length || monthlyInbound[dateStr] || 0;
+        const isConfirmed = manifest?.items?.length > 0;
+        const count = isConfirmed ? manifest.items.length : (monthlyInbound[dateStr] || 0);
 
         // Visual Pills for Time
         const times = manifest?.items?.map(i => i.time).filter(Boolean).sort() || [];
@@ -74,12 +75,12 @@ export default function PlanningGridWorkbench({
                 {count > 0 ? (
                     <div className="flex flex-wrap gap-0.5">
                         {/* Count Badge */}
-                        <span className="text-[10px] font-bold bg-blue-600 text-white px-1 rounded-sm shadow-sm">
-                            {count}
+                        <span className={`text-[10px] font-bold px-1 rounded-sm shadow-sm ${isConfirmed ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 border border-blue-200'}`}>
+                            {count} {isConfirmed ? '✓' : ''}
                         </span>
 
-                        {/* Time Pills (Max 2 shown to save space) */}
-                        {times.slice(0, 2).map((t, idx) => (
+                        {/* Time Pills (Only for confirmed) */}
+                        {isConfirmed && times.slice(0, 2).map((t, idx) => (
                             <span key={idx} className="text-[9px] bg-blue-100 text-blue-800 px-0.5 border border-blue-200 rounded-sm dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
                                 {t}
                             </span>
