@@ -45,11 +45,13 @@ export function useMRPSolver() {
             // Adjusted Inventory (Base + What we added in previous loops)
             const adjustedInventory = baseInventory + cumulativeAddedBottles;
 
-            // Skip updates inside frozen window
-            if (dateStr <= frozenUntil) return;
+            // [Modified] We now ALLOW planning inside the "Lead Time" window.
+            // Why? Because if there is a deficit Tomorrow, the planner needs to know immediately
+            // to expedite, rather than the system hiding the need until 2 days later.
+            // const frozenUntil = addDays(todayStr, schedulerSettings?.leadTimeDays || 2);
+            // if (dateStr <= frozenUntil) return;
 
-            // Skip updates if Actuals represent a locked reality
-            // If the user entered "Actual Production", this day is effectively "History" or "Locked"
+            // Skip updates if Actuals represent a locked reality (Past)
             if (state.monthlyProductionActuals && state.monthlyProductionActuals[dateStr]) return;
 
             // Target Calc (Use Day's own target if calculated, else fallback)
