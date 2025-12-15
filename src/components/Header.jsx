@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Cog6ToothIcon, UserCircleIcon, ArrowRightOnRectangleIcon, PrinterIcon, CloudIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './auth/AuthModal';
-import ubpLogo from '../assets/ubp_logo.jpg';
+import ubpLogo from '../assets/ubp_logo_v3.jpg';
 
 export default function Header({ onOpenSettings, isSaving, saveError }) {
     const { user, signOut } = useAuth();

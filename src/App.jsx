@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import SettingsModal from './components/SettingsModal';
-import ubpLogo from './assets/ubp_logo.jpg';
+import ubpLogo from './assets/ubp_logo_v3.jpg';
 
 import MRPView from './components/mrp/MRPView';
 import SchedulerView from './components/scheduler/SchedulerView';
