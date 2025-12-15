@@ -19,7 +19,7 @@ import { calculateDeliveryTime } from '../../utils/schedulerUtils';
 
 export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound }) {
     const { updateDailyManifest, addOrdersBulk, removeOrder, updateOrder } = useProcurement();
-    const { schedulerSettings, activeSku } = useSettings();
+    const { schedulerSettings, activeSku, bottleDefinitions } = useSettings();
     const { getProductSpecs } = useProducts();
 
     // Edit State
@@ -52,7 +52,9 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
 
         const order = sortedOrders[index];
         const sku = order?.sku || activeSku;
-        const specs = getProductSpecs(sku);
+
+        // Try New Context first, fallback to Legacy Settings
+        const specs = getProductSpecs(sku) || bottleDefinitions?.[sku];
 
         if (!specs) return 'TBD (No SKU)';
 
