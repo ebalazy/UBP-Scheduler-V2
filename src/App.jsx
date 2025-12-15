@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import SettingsModal from './components/SettingsModal';
-import RiskBanner from './components/RiskBanner';
+
 import MRPView from './components/mrp/MRPView';
 import SchedulerView from './components/scheduler/SchedulerView';
 import { useMRP } from './hooks/useMRP';
@@ -75,12 +75,7 @@ function AuthenticatedApp({ user }) {
     <div id="main-app-wrapper" className="min-h-screen flex flex-col transition-colors duration-200">
       <Header onOpenSettings={() => setIsSettingsOpen(true)} isSaving={mrp.formState.isSaving} saveError={mrp.formState.saveError} />
 
-      {/* Risk Banner - Always configured based on Scheduler data */}
-      <RiskBanner
-        isHighRisk={scheduler.results?.isHighRisk}
-        safetyStockLoads={scheduler.results?.safetyStockLoads}
-        requiredDailyLoads={scheduler.results?.requiredDailyLoads}
-      />
+
 
       <main className="flex-grow p-2 md:p-6 max-w-7xl mx-auto w-full">
         {/* Modern Segmented Navigation */}
