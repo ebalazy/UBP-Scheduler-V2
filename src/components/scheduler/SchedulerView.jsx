@@ -1,7 +1,7 @@
 import { useSettings } from '../../context/SettingsContext';
 import VisualScheduler from './VisualScheduler';
 
-export default function SchedulerView({ state, setters, results }) {
+export default function SchedulerView({ state, setters, results, readOnly = false }) {
     const { bottleSizes } = useSettings();
 
     if (!results) return <div>Loading...</div>;
@@ -10,9 +10,7 @@ export default function SchedulerView({ state, setters, results }) {
 
     return (
         <div className="space-y-8">
-            {/* ... (Existing Settings Inputs) ... */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors">
-                {/* ... kept as is ... */}
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2">🚚 Logistics Settings</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
@@ -21,8 +19,9 @@ export default function SchedulerView({ state, setters, results }) {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bottle Size Reference</label>
                         <select
                             value={state.selectedSize}
+                            disabled={readOnly}
                             onChange={(e) => setters.setSelectedSize(e.target.value)}
-                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2"
+                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {bottleSizes.map(size => (
                                 <option key={size} value={size}>{size}</option>
@@ -38,9 +37,10 @@ export default function SchedulerView({ state, setters, results }) {
                                 inputMode="numeric"
                                 pattern="[0-9]*"
                                 min="0"
+                                disabled={readOnly}
                                 value={state.targetDailyProduction || ''}
                                 onChange={(e) => setters.setTargetDailyProduction(e.target.value)}
-                                className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-2xl p-2 pl-4"
+                                className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 text-2xl p-2 pl-4 disabled:opacity-50 disabled:cursor-not-allowed"
                                 placeholder="60000"
                             />
                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -50,13 +50,14 @@ export default function SchedulerView({ state, setters, results }) {
                     </div>
                 </div>
 
-                <div className="col-span-1">
+                <div className="col-span-1 mt-6">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Production Start Time</label>
                     <input
                         type="time"
                         value={state.shiftStartTime}
+                        disabled={readOnly}
                         onChange={(e) => setters.setShiftStartTime(e.target.value)}
-                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3"
+                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                 </div>
             </div>
@@ -88,8 +89,6 @@ export default function SchedulerView({ state, setters, results }) {
                     <span>Based on 24/7 Production schedule</span>
                 </div>
 
-
-
                 {/* Visual Schedule Board (Replaces Table) */}
                 <VisualScheduler
                     schedule={results.schedule}
@@ -97,6 +96,7 @@ export default function SchedulerView({ state, setters, results }) {
                     onUpdatePO={setters.updatePO}
                     onDelete={setters.toggleCancelled}
                     specs={results.specs}
+                    readOnly={readOnly}
                 />
             </div>
         </div>

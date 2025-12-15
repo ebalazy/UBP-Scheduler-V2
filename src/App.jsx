@@ -67,12 +67,24 @@ export default function App() {
 }
 
 function AuthenticatedApp({ user }) {
+  const { userRole } = useAuth();
+  // Safe Fallback: If no role found (first run), default to 'admin' so dev isn't locked out. 
+  // In Prod, this should default to 'viewer'.
+  const role = userRole || 'admin';
+
+  const showPlanning = ['admin', 'planner'].includes(role);
+  const canEditLogistics = ['admin', 'planner', 'logistics'].includes(role);
+
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'logistics');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
+    // Security Redirect
+    if ((activeTab === 'mrp' || activeTab === 'master') && !showPlanning) {
+      setActiveTab('logistics');
+    }
     localStorage.setItem('activeTab', activeTab);
-  }, [activeTab]);
+  }, [activeTab, showPlanning]);
 
   const { poManifest } = useProcurement();
   const mrp = useMRP(poManifest);
@@ -111,17 +123,19 @@ function AuthenticatedApp({ user }) {
               <span>Floor Ops</span>
             </button>
 
-            {/* MRP Tab */}
-            <button
-              onClick={() => setActiveTab('mrp')}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'mrp'
-                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
-                }`}
-            >
-              <Boxes className="w-4 h-4" />
-              <span>Materials</span>
-            </button>
+            {/* MRP Tab - Admin/Planner Only */}
+            {showPlanning && (
+              <button
+                onClick={() => setActiveTab('mrp')}
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'mrp'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                  }`}
+              >
+                <Boxes className="w-4 h-4" />
+                <span>Materials</span>
+              </button>
+            )}
 
             {/* Scheduler Tab */}
             <button
@@ -135,19 +149,21 @@ function AuthenticatedApp({ user }) {
               <span>Scheduler</span>
             </button>
 
-            {/* Master Plan Tab */}
-            <button
-              onClick={() => setActiveTab('master')}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'master'
-                ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
-                }`}
-            >
-              <Crown className="w-4 h-4" />
-              <span>Master Plan</span>
-            </button>
+            {/* Master Plan Tab - Admin/Planner Only */}
+            {showPlanning && (
+              <button
+                onClick={() => setActiveTab('master')}
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'master'
+                  ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                  }`}
+              >
+                <Crown className="w-4 h-4" />
+                <span>Master Plan</span>
+              </button>
+            )}
 
-            {/* Products Tab - NEW */}
+            {/* Products Tab */}
             <button
               onClick={() => setActiveTab('products')}
               className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'products'
@@ -187,6 +203,7 @@ function AuthenticatedApp({ user }) {
             state={mrp.formState}
             setters={mrp.setters}
             results={mrp.results}
+            readOnly={!canEditLogistics}
           />
         </div>
 
@@ -202,6 +219,7 @@ function AuthenticatedApp({ user }) {
             state={scheduler.formState}
             setters={scheduler.setters}
             results={scheduler.results}
+            readOnly={!canEditLogistics}
           />
         </div>
         <div className={activeTab === 'master' ? 'block' : 'hidden'}>

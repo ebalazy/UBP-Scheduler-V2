@@ -9,7 +9,7 @@ import {
     TrashIcon
 } from '@heroicons/react/24/outline';
 
-export default function DockManifestParams({ date, totalRequired, manifest, onUpdate }) {
+export default function DockManifestParams({ date, totalRequired, manifest, onUpdate, readOnly = false }) {
     // manifest = Array of { id, po, carrier, time, status }
     // totalRequired = Number from AutoReplenish
 
@@ -138,7 +138,7 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                     {/* No header needed if context is clear */}
                 </div>
                 {/* Only show Edit button if there are trucks expected */}
-                {(totalRequired > 0 || existingItems.length > 0) && (
+                {!readOnly && (totalRequired > 0 || existingItems.length > 0) && (
                     <button
                         onClick={() => { setEditList(existingItems.length ? existingItems : Array(totalRequired).fill().map(() => ({ id: crypto.randomUUID(), po: '', carrier: '', time: '' }))); setIsEditing(true); }}
                         className="text-xs font-bold text-blue-600 hover:text-blue-500 flex items-center bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded"

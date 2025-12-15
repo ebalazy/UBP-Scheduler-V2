@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import { useProcurement } from '../context/ProcurementContext';
 import { SunIcon, MoonIcon, BoltIcon, XMarkIcon } from '@heroicons/react/24/outline'; // Replaced Trash/Plus with Bolt/XMark
 
+import UserManagement from './settings/UserManagement';
+
 export default function SettingsModal({ onClose }) {
+    const [activeTab, setActiveTab] = useState('general');
+    const { userRole } = useAuth();
+    const isAdmin = (userRole === 'admin');
+
     const {
         safetyStockLoads,
         setSafetyStockLoads,
@@ -35,119 +42,140 @@ export default function SettingsModal({ onClose }) {
                     </button>
                 </div>
 
-                <div className="space-y-6">
-                    {/* Appearance */}
-                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
-                        <div>
-                            <h3 className="font-bold text-gray-800 dark:text-gray-200">Appearance</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Choose your interface theme.</p>
-                        </div>
-                        <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-lg">
-                            <button
-                                onClick={() => setTheme('light')}
-                                className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${theme === 'light'
-                                    ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                    }`}
-                            >
-                                <SunIcon className="w-4 h-4" />
-                                <span>Light</span>
-                            </button>
-                            <button
-                                onClick={() => setTheme('dark')}
-                                className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${theme === 'dark'
-                                    ? 'bg-gray-600 text-white shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                    }`}
-                            >
-                                <MoonIcon className="w-4 h-4" />
-                                <span>Dark</span>
-                            </button>
-                        </div>
-                    </div>
+                <div className="flex border-b border-slate-200 dark:border-slate-700 mb-6">
+                    <button
+                        className={`pb-2 px-1 text-sm font-bold mr-6 border-b-2 transition-colors ${activeTab === 'general' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                        onClick={() => setActiveTab('general')}
+                    >
+                        General & Appearance
+                    </button>
+                    {isAdmin && (
+                        <button
+                            className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors ${activeTab === 'users' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                            onClick={() => setActiveTab('users')}
+                        >
+                            User Management
+                        </button>
+                    )}
+                </div>
 
-                    {/* Global Planning Rules */}
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md border border-blue-100 dark:border-blue-800 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
-                                Global Safety Stock (Full Loads)
-                            </label>
-                            <input
-                                type="number"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                value={safetyStockLoads}
-                                onChange={(e) => setSafetyStockLoads(Number(e.target.value))}
-                                className="mt-1 block w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
-                            />
-                            <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                                Minimum inventory target (Trucks).
-                            </p>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
-                                Inbound Lead Time (Days)
-                            </label>
-                            <input
-                                type="number"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                value={leadTimeDays}
-                                onChange={(e) => setLeadTimeDays(Number(e.target.value))}
-                                className="mt-1 block w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
-                            />
-                            <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                                Days from Order to Delivery.
-                            </p>
-                        </div>
-                    </div>
+                <div className="space-y-6 h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                    {activeTab === 'general' ? (
+                        <>
+                            {/* Appearance */}
+                            <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+                                <div>
+                                    <h3 className="font-bold text-gray-800 dark:text-gray-200">Appearance</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Choose your interface theme.</p>
+                                </div>
+                                <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-lg">
+                                    <button
+                                        onClick={() => setTheme('light')}
+                                        className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${theme === 'light'
+                                            ? 'bg-white text-blue-600 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        <SunIcon className="w-4 h-4" />
+                                        <span>Light</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setTheme('dark')}
+                                        className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${theme === 'dark'
+                                            ? 'bg-gray-600 text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        <MoonIcon className="w-4 h-4" />
+                                        <span>Dark</span>
+                                    </button>
+                                </div>
+                            </div>
 
-                    <hr className="border-gray-200 dark:border-gray-700" />
+                            {/* Global Planning Rules */}
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md border border-blue-100 dark:border-blue-800 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
+                                        Global Safety Stock (Full Loads)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={safetyStockLoads}
+                                        onChange={(e) => setSafetyStockLoads(Number(e.target.value))}
+                                        className="mt-1 block w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
+                                    />
+                                    <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                                        Minimum inventory target (Trucks).
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
+                                        Inbound Lead Time (Days)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={leadTimeDays}
+                                        onChange={(e) => setLeadTimeDays(Number(e.target.value))}
+                                        className="mt-1 block w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base sm:text-lg"
+                                    />
+                                    <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                                        Days from Order to Delivery.
+                                    </p>
+                                </div>
+                            </div>
 
-                    {/* CSV Mapping Settings */}
-                    <div>
-                        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">CSV Integration Mappings</h3>
-                        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <hr className="border-gray-200 dark:border-gray-700" />
+
+                            {/* CSV Mapping Settings */}
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status Column Header</label>
-                                <input
-                                    type="text"
-                                    value={csvMapping.statusColumn}
-                                    onChange={(e) => updateCsvMapping('statusColumn', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                                    placeholder="e.g. Trailer State"
-                                />
+                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">CSV Integration Mappings</h3>
+                                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status Column Header</label>
+                                        <input
+                                            type="text"
+                                            value={csvMapping.statusColumn}
+                                            onChange={(e) => updateCsvMapping('statusColumn', e.target.value)}
+                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                            placeholder="e.g. Trailer State"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">"Full" Keyword</label>
+                                        <input
+                                            type="text"
+                                            value={csvMapping.fullValue}
+                                            onChange={(e) => updateCsvMapping('fullValue', e.target.value)}
+                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                            placeholder="e.g. Loaded"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">SKU/Product Column</label>
+                                        <input
+                                            type="text"
+                                            value={csvMapping.skuColumn}
+                                            onChange={(e) => updateCsvMapping('skuColumn', e.target.value)}
+                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                            placeholder="e.g. Commodity"
+                                        />
+                                    </div>
+                                    <div className="col-span-1 md:col-span-3">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                                            The importer will look for rows where <strong>{csvMapping.statusColumn}</strong> contains "<strong>{csvMapping.fullValue}</strong>"
+                                            {csvMapping.skuColumn ? <span> and <strong>{csvMapping.skuColumn}</strong> contains the active bottle size (e.g. "20oz").</span> : '.'}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">"Full" Keyword</label>
-                                <input
-                                    type="text"
-                                    value={csvMapping.fullValue}
-                                    onChange={(e) => updateCsvMapping('fullValue', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                                    placeholder="e.g. Loaded"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">SKU/Product Column</label>
-                                <input
-                                    type="text"
-                                    value={csvMapping.skuColumn}
-                                    onChange={(e) => updateCsvMapping('skuColumn', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                                    placeholder="e.g. Commodity"
-                                />
-                            </div>
-                            <div className="col-span-1 md:col-span-3">
-                                <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                                    The importer will look for rows where <strong>{csvMapping.statusColumn}</strong> contains "<strong>{csvMapping.fullValue}</strong>"
-                                    {csvMapping.skuColumn ? <span> and <strong>{csvMapping.skuColumn}</strong> contains the active bottle size (e.g. "20oz").</span> : '.'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr className="border-gray-200 dark:border-gray-700" />
+                        </>
+                    ) : (
+                        <UserManagement />
+                    )}
                 </div>
 
                 <div className="mt-8 bg-gray-50 dark:bg-gray-800 -mx-6 -mb-6 p-4 rounded-b-lg border-t dark:border-gray-700">
