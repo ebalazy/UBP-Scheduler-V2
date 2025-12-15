@@ -215,7 +215,7 @@ export function useMRPActions(state, calculationsResult) {
         if (user) {
             scheduleSave(
                 `actual-${date}`,
-                () => savePlanningEntry(user.id, selectedSize, date, 'production_actual', Number(val || 0)),
+                () => savePlanningEntry(user.id, selectedSize, date, 'production_actual', val === undefined ? null : Number(val)),
                 1000
             );
         }
