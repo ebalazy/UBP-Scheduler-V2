@@ -185,6 +185,44 @@ export default function PlanningGridWorkbench({
                             })}
                         </tr>
 
+                        {/* 1b. Actual Production Row (New Planner Input) */}
+                        <tr className="hover:bg-gray-50 group">
+                            <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 border-r border-b p-2 font-medium text-blue-700 dark:text-blue-400 group-hover:bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                Actual Reconciliation
+                                <span className="block text-[9px] font-normal text-gray-400">Past Dates Only</span>
+                            </td>
+                            {dates.map(date => {
+                                const dateStr = formatLocalDate(date); // YYYY-MM-DD
+                                const act = monthlyProductionActuals[dateStr] || '';
+
+                                // Logic: Can only edit if date is strictly BEFORE today
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const cellDate = new Date(date);
+                                cellDate.setHours(0, 0, 0, 0);
+
+                                const isPast = cellDate < today;
+
+                                return (
+                                    <td key={dateStr} className={`border-r border-b p-0 h-10 relative ${!isPast ? 'bg-gray-50/50 dark:bg-gray-800/50' : ''}`}>
+                                        {isPast ? (
+                                            <input
+                                                type="number"
+                                                className="w-full h-full text-center border-none focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-transparent p-0 font-bold text-blue-700 dark:text-blue-300"
+                                                value={act}
+                                                onChange={(e) => updateDateActual(dateStr, e.target.value)}
+                                                placeholder="-"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-300 text-[10px] select-none cursor-not-allowed">
+                                                Locked
+                                            </div>
+                                        )}
+                                    </td>
+                                );
+                            })}
+                        </tr>
+
                         {/* 2. Inbound Row */}
                         <tr className="hover:bg-gray-50 group">
                             <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 border-r border-b p-2 font-medium text-gray-600 group-hover:bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">

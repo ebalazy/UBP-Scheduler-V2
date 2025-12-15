@@ -24,64 +24,12 @@ export default function PlanningRowActual({ dates, monthlyProductionActuals, upd
     );
 }
 
-const ActualCell = React.memo(({ date, dateStr, initialValue, updateDateActual }) => {
-    const inputRef = React.useRef(null);
-
-    React.useEffect(() => {
-        if (inputRef.current && document.activeElement !== inputRef.current) {
-            inputRef.current.value = initialValue !== undefined && initialValue !== null ? initialValue : '';
-        }
-    }, [initialValue]);
-
-    const debouncedUpdate = React.useMemo(() => {
-        return (d, v) => {
-            updateDateActual(d, v);
-        };
-    }, [updateDateActual]);
-
-    const handleBlur = () => {
-        if (inputRef.current) {
-            updateDateActual(dateStr, inputRef.current.value);
-        }
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const rawVal = e.target.value.replace(/,/g, '');
-            updateDateActual(dateStr, rawVal);
-
-            const nextDate = new Date(date);
-            nextDate.setDate(nextDate.getDate() + 1);
-            const nextId = `actual-${formatLocalDate(nextDate)}`;
-            const nextEl = document.getElementById(nextId);
-            if (nextEl) {
-                nextEl.focus();
-                nextEl.select();
-            }
-        }
-    };
-
+const ActualCell = React.memo(({ initialValue }) => {
     return (
-        <td className="p-0 border-r border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-            <input
-                ref={inputRef}
-                id={`actual-${dateStr}`}
-                className="w-full h-full p-2 text-center text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 font-bold text-blue-700 dark:text-blue-300 placeholder-shown:text-gray-400"
-                defaultValue={initialValue !== undefined && initialValue !== null ? initialValue : ''}
-                placeholder="-"
-                onChange={(e) => {
-                    // Live update disabled to prevent calculation jitter
-                    /*
-                    const v = e.target.value.replace(/,/g, '');
-                    if (v === '' || !isNaN(v)) {
-                         debouncedUpdate(dateStr, v);
-                    }
-                    */
-                }}
-                onBlur={handleBlur}
-                onKeyDown={handleKeyDown}
-            />
+        <td className="p-0 border-r border-gray-100 dark:border-gray-700 bg-blue-50/10 dark:bg-blue-900/5">
+            <div className={`w-full h-full p-2 text-center text-xs flex items-center justify-center font-bold ${initialValue ? 'text-blue-700 dark:text-blue-300' : 'text-gray-300'}`}>
+                {initialValue || '-'}
+            </div>
         </td>
     );
 });
