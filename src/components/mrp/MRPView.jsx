@@ -6,12 +6,20 @@ import OrderActionLog from './OrderActionLog';
 import BulkImportModal from '../procurement/BulkImportModal';
 import { useProcurement } from '../../context/ProcurementContext';
 import SupplierEmailModal from '../procurement/SupplierEmailModal';
-import YMSExportModal from '../procurement/YMSExportModal'; // NEW
-import ProcurementMasterList from '../procurement/ProcurementMasterList'; // NEW
+import YMSExportModal from '../procurement/YMSExportModal';
+import ProcurementMasterList from '../procurement/ProcurementMasterList';
 import { useSettings } from '../../context/SettingsContext';
 import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
-import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import {
+    PencilSquareIcon,
+    XMarkIcon,
+    SunIcon,
+    ArrowPathIcon,
+    ArrowDownTrayIcon,
+    ClipboardDocumentListIcon,
+    EnvelopeIcon
+} from '@heroicons/react/24/outline';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { formatLocalDate, getLocalISOString } from '../../utils/dateUtils';
@@ -193,12 +201,10 @@ export default function MRPView({ state, setters, results }) {
         );
     };
 
-    // Sidebar removed in favor of PulseHUD (Unification)
-
     return (
         <div className="max-w-full mx-auto pb-12">
 
-            {/* NEW HEADER with SKU Selector */}
+            {/* NEW HEADER with Premium Action Bar */}
             <div className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 sticky top-0 z-20 backdrop-filter backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -207,53 +213,49 @@ export default function MRPView({ state, setters, results }) {
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Command Center</p>
                 </div>
 
-                <div className="flex flex-wrap items-center mt-4 md:mt-0 gap-2">
-
-
-
-
+                <div className="flex flex-wrap items-center mt-4 md:mt-0 gap-3">
                     <button
                         onClick={() => setIsReconcileOpen(true)}
-                        className="flex items-center text-orange-600 dark:text-orange-400 hover:text-orange-800 bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
+                        title="Morning Inventory Check"
                     >
-                        ☀️ Morning True-Up
-                    </button>
-
-
-
-                    <button
-                        onClick={handleAutoBalance}
-                        className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors border border-indigo-200"
-                        title="Auto-fill Planned Loads to meet Safety Stock"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-                        </svg>
-                        Auto-Balance
+                        <SunIcon className="w-4 h-4 text-orange-500" />
+                        Morning True-Up
                     </button>
 
                     <button
                         onClick={() => setIsImportOpen(true)}
-                        className="flex items-center text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
                     >
-                        📥 Import POs
+                        <ArrowDownTrayIcon className="w-4 h-4 text-emerald-500" />
+                        Import
                     </button>
 
                     <button
                         onClick={() => setIsMasterListOpen(true)}
-                        className="flex items-center text-purple-600 dark:text-purple-400 hover:text-purple-800 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
                     >
-                        📋 Manage POs
+                        <ClipboardDocumentListIcon className="w-4 h-4 text-purple-500" />
+                        POs
                     </button>
 
                     <button
                         onClick={() => setIsEmailOpen(true)}
-                        className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
                     >
-                        ✉️ Email
+                        <EnvelopeIcon className="w-4 h-4 text-gray-500" />
+                        Email
                     </button>
 
+                    <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1 hidden md:block"></div>
 
+                    <button
+                        onClick={handleAutoBalance}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-all"
+                    >
+                        <ArrowPathIcon className="w-4 h-4" />
+                        Auto-Balance
+                    </button>
                 </div>
             </div>
 
@@ -263,7 +265,7 @@ export default function MRPView({ state, setters, results }) {
             {/* MAIN COMMAND CENTER */}
             <div className="flex flex-col space-y-6">
 
-                {/* 2. MAIN PLANNING GRID (FULL WIDTH) with Unified Header */}
+                {/* MAIN PLANNING GRID (FULL WIDTH) with Unified Header */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden min-h-[600px]">
 
                     {/* Unified Header */}
