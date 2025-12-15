@@ -1,44 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     ClockIcon,
     ExclamationTriangleIcon,
     CheckCircleIcon,
     CubeIcon,
-    TruckIcon
+    PencilSquareIcon
 } from '@heroicons/react/24/outline';
-import { formatLocalDate } from '../../utils/dateUtils';
+import { formatLocalDate, getLocalISOString } from '../../utils/dateUtils';
 
 export default function PulseHUD({ mrp, scheduler, activeSku }) {
-    // 1. Extract Metrics
+    // Extract State & Setters
+    const { formState: state, setters, results } = mrp;
+
+    // Safety Checks
+    if (!results) return null;
+
     const todayStr = formatLocalDate(new Date());
-    const ledger = mrp.results?.dailyLedger || [];
+    const ledger = results?.dailyLedger || [];
     const todayLedger = ledger.find(l => l.date === todayStr);
 
-    const floorBalance = todayLedger?.balance || 0; // Bottles
+    // Metrics
+    const floorBalance = results.calculatedPallets || 0;
+    const yardBalance = state.yardInventory?.count || 0;
     const safetyLoads = scheduler.results?.safetyStockLoads || 0;
 
-    // Get Specs for conversion
-    // We assume 'scheduler' or 'mrp' has access to specs via context, 
-    // OR we can pass specs as a prop. 
-    // For now, let's try to infer from mrp state or just display raw first?
-    // Better to use generic "Stock" for now.
-
-    // Calculate Coverage (Runway)
-    // Heuristic: Find first day where balance < 0
+    // Coverage Logic
     let runwayDays = 0;
     let isCritical = false;
-
-    // Simple lookahead
     for (const day of ledger) {
         if (day.balance < 0) {
             isCritical = true;
             break;
         }
-        if (day.date >= todayStr) {
-            runwayDays++;
-        }
+        if (day.date >= todayStr) runwayDays++;
     }
-    // Cap at 14+
     const displayRunway = isCritical ? runwayDays : '14+';
     const runwayColor = isCritical
         ? (runwayDays <= 2 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400')
@@ -50,76 +45,151 @@ export default function PulseHUD({ mrp, scheduler, activeSku }) {
 
     return (
         <div className={`w-full mb-6 rounded-xl border p-4 shadow-sm transition-all ${borderColor}`}>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
 
-                {/* 1. Brand / SKU Context */}
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-                        <CubeIcon className="w-6 h-6 text-slate-500" />
-                    </div>
-                    <div>
-                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                            Active Production
-                        </h2>
-                        <div className="text-xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
-                            {activeSku || 'Unknown SKU'}
-                            <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300">
-                                Line 1
-                            </span>
+                {/* 1. Context & Production Settings */}
+                <div className="flex items-center gap-6 w-full lg:w-auto">
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 shadow-inner">
+                            <CubeIcon className="w-6 h-6 text-slate-500" />
                         </div>
+                        <div>
+                            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Active Line 1
+                            </h2>
+                            <div className="text-xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
+                                {activeSku || 'Unknown SKU'}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Production Inputs (Run Rate / Downtime) */}
+                    <div className="hidden md:flex items-center gap-4 border-l border-slate-200 dark:border-slate-700 pl-6">
+                        <EditableInput
+                            label="Rate (cph)"
+                            value={state.productionRate}
+                            onChange={v => setters.setProductionRate(v)}
+                            width="w-20"
+                        />
+                        <EditableInput
+                            label="Downtime (hr)"
+                            value={state.downtimeHours}
+                            onChange={v => setters.setDowntimeHours(v)}
+                            width="w-16"
+                        />
                     </div>
                 </div>
 
-                {/* 2. Key Metrics (Grid) */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full md:w-auto flex-grow justify-end">
+                {/* 2. Key Metrics (Editable) */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full lg:w-auto flex-grow justify-end">
 
-                    {/* Metric: Floor Stock */}
+                    {/* Floor Stock Input */}
                     <div className="text-center md:text-right">
-                        <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                            Current Stock
-                        </div>
-                        <div className="text-2xl font-black text-slate-700 dark:text-slate-200">
-                            {Number(floorBalance).toLocaleString()} <span className="text-xs font-medium text-slate-400">units</span>
-                        </div>
+                        <EditableStat
+                            label="Floor Stock"
+                            value={Math.round(floorBalance)}
+                            unit="plts"
+                            onSave={(val) => setters.setInventoryAnchor({ date: getLocalISOString(), count: Number(val) })}
+                        />
                     </div>
 
-                    {/* Metric: Runway */}
+                    {/* Yard Stock Input */}
+                    <div className="text-center md:text-right border-l dark:border-slate-700 pl-6">
+                        <EditableStat
+                            label="Yard Stock"
+                            value={Number(yardBalance)}
+                            unit="loads"
+                            onSave={(val) => setters.updateYardInventory(val)}
+                            colorClass="text-blue-600 dark:text-blue-400"
+                        />
+                    </div>
+
+                    {/* Runway */}
                     <div className="text-center md:text-right border-l dark:border-slate-700 pl-6">
                         <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                            Material Runway
+                            Runway
                         </div>
                         <div className={`text-2xl font-black flex items-center justify-center md:justify-end gap-2 ${runwayColor}`}>
-                            {isCritical ? (
-                                <ExclamationTriangleIcon className="w-5 h-5" />
-                            ) : (
-                                <ClockIcon className="w-5 h-5" />
-                            )}
-                            {displayRunway} <span className="text-sm">Days</span>
+                            {isCritical ? <ExclamationTriangleIcon className="w-5 h-5" /> : <ClockIcon className="w-5 h-5" />}
+                            {displayRunway} <span className="text-sm text-slate-400 font-medium">Days</span>
                         </div>
                     </div>
 
-                    {/* Metric: Safety Status */}
-                    <div className="text-center md:text-right border-l dark:border-slate-700 pl-6 hidden md:block">
-                        <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                            Safety Status
-                        </div>
-                        <div className="text-lg font-bold flex items-center justify-end gap-2">
-                            {floorBalance > (safetyLoads * 20000) ? (
-                                <>
-                                    <CheckCircleIcon className="w-5 h-5 text-emerald-500" />
-                                    <span className="text-emerald-600 dark:text-emerald-400">Secure</span>
-                                </>
-                            ) : (
-                                <>
-                                    <ExclamationTriangleIcon className="w-5 h-5 text-amber-500" />
-                                    <span className="text-amber-600 dark:text-amber-400">Below Safety</span>
-                                </>
-                            )}
+                    {/* Status Badge */}
+                    <div className="hidden md:flex flex-col items-end justify-center border-l dark:border-slate-700 pl-6">
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${floorBalance > (safetyLoads * 20) // approx check
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400'
+                            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400'
+                            }`}>
+                            {floorBalance > (safetyLoads * 20) ? 'Secure' : 'Below Safety'}
                         </div>
                     </div>
 
                 </div>
             </div>
+        </div>
+    );
+}
+
+// Sub-component for Hover-to-Edit Inputs
+function EditableStat({ label, value, unit, onSave, colorClass = 'text-slate-700 dark:text-slate-200' }) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [tempVal, setTempVal] = useState(value);
+
+    useEffect(() => setTempVal(value), [value]);
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            onSave(tempVal);
+            setIsEditing(false);
+        }
+    };
+
+    if (isEditing) {
+        return (
+            <div className="flex flex-col items-end">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{label}</span>
+                <input
+                    autoFocus
+                    type="number"
+                    className="w-24 text-right text-xl font-bold p-1 bg-white dark:bg-slate-800 border-2 border-blue-400 rounded shadow-md outline-none"
+                    value={tempVal}
+                    onChange={e => setTempVal(e.target.value)}
+                    onBlur={() => { onSave(tempVal); setIsEditing(false); }}
+                    onKeyDown={handleKeyDown}
+                />
+            </div>
+        );
+    }
+
+    return (
+        <div
+            className="group cursor-pointer relative"
+            onClick={() => setIsEditing(true)}
+        >
+            <div className="flex items-center justify-end gap-1 mb-0.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-blue-500 transition-colors">
+                    {label}
+                </span>
+                <PencilSquareIcon className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div className={`text-2xl font-black ${colorClass} group-hover:bg-slate-50 dark:group-hover:bg-slate-800 rounded px-1 -mr-1 transition-colors`}>
+                {Number(value).toLocaleString()} <span className="text-xs font-medium text-slate-400">{unit}</span>
+            </div>
+        </div>
+    );
+}
+
+function EditableInput({ label, value, onChange, width }) {
+    return (
+        <div className="flex flex-col">
+            <label className="text-[10px] uppercase font-bold text-slate-400 mb-1">{label}</label>
+            <input
+                type="number"
+                className={`${width} bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded p-1 text-sm font-bold text-slate-700 dark:text-slate-200 text-center focus:ring-2 focus:ring-blue-400 outline-none`}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+            />
         </div>
     );
 }

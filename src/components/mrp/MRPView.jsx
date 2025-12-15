@@ -193,155 +193,7 @@ export default function MRPView({ state, setters, results }) {
         );
     };
 
-    const renderSidebar = () => (
-        <div className="space-y-6">
-            {/* 1. Inventory Status Card */}
-            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 transition-colors">
-                <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-2">
-                    <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Inventory Status</h2>
-                    <label className="flex items-center cursor-pointer" title="Auto-Pilot: Automatically suggests truck orders to maintain safety stock.">
-                        <span className="text-xs mr-2 font-medium text-purple-600">
-                            {state.isAutoReplenish ? 'Auto-Pilot' : 'Manual'}
-                        </span>
-                        <div className="relative">
-                            <input
-                                type="checkbox"
-                                className="sr-only"
-                                checked={state.isAutoReplenish || false}
-                                onChange={(e) => setters.setIsAutoReplenish(e.target.checked)}
-                            />
-                            <div className={`block w-8 h-4 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
-                            <div className={`dot absolute left-0 top-0 bg-white w-4 h-4 rounded-full border transition-transform ${state.isAutoReplenish ? 'transform translate-x-4 border-purple-500' : 'border-gray-300'}`}></div>
-                        </div>
-                    </label>
-                </div>
-
-                <div className="space-y-3">
-                    {/* Floor Inventory */}
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-100 dark:border-gray-600">
-                        <div className="flex justify-between items-start">
-                            <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Floor Stock</span>
-                            {!isEditingFloor && (
-                                <button onClick={() => setIsEditingFloor(true)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                    <PencilSquareIcon className="h-3 w-3" />
-                                </button>
-                            )}
-                        </div>
-                        {isEditingFloor ? (
-                            <div className="flex items-center space-x-1 mt-1">
-                                <input
-                                    type="number"
-                                    autoFocus
-                                    className="w-full text-sm p-1 rounded border-gray-300 focus:ring-2 focus:ring-gray-500"
-                                    defaultValue={Math.round(results.calculatedPallets || 0)}
-                                    onBlur={(e) => {
-                                        const val = Number(e.target.value);
-                                        setters.setInventoryAnchor({ date: getLocalISOString(), count: val });
-                                        setIsEditingFloor(false);
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            const val = Number(e.currentTarget.value);
-                                            setters.setInventoryAnchor({ date: getLocalISOString(), count: val });
-                                            setIsEditingFloor(false);
-                                        }
-                                    }}
-                                    onFocus={(e) => e.target.select()}
-                                />
-                            </div>
-                        ) : (
-                            <div>
-                                <div className="flex items-baseline space-x-1">
-                                    <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                                        {Math.round(results.calculatedPallets || 0)}
-                                    </span>
-                                    <span className="text-xs text-gray-400">plts</span>
-                                </div>
-                                <div className="text-[10px] text-gray-400 mt-1">
-                                    Effective: {formatLocalDate(state.inventoryAnchor?.date) || 'N/A'}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Yard Inventory */}
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800">
-                        <div className="flex justify-between items-start">
-                            <span className="text-[10px] uppercase font-bold text-blue-400 block mb-1">Yard Stock</span>
-                            {!isEditingYard && (
-                                <button onClick={() => setIsEditingYard(true)} className="text-blue-400 hover:text-blue-600">
-                                    <PencilSquareIcon className="h-3 w-3" />
-                                </button>
-                            )}
-                        </div>
-                        {isEditingYard ? (
-                            <div className="flex items-center space-x-1 mt-1">
-                                <input
-                                    type="number"
-                                    autoFocus
-                                    className="w-full text-sm p-1 rounded border-blue-300 focus:ring-2 focus:ring-blue-500"
-                                    defaultValue={state.yardInventory.count}
-                                    onBlur={(e) => {
-                                        setters.updateYardInventory(e.target.value);
-                                        setIsEditingYard(false);
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            setters.updateYardInventory(e.currentTarget.value);
-                                            setIsEditingYard(false);
-                                        }
-                                    }}
-                                    onFocus={(e) => e.target.select()}
-                                />
-                            </div>
-                        ) : (
-                            <div>
-                                <div className="flex items-baseline space-x-1">
-                                    <span className="text-2xl font-bold text-blue-800 dark:text-blue-200">
-                                        {yardInventory.effectiveCount}
-                                    </span>
-                                    <span className="text-xs text-blue-500">loads</span>
-                                </div>
-                                <div className="text-[10px] text-blue-400 mt-1">
-                                    Effective: {formatLocalDate(state.yardInventory?.date) || 'N/A'}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* 2. Production Settings Card */}
-            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
-                <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Planning Inputs</h3>
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium text-gray-600 dark:text-gray-300">Run Rate (cph)</label>
-                        <input
-                            type="number"
-                            value={state.productionRate}
-                            onChange={(e) => setters.setProductionRate(e.target.value)}
-                            className="w-24 text-sm p-1.5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-right font-mono"
-                        />
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium text-gray-600 dark:text-gray-300">Downtime (hrs)</label>
-                        <input
-                            type="number"
-                            value={state.downtimeHours}
-                            onChange={(e) => setters.setDowntimeHours(e.target.value)}
-                            className="w-24 text-sm p-1.5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-right font-mono"
-                        />
-                    </div>
-                    {/* Lost Cases Display */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                        <span className="text-xs text-gray-400">Yield Impact</span>
-                        <span className="text-xs font-bold text-red-500">-{results.lostProductionCases} cs</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+    // Sidebar removed in favor of PulseHUD (Unification)
 
     return (
         <div className="max-w-full mx-auto pb-12">
@@ -424,106 +276,114 @@ export default function MRPView({ state, setters, results }) {
             {/* KPI ROW */}
             {renderKPIs()}
 
-            {/* MAIN COMMAND CENTER SPLIT */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+            {/* MAIN COMMAND CENTER */}
+            <div className="flex flex-col space-y-6">
 
-                {/* 1. LEFT CONTROL PANEL */}
-                <aside className="lg:col-span-1 sticky top-24">
-                    {renderSidebar()}
-                </aside>
-
-                {/* 2. MAIN PLANNING STAGE */}
-                <main className="lg:col-span-3 space-y-6">
-
-                    {/* PLANNING GRID (The Ledger) */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
-                        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
-                            <div className="flex items-center space-x-3">
-                                <h3 className="font-bold text-gray-800 dark:text-white flex items-center text-sm uppercase tracking-wide">
-                                    Activity Ledger
-                                </h3>
-                                <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300 font-mono">
-                                    30 Days
-                                </span>
-                            </div>
-
-                            <div className="flex bg-gray-200 dark:bg-gray-700 p-0.5 rounded-lg text-xs font-bold">
-                                <button
-                                    onClick={() => setViewMode('grid')}
-                                    className={`px-3 py-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
-                                >
-                                    Standard
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('workbench')}
-                                    className={`px-3 py-1.5 rounded-md transition-all ${viewMode === 'workbench' ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
-                                >
-                                    Workbench (Beta)
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('calendar')}
-                                    className={`px-3 py-1.5 rounded-md transition-all ${viewMode === 'calendar' ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
-                                >
-                                    Calendar
-                                </button>
-                            </div>
+                {/* 1. CONTROL BAR (Replaces Sidebar Controls) */}
+                <div className="flex flex-col md:flex-row justify-between items-center bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center space-x-4 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
+                        {/* View Switchers */}
+                        <div className="flex bg-white dark:bg-gray-700 p-1 rounded-md shadow-sm border border-gray-200 dark:border-gray-600">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                            >
+                                Standard
+                            </button>
+                            <button
+                                onClick={() => setViewMode('workbench')}
+                                className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'workbench' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                            >
+                                Workbench
+                            </button>
+                            <button
+                                onClick={() => setViewMode('calendar')}
+                                className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                            >
+                                Calendar
+                            </button>
                         </div>
 
-                        <div className="flex-1 overflow-hidden relative bg-white dark:bg-gray-800">
-                            {viewMode === 'calendar' ? (
-                                <div className="h-full p-4 overflow-auto">
-                                    <CalendarDemand
-                                        monthlyDemand={state.monthlyDemand || {}}
-                                        updateDateDemand={setters.updateDateDemand}
-                                        monthlyInbound={state.monthlyInbound || {}}
-                                        updateDateInbound={setters.updateDateInbound}
-                                        monthlyProductionActuals={state.monthlyProductionActuals || {}}
-                                        updateDateActual={setters.updateDateActual}
-                                        specs={results?.specs}
-                                        trucksToCancel={results?.trucksToCancel}
-                                        dailyLedger={results?.dailyLedger}
-                                        safetyTarget={results?.safetyTarget}
-                                        poManifest={poManifest}
-                                    />
-                                </div>
-                            ) : viewMode === 'workbench' ? (
-                                <PlanningGridWorkbench
-                                    monthlyDemand={state.monthlyDemand || {}}
-                                    updateDateDemand={setters.updateDateDemand}
-                                    monthlyInbound={state.monthlyInbound || {}}
-                                    monthlyProductionActuals={state.monthlyProductionActuals || {}}
-                                    updateDateActual={setters.updateDateActual}
-                                    specs={results?.specs}
-                                    dailyLedger={results?.dailyLedger}
-                                    userProfile={user}
+                        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+
+                        {/* Inventory Auto-Pilot Toggle */}
+                        <label className="flex items-center cursor-pointer group" title="Auto-Pilot: Automatically suggests truck orders to maintain safety stock.">
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only"
+                                    checked={state.isAutoReplenish || false}
+                                    onChange={(e) => setters.setIsAutoReplenish(e.target.checked)}
                                 />
-                            ) : (
-                                <PlanningGrid
+                                <div className={`block w-9 h-5 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                                <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-4' : ''}`}></div>
+                            </div>
+                            <span className={`ml-2 text-xs font-bold uppercase tracking-wide ${state.isAutoReplenish ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500'}`}>
+                                {state.isAutoReplenish ? 'Auto-Pilot ON' : 'Manual Mode'}
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+
+                {/* 2. MAIN PLANNING GRID (FULL WIDTH) */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden min-h-[600px]">
+                    {/* Header Removed (Moved to Control Bar) */}
+
+                    <div className="flex-1 overflow-hidden relative bg-white dark:bg-gray-800">
+                        {viewMode === 'calendar' ? (
+                            <div className="h-full p-4 overflow-auto">
+                                <CalendarDemand
                                     monthlyDemand={state.monthlyDemand || {}}
                                     updateDateDemand={setters.updateDateDemand}
-                                    updateDateDemandBulk={setters.updateDateDemandBulk}
                                     monthlyInbound={state.monthlyInbound || {}}
                                     updateDateInbound={setters.updateDateInbound}
                                     monthlyProductionActuals={state.monthlyProductionActuals || {}}
                                     updateDateActual={setters.updateDateActual}
                                     specs={results?.specs}
-                                    safetyTarget={results?.safetyTarget}
+                                    trucksToCancel={results?.trucksToCancel}
                                     dailyLedger={results?.dailyLedger}
-                                    userProfile={user}
+                                    safetyTarget={results?.safetyTarget}
+                                    poManifest={poManifest}
                                 />
-                            )}
-                        </div>
+                            </div>
+                        ) : viewMode === 'workbench' ? (
+                            <PlanningGridWorkbench
+                                monthlyDemand={state.monthlyDemand || {}}
+                                updateDateDemand={setters.updateDateDemand}
+                                monthlyInbound={state.monthlyInbound || {}}
+                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                                updateDateActual={setters.updateDateActual}
+                                specs={results?.specs}
+                                dailyLedger={results?.dailyLedger}
+                                userProfile={user}
+                            />
+                        ) : (
+                            <PlanningGrid
+                                monthlyDemand={state.monthlyDemand || {}}
+                                updateDateDemand={setters.updateDateDemand}
+                                updateDateDemandBulk={setters.updateDateDemandBulk}
+                                monthlyInbound={state.monthlyInbound || {}}
+                                updateDateInbound={setters.updateDateInbound}
+                                monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                                updateDateActual={setters.updateDateActual}
+                                specs={results?.specs}
+                                safetyTarget={results?.safetyTarget}
+                                dailyLedger={results?.dailyLedger}
+                                userProfile={user}
+                            />
+                        )}
                     </div>
+                </div>
 
-                    {/* CHARTS SECTION */}
-                    <div className="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                        <BurnDownChart
-                            currentInventoryBottles={results.netInventory + weeklyDemandBottles}
-                            weeklyDemandBottles={weeklyDemandBottles}
-                            safetyStockBottles={safetyTarget}
-                        />
-                    </div>
-                </main>
+                {/* CHARTS SECTION (Full Width) */}
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <BurnDownChart
+                        currentInventoryBottles={results.netInventory + weeklyDemandBottles}
+                        weeklyDemandBottles={weeklyDemandBottles}
+                        safetyStockBottles={safetyTarget}
+                    />
+                </div>
             </div>
 
             {/* MODALS */}
