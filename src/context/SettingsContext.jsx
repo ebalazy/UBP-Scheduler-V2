@@ -328,8 +328,8 @@ export function SettingsProvider({ children }) {
         setSchedulerSettings({ targetDailyProduction: 0, shiftStartTime: '00:00', poAssignments: {}, cancelledLoads: [] });
     }, []);
 
-    // Stable Bottle Sizes (derived from constant)
-    const staticBottleSizes = Object.keys(DEFAULTS.bottleDefinitions);
+    // Stable Bottle Sizes (derived from definitions)
+    const uniqueBottleSizes = useMemo(() => Object.keys(bottleDefinitions), [bottleDefinitions]);
 
     const value = useMemo(() => ({
         bottleDefinitions,
@@ -355,7 +355,7 @@ export function SettingsProvider({ children }) {
         resetDefaults,
         addBottleDefinition, // Exported
         deleteBottleDefinition, // Exported
-        bottleSizes: Object.keys(bottleDefinitions) // Dynamic
+        bottleSizes: uniqueBottleSizes // Dynamic & Stable
     }), [
         bottleDefinitions,
         safetyStockLoads,
@@ -363,7 +363,8 @@ export function SettingsProvider({ children }) {
         csvMapping,
         dashboardLayout,
         schedulerSettings,
-        theme
+        theme,
+        uniqueBottleSizes
     ]);
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

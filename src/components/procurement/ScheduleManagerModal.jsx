@@ -13,12 +13,14 @@ import {
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useProducts } from '../../context/ProductsContext';
 import { addDays, formatLocalDate, formatTime12h } from '../../utils/dateUtils';
 import { calculateDeliveryTime } from '../../utils/schedulerUtils';
 
-export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound, specs }) {
+export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound }) {
     const { updateDailyManifest, addOrdersBulk, removeOrder, updateOrder } = useProcurement();
-    const { schedulerSettings } = useSettings();
+    const { schedulerSettings, activeSku } = useSettings();
+    const { getProductSpecs } = useProducts();
 
     // Edit State
     const [editingId, setEditingId] = useState(null);
@@ -41,13 +43,18 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
 
     // Helpers
     // Business Rule: 1 PO = 1 Truck (Always)
-    const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
     const getTruckCount = (qty) => "1.0"; // Always 1 truck
     const getTruckFloat = (qty) => 1.0;
 
     // --- ESTIMATION LOGIC (Shared with Import) ---
     const getEstimatedTime = (index) => {
-        if (!schedulerSettings || !specs) return 'TBD';
+        if (!schedulerSettings) return 'TBD';
+
+        const order = sortedOrders[index];
+        const sku = order?.sku || activeSku; // Fallback to active context if order has no sku
+        const specs = getProductSpecs(sku);
+
+        if (!specs) return 'TBD';
 
         const time24 = calculateDeliveryTime(
             index,

@@ -5,12 +5,15 @@ import { useSupabaseSync } from '../hooks/useSupabaseSync';
 const ProcurementContext = createContext();
 
 import { useSettings } from './SettingsContext';
+import { useProducts } from './ProductsContext';
 import { calculateDeliveryTime } from '../utils/schedulerUtils';
 
 export function ProcurementProvider({ children }) {
     const { user } = useAuth();
     const { fetchProcurementData, saveProcurementEntry, deleteProcurementEntry } = useSupabaseSync();
-    const { bottleDefinitions, schedulerSettings, activeSku } = useSettings();
+    // Removed bottleDefinitions from Settings
+    const { schedulerSettings, activeSku } = useSettings();
+    const { getProductSpecs } = useProducts();
 
     // State: Manifest of POs keyed by Date (YYYY-MM-DD)
     // Structure: { "2023-12-15": { items: [ { id, po, qty, supplier, status } ] } }
@@ -67,14 +70,15 @@ export function ProcurementProvider({ children }) {
                     // Ensure ID exists
                     if (!order.id) order.id = crypto.randomUUID();
 
-                    // --- Auto-Schedule Logic ---
+                    // --- Auto-Schedule Logic (Products Context) ---
                     // Only apply if time is NOT already set (don't overwrite manual imports)
                     if (!order.time) {
                         const sku = order.sku || activeSku; // Fallback to activeSku if order missing it? Or just use what we have.
                         // Wait, if order.sku is missing, we might not find definition.
                         // Assuming 'activeSku' from context might be relevant context for the *current view*, but bulk import might be mixed.
                         // Let's try order.sku first.
-                        const def = bottleDefinitions[sku];
+                        // Use Global Products Context (DB Source)
+                        const def = getProductSpecs(sku);
 
                         // Default Scheduling Params
                         const start = schedulerSettings?.shiftStartTime || '00:00';

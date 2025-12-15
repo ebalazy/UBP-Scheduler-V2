@@ -19,6 +19,8 @@ import { Boxes, CalendarClock, Crown, Gauge, Truck, Package } from 'lucide-react
 
 import { ProcurementProvider, useProcurement } from './context/ProcurementContext';
 
+import { ProductsProvider } from './context/ProductsContext';
+
 export default function App() {
   const { user, loading } = useAuth();
   const { uploadLocalData } = useSupabaseSync();
@@ -47,9 +49,11 @@ export default function App() {
   }
 
   return (
-    <ProcurementProvider>
-      <AuthenticatedApp user={user} />
-    </ProcurementProvider>
+    <ProductsProvider>
+      <ProcurementProvider>
+        <AuthenticatedApp user={user} />
+      </ProcurementProvider>
+    </ProductsProvider>
   );
 }
 

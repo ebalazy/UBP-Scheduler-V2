@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useSettings } from '../../context/SettingsContext';
-import { useProducts } from '../useProducts';
+import { useProducts } from '../../context/ProductsContext';
 import { getLocalISOString, addDays } from '../../utils/dateUtils';
 
 export function useMRPCalculations(state, poManifest = {}) {

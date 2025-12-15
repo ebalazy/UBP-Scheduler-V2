@@ -1,93 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../services/supabaseClient';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useSettings } from '../../context/SettingsContext';
+import { useProducts } from '../../context/ProductsContext'; // New Context
 import { PlusIcon, TruckIcon, BoltIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { Package } from 'lucide-react';
 import ProductEditModal from './ProductEditModal';
 
 export default function ProductsView() {
     const { user } = useAuth();
-    const { bottleDefinitions } = useSettings(); // Legacy Data
-    const [products, setProducts] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { products, loading: isLoading, refreshProducts } = useProducts(); // Use Global State
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
-    const [isMigrating, setIsMigrating] = useState(false);
-    const [fetchError, setFetchError] = useState(null);
-
-    const fetchProducts = useCallback(async () => {
-        if (!user) return;
-        setIsLoading(true);
-        setFetchError(null);
-        try {
-            // Fetch Products + Joined Production Settings
-            const { data, error } = await supabase
-                .from('products')
-                .select(`
-                    *,
-                    production_settings (
-                        line_name,
-                        production_rate
-                    )
-                `)
-                .order('name', { ascending: true });
-
-            if (error) throw error;
-            setProducts(data || []);
-        } catch (err) {
-            console.error("Error fetching products:", err);
-            setFetchError(err.message || JSON.stringify(err));
-            // alert("Failed to load products");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [user]);
-
-    // Migration Logic
-    const handleMigrate = async () => {
-        if (!confirm("Import legacy settings from your browser to the database? This might overwrite existing product specs.")) return;
-        setIsMigrating(true);
-        try {
-            const skus = Object.keys(bottleDefinitions);
-            let count = 0;
-            for (const sku of skus) {
-                const def = bottleDefinitions[sku];
-                // 1. Upsert Product
-                const { data: prod, error: pErr } = await supabase.from('products').upsert({
-                    name: sku,
-                    bottles_per_case: def.bottlesPerCase,
-                    bottles_per_truck: def.bottlesPerTruck,
-                    cases_per_pallet: def.casesPerPallet,
-                    user_id: user.id
-                }, { onConflict: 'name' }).select().single();
-
-                if (pErr) throw pErr;
-
-                // 2. Upsert Rate (Line 1)
-                const { error: sErr } = await supabase.from('production_settings').upsert({
-                    product_id: prod.id,
-                    user_id: user.id,
-                    line_name: 'Line 1',
-                    production_rate: def.productionRate || 0
-                }, { onConflict: 'product_id, line_name' });
-
-                if (sErr) throw sErr;
-                count++;
-            }
-            alert(`Successfully migrated ${count} products.`);
-            fetchProducts();
-        } catch (err) {
-            console.error(err);
-            alert("Migration failed: " + err.message);
-        } finally {
-            setIsMigrating(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
 
     const handleEdit = (product) => {
         setEditingProduct(product);
@@ -100,7 +23,7 @@ export default function ProductsView() {
     };
 
     const handleSave = () => {
-        fetchProducts(); // Refresh list after save
+        refreshProducts(); // Refresh context
     };
 
     return (
@@ -115,15 +38,6 @@ export default function ProductsView() {
                     <p className="text-sm text-gray-500 mt-1">Manage SKUs, dimensions, and run rates.</p>
                 </div>
                 <div className="flex gap-2">
-                    <button
-                        onClick={handleMigrate}
-                        disabled={isMigrating}
-                        className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-2 rounded-lg text-sm font-medium transition-all"
-                        title="Import settings from Browser Storage to Database"
-                    >
-                        <ArrowPathIcon className={`w-4 h-4 ${isMigrating ? 'animate-spin' : ''}`} />
-                        {isMigrating ? 'Importing...' : 'Import Legacy'}
-                    </button>
                     <button
                         onClick={handleCreate}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all"
