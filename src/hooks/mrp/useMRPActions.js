@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSupabaseSync } from '../useSupabaseSync';
 import { addDays, getLocalISOString } from '../../utils/dateUtils';
 import { saveLocalState } from './useMRPState';
-import { flushSync } from 'react-dom';
+
 
 export function useMRPActions(state, calculationsResult) {
     const { bottleDefinitions, updateBottleDefinition, safetyStockLoads, leadTimeDays } = useSettings();
@@ -182,14 +182,8 @@ export function useMRPActions(state, calculationsResult) {
         const val = value;
         const newDemand = { ...demandRef.current, [date]: val };
 
-        flushSync(() => {
-            setMonthlyDemand(newDemand);
-            if (isAutoReplenish) {
-                console.warn("MANUAL SYNC RUN (FlushSync)");
-                lastManualRun.current = Date.now();
-                runAutoReplenishment(newDemand, monthlyProductionActuals, monthlyInbound);
-            }
-        });
+        setMonthlyDemand(newDemand);
+        // We defer auto-replenishment to the useEffect to keep the input responsive.
 
         scheduleLocalSave('monthlyDemand', () => {
             saveLocalState('monthlyDemand', newDemand, selectedSize, true);
@@ -202,13 +196,7 @@ export function useMRPActions(state, calculationsResult) {
                 1000
             );
         }
-
-
-        if (isAutoReplenish) {
-            lastManualRun.current = Date.now();
-            runAutoReplenishment(newDemand, monthlyProductionActuals, monthlyInbound);
-        }
-    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyDemand, savePlanningEntry, isAutoReplenish, runAutoReplenishment, monthlyProductionActuals, monthlyInbound]);
+    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyDemand, savePlanningEntry]);
 
     const updateDateActual = useCallback((date, value) => {
         // Allow raw value flow
@@ -217,13 +205,8 @@ export function useMRPActions(state, calculationsResult) {
         if (val === undefined) delete newActuals[date];
         else newActuals[date] = val;
 
-        flushSync(() => {
-            setMonthlyProductionActuals(newActuals);
-            if (isAutoReplenish) {
-                lastManualRun.current = Date.now();
-                runAutoReplenishment(monthlyDemand, newActuals, monthlyInbound);
-            }
-        });
+        setMonthlyProductionActuals(newActuals);
+        // We defer auto-replenishment to the useEffect to keep the input responsive.
 
         scheduleLocalSave('monthlyProductionActuals', () => {
             saveLocalState('monthlyProductionActuals', newActuals, selectedSize, true);
@@ -236,13 +219,7 @@ export function useMRPActions(state, calculationsResult) {
                 1000
             );
         }
-
-
-        if (isAutoReplenish) {
-            lastManualRun.current = Date.now();
-            runAutoReplenishment(monthlyDemand, newActuals, monthlyInbound);
-        }
-    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyProductionActuals, savePlanningEntry, isAutoReplenish, runAutoReplenishment, monthlyDemand, monthlyInbound]);
+    }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyProductionActuals, savePlanningEntry]);
 
     const updateDateInbound = useCallback((date, value) => {
         const val = value; // Allow raw string
