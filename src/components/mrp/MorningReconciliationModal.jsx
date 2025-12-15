@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSettings } from '../../context/SettingsContext';
 import {
     ClipboardDocumentCheckIcon,
     TruckIcon,
@@ -14,6 +15,9 @@ export default function MorningReconciliationModal({
     state, // mrp.formState
     setters // mrp.setters
 }) {
+    const { bottleDefinitions } = useSettings();
+    const sizes = Object.keys(bottleDefinitions);
+
     const [step, setStep] = useState(1);
 
     // Temporary State for the Wizard
@@ -60,6 +64,25 @@ export default function MorningReconciliationModal({
                 <p className="text-sm text-purple-700 dark:text-purple-400">
                     What is physically on the floor and in the yard <strong>right now</strong>?
                 </p>
+            </div>
+
+            {/* SKU Selector */}
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <label className="block text-xs uppercase font-bold text-gray-500 mb-2">Select Product</label>
+                <div className="flex flex-wrap gap-2">
+                    {sizes.map(size => (
+                        <button
+                            key={size}
+                            onClick={() => setters.setSelectedSize(size)}
+                            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${state.selectedSize === size
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                }`}
+                        >
+                            {size}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -111,9 +134,9 @@ export default function MorningReconciliationModal({
             </div>
 
             <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Ready to Update?</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Ready to Update {state.selectedSize}?</h3>
                 <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-sm mx-auto">
-                    The system will reset the inventory baseline to <strong>{floorCount} Pallets</strong> + <strong>{yardCount} Loads</strong> and re-calculate the entire production schedule.
+                    The system will reset the <strong>{state.selectedSize}</strong> inventory baseline to <strong>{floorCount} Pallets</strong> + <strong>{yardCount} Loads</strong>.
                 </p>
             </div>
 
