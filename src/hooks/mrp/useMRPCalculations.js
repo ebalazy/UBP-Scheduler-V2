@@ -157,6 +157,7 @@ export function useMRPCalculations(state, poManifest = {}) {
 
             dailyLedger.push({
                 date: dateStr,
+                dateStr: dateStr, // Add alias for Workbench
                 balance: currentBalance,
                 demand: dailyDemand,
                 supply: dailySupply
