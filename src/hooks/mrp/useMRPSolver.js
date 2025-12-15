@@ -48,6 +48,10 @@ export function useMRPSolver() {
             // Skip updates inside frozen window
             if (dateStr <= frozenUntil) return;
 
+            // Skip updates if Actuals represent a locked reality
+            // If the user entered "Actual Production", this day is effectively "History" or "Locked"
+            if (state.monthlyProductionActuals && state.monthlyProductionActuals[dateStr]) return;
+
             // Target Calc (Use Day's own target if calculated, else fallback)
             const safetyTarget = day.safetyStockTarget || ((specs.productionRate * 24) * (safetyStockLoads || 2));
 
