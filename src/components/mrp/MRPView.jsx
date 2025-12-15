@@ -4,6 +4,7 @@ import PlanningGrid from './PlanningGrid';
 import OrderActionLog from './OrderActionLog';
 
 import BulkImportModal from '../procurement/BulkImportModal';
+import { useProcurement } from '../../context/ProcurementContext';
 import SupplierEmailModal from '../procurement/SupplierEmailModal';
 import YMSExportModal from '../procurement/YMSExportModal'; // NEW
 import ProcurementMasterList from '../procurement/ProcurementMasterList'; // NEW
@@ -24,6 +25,7 @@ export default function MRPView({ state, setters, results }) {
     const { productMap: bottleDefinitions } = useProducts();
     const { user } = useAuth();
     const { solve } = useMRPSolver();
+    const { poManifest } = useProcurement();
 
     const handleAutoBalance = () => {
         if (!confirm("Auto-Balance will populate Planned Loads to ensure safety stock is met. Proceed?")) return;
