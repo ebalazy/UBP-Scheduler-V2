@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Cog6ToothIcon, UserCircleIcon, ArrowRightOnRectangleIcon, PrinterIcon, CloudIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './auth/AuthModal';
+import ubpLogo from '../assets/ubp_logo.png';
 
 export default function Header({ onOpenSettings, isSaving, saveError }) {
     const { user, signOut } = useAuth();
@@ -20,20 +21,21 @@ export default function Header({ onOpenSettings, isSaving, saveError }) {
     }, []);
 
     return (
-        <header className="bg-slate-900 border-b border-slate-800 shadow-sm relative z-30 transition-colors duration-200">
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm relative z-30 transition-colors duration-200">
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
             <div className="max-w-[1920px] mx-auto px-4 lg:px-6 py-2.5 flex justify-between items-center">
                 {/* 1. Logo Section */}
                 <div className="flex items-center gap-3.5">
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-lg shadow-lg shadow-blue-900/40 transform transition-transform hover:scale-105 cursor-default">
-                        <span className="text-xl">🥤</span>
+                    {/* Logo Container: White circle with subtle ring for Light Mode definition */}
+                    <div className="h-10 w-10 bg-white rounded-full shadow-lg shadow-blue-500/10 dark:shadow-blue-500/20 ring-1 ring-slate-100 dark:ring-0 flex items-center justify-center overflow-hidden transform hover:scale-105 transition-transform duration-300">
+                        <img src={ubpLogo} alt="UBP" className="h-[90%] w-[90%] object-contain" />
                     </div>
                     <div>
-                        <h1 className="text-lg font-bold text-white tracking-tight leading-none">
-                            Beverage <span className="opacity-90 font-light">Scheduler</span>
+                        <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none">
+                            Beverage <span className="opacity-90 font-light text-slate-600 dark:text-slate-300">Scheduler</span>
                         </h1>
-                        <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5 opacity-80">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-widest uppercase mt-0.5 opacity-80">
                             UBP Co-Packer Edition
                         </p>
                     </div>
@@ -42,28 +44,28 @@ export default function Header({ onOpenSettings, isSaving, saveError }) {
                 {/* 2. Global Actions */}
                 <div className="flex items-center gap-4 no-print">
 
-                    {/* Sync Status - Always Show */}
+                    {/* Sync Status */}
                     {user ? (
-                        <div className="flex items-center text-sm font-medium transition-colors bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700/50" title={saveError || (isOnline ? "Cloud Synced" : "Offline Mode")}>
-                            <CloudIcon className={`h-4 w-4 mr-2 ${isSaving ? 'text-blue-400 animate-pulse' : saveError ? 'text-red-500' : isOnline ? 'text-emerald-500' : 'text-slate-500'}`} />
-                            <span className={`hidden md:inline text-xs font-bold uppercase tracking-wide ${isSaving ? 'text-blue-400' : saveError ? 'text-red-400' : isOnline ? 'text-emerald-500' : 'text-slate-500'}`}>
+                        <div className="flex items-center text-sm font-medium transition-colors bg-slate-50 dark:bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50" title={saveError || (isOnline ? "Cloud Synced" : "Offline Mode")}>
+                            <CloudIcon className={`h-4 w-4 mr-2 ${isSaving ? 'text-blue-500 dark:text-blue-400 animate-pulse' : saveError ? 'text-rose-500' : isOnline ? 'text-emerald-600 dark:text-emerald-500' : 'text-slate-400'}`} />
+                            <span className={`hidden md:inline text-xs font-bold uppercase tracking-wide ${isSaving ? 'text-blue-600 dark:text-blue-400' : saveError ? 'text-rose-600 dark:text-rose-400' : isOnline ? 'text-emerald-700 dark:text-emerald-500' : 'text-slate-500'}`}>
                                 {isSaving ? 'Saving...' : saveError ? 'Sync Error' : isOnline ? 'All Saved' : 'Offline'}
                             </span>
                         </div>
                     ) : (
-                        <div className="flex items-center text-sm font-medium text-slate-500 px-3 py-1.5 bg-slate-800/50 rounded-full" title="Local Data Only">
+                        <div className="flex items-center text-sm font-medium text-slate-500 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-full" title="Local Data Only">
                             <CloudIcon className="h-4 w-4 mr-2" />
                             <span className="hidden md:inline text-xs font-bold uppercase tracking-wide">Local Only</span>
                         </div>
                     )}
 
-                    <div className="w-px h-6 bg-slate-700 hidden md:block mx-2"></div>
+                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 hidden md:block mx-2"></div>
 
                     {/* Tool Icons */}
                     <div className="flex items-center gap-1">
                         <button
                             onClick={() => window.print()}
-                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+                            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg transition-all"
                             title="Print View"
                         >
                             <PrinterIcon className="h-5 w-5" />
@@ -71,25 +73,25 @@ export default function Header({ onOpenSettings, isSaving, saveError }) {
 
                         <button
                             onClick={onOpenSettings}
-                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all group"
+                            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg transition-all group"
                             title="Settings"
                         >
                             <Cog6ToothIcon className="h-5 w-5 group-hover:rotate-90 transition-transform duration-500" />
                         </button>
                     </div>
 
-                    <div className="w-px h-6 bg-slate-700 hidden md:block mx-2"></div>
+                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 hidden md:block mx-2"></div>
 
                     {/* Auth Controls */}
                     {user ? (
                         <div className="flex items-center gap-3">
                             <div className="hidden md:flex flex-col items-end">
-                                <span className="text-sm font-semibold text-slate-200 leading-none">{user.email?.split('@')[0]}</span>
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-none">{user.email?.split('@')[0]}</span>
                                 <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">{user.email?.split('@')[1] || 'Union Bev'}</span>
                             </div>
                             <button
                                 onClick={signOut}
-                                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition-all"
+                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:text-rose-400 dark:hover:bg-rose-950/30 rounded-lg transition-all"
                                 title="Sign Out"
                             >
                                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
