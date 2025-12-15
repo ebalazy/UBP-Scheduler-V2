@@ -17,6 +17,7 @@ import { formatLocalDate, getLocalISOString } from '../../utils/dateUtils';
 
 import { useMRPSolver } from '../../hooks/mrp/useMRPSolver';
 import { useProducts } from '../../context/ProductsContext';
+import PlanningGridWorkbench from './PlanningGridWorkbench';
 
 export default function MRPView({ state, setters, results }) {
     const { bottleSizes, leadTimeDays, schedulerSettings } = useSettings();
@@ -504,7 +505,13 @@ export default function MRPView({ state, setters, results }) {
                                     onClick={() => setViewMode('grid')}
                                     className={`px-3 py-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
                                 >
-                                    Worksheet
+                                    Standard
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('workbench')}
+                                    className={`px-3 py-1.5 rounded-md transition-all ${viewMode === 'workbench' ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
+                                >
+                                    Workbench (Beta)
                                 </button>
                                 <button
                                     onClick={() => setViewMode('calendar')}
@@ -531,6 +538,17 @@ export default function MRPView({ state, setters, results }) {
                                         safetyTarget={results?.safetyTarget}
                                     />
                                 </div>
+                            ) : viewMode === 'workbench' ? (
+                                <PlanningGridWorkbench
+                                    monthlyDemand={state.monthlyDemand || {}}
+                                    updateDateDemand={setters.updateDateDemand}
+                                    monthlyInbound={state.monthlyInbound || {}}
+                                    monthlyProductionActuals={state.monthlyProductionActuals || {}}
+                                    updateDateActual={setters.updateDateActual}
+                                    specs={results?.specs}
+                                    dailyLedger={results?.dailyLedger}
+                                    userProfile={user}
+                                />
                             ) : (
                                 <PlanningGrid
                                     monthlyDemand={state.monthlyDemand || {}}
@@ -543,6 +561,7 @@ export default function MRPView({ state, setters, results }) {
                                     specs={results?.specs}
                                     safetyTarget={results?.safetyTarget}
                                     dailyLedger={results?.dailyLedger}
+                                    userProfile={user}
                                 />
                             )}
                         </div>
