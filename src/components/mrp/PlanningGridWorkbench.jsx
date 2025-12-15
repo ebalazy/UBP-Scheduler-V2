@@ -145,12 +145,24 @@ export default function PlanningGridWorkbench({
                                 Metric
                             </th>
                             {dates.map(date => {
-                                const dateStr = formatLocalDate(date); // Use shared util
+                                const dateStr = formatLocalDate(date);
+                                const todayStr = formatLocalDate(new Date());
+                                const isToday = dateStr === todayStr;
+                                const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                                let headerClass = "min-w-[80px] p-1 border-b border-r text-center font-medium transition-colors ";
+                                if (isToday) headerClass += "bg-blue-600 text-white border-blue-600 ring-2 ring-blue-600 ring-inset ring-offset-0 z-20";
+                                else if (isPast) headerClass += "bg-gray-100 text-gray-500 border-gray-200";
+                                else if (isWeekend) headerClass += "bg-gray-50 text-gray-400";
+                                else headerClass += "bg-white text-gray-700";
+
                                 return (
-                                    <th key={dateStr} className={`min-w-[80px] p-1 border-b border-r text-center font-medium ${isWeekend ? 'bg-gray-50 text-gray-400' : 'text-gray-700'}`}>
-                                        <div className="text-[10px] uppercase opacity-60">{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                                        <div>{date.toLocaleDateString('en-US', { day: 'numeric', month: 'numeric' })}</div>
+                                    <th key={dateStr} className={headerClass}>
+                                        <div className={`text-[10px] uppercase ${isToday ? 'text-blue-100' : 'opacity-60'}`}>
+                                            {isToday ? 'TODAY' : date.toLocaleDateString('en-US', { weekday: 'short' })}
+                                        </div>
+                                        <div className={isToday ? 'font-bold' : ''}>{date.toLocaleDateString('en-US', { day: 'numeric', month: 'numeric' })}</div>
                                     </th>
                                 );
                             })}
@@ -166,15 +178,22 @@ export default function PlanningGridWorkbench({
                             </td>
                             {dates.map(date => {
                                 const dateStr = formatLocalDate(date);
+                                const todayStr = formatLocalDate(new Date());
+                                const isToday = dateStr === todayStr;
+                                const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                                 const val = monthlyDemand[dateStr] || '';
                                 const act = monthlyProductionActuals[dateStr];
                                 const hasActual = act !== undefined && act !== null;
 
+                                let cellClass = "border-r border-b p-0 h-10 relative ";
+                                if (isToday) cellClass += "bg-blue-50/30 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (isPast) cellClass += "bg-gray-50/50 ";
+
                                 return (
-                                    <td key={dateStr} className="border-r border-b p-0 h-10 relative">
+                                    <td key={dateStr} className={cellClass}>
                                         <input
                                             type="number"
-                                            className={`w-full h-full text-center border-none focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-transparent p-0 ${act ? 'text-blue-600 font-bold' : ''}`}
+                                            className={`w-full h-full text-center border-none focus:ring-0 bg-transparent p-0 ${act ? 'text-blue-600 font-bold' : ''} ${isToday ? 'font-bold' : ''}`}
                                             value={val}
                                             onChange={(e) => updateDateDemand(dateStr, e.target.value)}
                                             placeholder="-"
@@ -197,29 +216,30 @@ export default function PlanningGridWorkbench({
                                 <span className="block text-[9px] font-normal text-gray-400">Past Dates Only</span>
                             </td>
                             {dates.map(date => {
-                                const dateStr = formatLocalDate(date); // YYYY-MM-DD
+                                const dateStr = formatLocalDate(date);
+                                const todayStr = formatLocalDate(new Date());
+                                const isToday = dateStr === todayStr;
+                                const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                                 const act = monthlyProductionActuals[dateStr] || '';
 
-                                // Logic: Can only edit if date is strictly BEFORE today
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                const cellDate = new Date(date);
-                                cellDate.setHours(0, 0, 0, 0);
+                                let cellClass = "border-r border-b p-0 h-10 relative ";
+                                if (isToday) cellClass += "bg-blue-50/30 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (!isPast) cellClass += "bg-gray-50/30 "; // Future dates default
 
-                                const isPast = cellDate < today;
+                                const isLocked = !isPast; // Locked if today or future
 
                                 return (
-                                    <td key={dateStr} className={`border-r border-b p-0 h-10 relative ${!isPast ? 'bg-gray-50/50 dark:bg-gray-800/50' : ''}`}>
-                                        {isPast ? (
+                                    <td key={dateStr} className={cellClass}>
+                                        {!isLocked ? (
                                             <input
                                                 type="number"
-                                                className="w-full h-full text-center border-none focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-transparent p-0 font-bold text-blue-700 dark:text-blue-300"
+                                                className="w-full h-full text-center border-none focus:ring-0 bg-transparent p-0 font-bold text-blue-700 dark:text-blue-300"
                                                 value={act}
                                                 onChange={(e) => updateDateActual(dateStr, e.target.value)}
                                                 placeholder="-"
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-300 text-[10px] select-none cursor-not-allowed">
+                                            <div className="w-full h-full flex items-center justify-center text-gray-300 text-[10px] select-none cursor-not-allowed italic">
                                                 Locked
                                             </div>
                                         )}
@@ -236,8 +256,16 @@ export default function PlanningGridWorkbench({
                             </td>
                             {dates.map(date => {
                                 const dateStr = formatLocalDate(date);
+                                const todayStr = formatLocalDate(new Date());
+                                const isToday = dateStr === todayStr;
+                                const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+
+                                let cellClass = "border-r border-b p-0 h-12 align-middle ";
+                                if (isToday) cellClass += "bg-blue-50/30 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (isPast) cellClass += "bg-gray-50/50 ";
+
                                 return (
-                                    <td key={dateStr} className="border-r border-b p-0 h-12 align-middle">
+                                    <td key={dateStr} className={cellClass}>
                                         {renderInboundCell(dateStr)}
                                     </td>
                                 );
@@ -252,9 +280,17 @@ export default function PlanningGridWorkbench({
                             </td>
                             {dates.map(date => {
                                 const dateStr = formatLocalDate(date);
+                                const todayStr = formatLocalDate(new Date());
+                                const isToday = dateStr === todayStr;
+                                const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                                 const ledger = getLedgerForDate(dateStr);
+
+                                let cellClass = "border-r border-b p-0 h-12 align-middle ";
+                                if (isToday) cellClass += "bg-blue-50/30 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (isPast) cellClass += "bg-gray-50/50 ";
+
                                 return (
-                                    <td key={dateStr} className="border-r border-b p-0 h-12 align-middle">
+                                    <td key={dateStr} className={cellClass}>
                                         {renderInventoryCell(ledger)}
                                     </td>
                                 );
