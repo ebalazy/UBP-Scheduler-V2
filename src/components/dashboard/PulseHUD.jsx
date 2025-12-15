@@ -25,7 +25,13 @@ export default function PulseHUD({ mrp, scheduler, activeSku }) {
     // Metrics
     const floorBalance = results.calculatedPallets || 0;
     const yardBalance = state.yardInventory?.count || 0;
-    const safetyLoads = scheduler.results?.safetyStockLoads || 0;
+
+    // Precise Safety Target (Bottles -> Pallets)
+    const specs = results.specs || {};
+    const bpc = specs.bottlesPerCase || 1;
+    const cpp = specs.casesPerPallet || 1;
+    const safetyTargetBottles = results.safetyTarget || 0;
+    const safetyTargetPallets = safetyTargetBottles / (bpc * cpp);
 
     // Coverage Logic
     let runwayDays = 0;
@@ -129,11 +135,11 @@ export default function PulseHUD({ mrp, scheduler, activeSku }) {
 
                     {/* Status Badge */}
                     <div className="hidden md:flex flex-col items-end justify-center border-l dark:border-slate-700 pl-6">
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${floorBalance > (safetyLoads * 20) // approx check
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${floorBalance >= safetyTargetPallets
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400'
                             : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400'
                             }`}>
-                            {floorBalance > (safetyLoads * 20) ? 'Secure' : 'Below Safety'}
+                            {floorBalance >= safetyTargetPallets ? 'Secure' : 'Below Safety'}
                         </div>
                     </div>
 
