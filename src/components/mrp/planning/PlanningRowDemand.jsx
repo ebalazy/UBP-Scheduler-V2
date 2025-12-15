@@ -51,9 +51,21 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
         };
     }, [updateDateDemand]);
 
+    const parseValue = (raw) => {
+        if (!raw) return '';
+        const s = raw.toString().toLowerCase().trim().replace(/,/g, '');
+        let multiplier = 1;
+        if (s.endsWith('k')) multiplier = 1000;
+        else if (s.endsWith('m')) multiplier = 1000000;
+        const num = parseFloat(s.replace(/[km]/g, ''));
+        if (isNaN(num)) return raw;
+        return (num * multiplier).toString();
+    };
+
     const handleBlur = () => {
         if (inputRef.current) {
-            updateDateDemand(dateStr, inputRef.current.value);
+            const finalVal = parseValue(inputRef.current.value);
+            updateDateDemand(dateStr, finalVal);
         }
     };
 
@@ -61,12 +73,14 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
         if (e.key === 'Enter') {
             e.preventDefault();
             const rawVal = e.target.value.replace(/,/g, '');
-            // Check for Bulk Syntax: 1000*5
-            const match = rawVal.match(/^(\d+)\*(\d+)$/);
+            // Check for Bulk Syntax: 60k*5 or 1000*5
+            const match = rawVal.match(/^([0-9km.]+)\*(\d+)$/i);
 
             if (match) {
-                const value = match[1];
+                const valueStr = match[1];
                 const count = parseInt(match[2], 10);
+                const value = parseValue(valueStr); // Resolve '60k'
+
                 const updates = {};
                 let nextDate = new Date(date);
                 updates[dateStr] = value; // Include self
@@ -91,8 +105,9 @@ const DemandCell = React.memo(({ date, dateStr, initialValue, updateDateDemand, 
                 return;
             }
 
-            // Normal Enter: Save and Move Focus
-            updateDateDemand(dateStr, rawVal);
+            // Normal Enter
+            const finalVal = parseValue(rawVal);
+            updateDateDemand(dateStr, finalVal);
 
             const nextDate = new Date(date);
             nextDate.setDate(nextDate.getDate() + 1);
