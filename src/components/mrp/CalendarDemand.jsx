@@ -65,7 +65,7 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
         });
 
         const totalMonthlyDemand = dateArray.reduce((sum, d) => {
-            const usage = (d.actual !== undefined && d.actual !== null) ? Number(d.actual) : (d.val || 0);
+            const usage = (d.actual !== undefined && d.actual !== null) ? Number(d.actual) : Number(d.val || 0);
             return sum + usage;
         }, 0);
 
