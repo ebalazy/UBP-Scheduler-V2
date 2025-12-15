@@ -127,6 +127,7 @@ export function useMRPCalculations(state, poManifest = {}) {
         const safetyTarget = safetyStockLoads * specs.bottlesPerTruck;
 
         const dailyLedger = [];
+        console.log("DEBUG CALC:", { derivedPallets, effectiveYardLoads, yardBottles, inventoryBottles });
         let currentBalance = inventoryBottles + yardBottles;
         let firstStockoutDate = null;
         let firstOverflowDate = null;
@@ -160,7 +161,10 @@ export function useMRPCalculations(state, poManifest = {}) {
                 dateStr: dateStr, // Add alias for Workbench
                 balance: currentBalance,
                 demand: dailyDemand,
-                supply: dailySupply
+                supply: dailySupply,
+                projectedEndInventory: currentBalance,
+                projectedPallets: currentBalance / ((specs.bottlesPerCase * specs.casesPerPallet) || 1),
+                daysOfSupply: 0 // Placeholder, or implement per-day DoS later if needed
             });
 
             if (currentBalance < safetyTarget && !firstStockoutDate) {
