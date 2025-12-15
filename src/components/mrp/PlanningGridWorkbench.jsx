@@ -139,9 +139,9 @@ export default function PlanningGridWorkbench({
                 <table className="w-full border-collapse text-xs">
 
                     {/* Sticky Header */}
-                    <thead className="sticky top-0 z-20 bg-gray-100 dark:bg-gray-800 shadow-sm">
+                    <thead className="sticky top-0 z-20 shadow-sm">
                         <tr>
-                            <th className="sticky left-0 z-30 bg-gray-100 dark:bg-gray-800 w-32 border-b border-r p-2 text-left font-semibold text-gray-500">
+                            <th className="sticky left-0 z-30 bg-slate-50 dark:bg-gray-800 w-32 border-b border-r border-slate-300 dark:border-gray-700 p-2 text-left font-bold text-slate-700 dark:text-gray-400 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.1)]">
                                 Metric
                             </th>
                             {dates.map(date => {
@@ -151,11 +151,11 @@ export default function PlanningGridWorkbench({
                                 const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
-                                let headerClass = "min-w-[80px] p-1 border-b border-r text-center font-medium transition-colors ";
-                                if (isToday) headerClass += "bg-blue-600 text-white border-blue-600 ring-2 ring-blue-600 ring-inset ring-offset-0 z-20";
-                                else if (isPast) headerClass += "bg-gray-100 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700";
-                                else if (isWeekend) headerClass += "bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500";
-                                else headerClass += "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200";
+                                let headerClass = "min-w-[80px] p-1 border-b border-r border-slate-200 dark:border-gray-700 text-center font-medium transition-colors ";
+                                if (isToday) headerClass += "bg-blue-600 text-white border-blue-600 ring-2 ring-blue-600 ring-inset ring-offset-0 z-20 shadow-md";
+                                else if (isPast) headerClass += "bg-slate-100 dark:bg-gray-900/50 text-slate-400 dark:text-gray-500";
+                                else if (isWeekend) headerClass += "bg-slate-50 dark:bg-gray-800/50 text-slate-500 dark:text-gray-500";
+                                else headerClass += "bg-white dark:bg-gray-800 text-slate-800 dark:text-gray-200";
 
                                 return (
                                     <th key={dateStr} className={headerClass}>
@@ -171,10 +171,10 @@ export default function PlanningGridWorkbench({
 
                     <tbody>
                         {/* 1. Demand Row */}
-                        <tr className="hover:bg-gray-50 group">
-                            <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 border-r border-b p-2 font-medium text-gray-600 group-hover:bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                        <tr className="hover:bg-slate-50 dark:hover:bg-gray-800 group">
+                            <td className="sticky left-0 z-10 bg-slate-50 dark:bg-gray-800 border-r border-b border-slate-300 dark:border-gray-700 p-2 font-bold text-slate-700 dark:text-gray-300 group-hover:bg-slate-100 dark:group-hover:bg-gray-800 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.1)]">
                                 Production Plan
-                                <span className="block text-[9px] font-normal text-gray-400">Cases</span>
+                                <span className="block text-[9px] font-normal text-slate-400 dark:text-gray-500">Cases</span>
                             </td>
                             {dates.map(date => {
                                 const dateStr = formatLocalDate(date);
@@ -185,9 +185,9 @@ export default function PlanningGridWorkbench({
                                 const act = monthlyProductionActuals[dateStr];
                                 const hasActual = act !== undefined && act !== null;
 
-                                let cellClass = "border-r border-b p-0 h-10 relative ";
-                                if (isToday) cellClass += "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
-                                else if (isPast) cellClass += "bg-gray-50/50 dark:bg-gray-900/40 ";
+                                let cellClass = "border-r border-b border-slate-200 dark:border-gray-700 p-0 h-10 relative ";
+                                if (isToday) cellClass += "bg-blue-50/80 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (isPast) cellClass += "bg-slate-100 dark:bg-gray-900/40 ";
                                 else cellClass += "bg-white dark:bg-gray-800 ";
 
                                 return (
@@ -211,10 +211,10 @@ export default function PlanningGridWorkbench({
                         </tr>
 
                         {/* 1b. Actual Production Row (New Planner Input) */}
-                        <tr className="hover:bg-gray-50 group">
-                            <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 border-r border-b p-2 font-medium text-blue-700 dark:text-blue-400 group-hover:bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                        <tr className="hover:bg-slate-50 dark:hover:bg-gray-800 group">
+                            <td className="sticky left-0 z-10 bg-slate-50 dark:bg-gray-800 border-r border-b border-slate-300 dark:border-gray-700 p-2 font-bold text-blue-700 dark:text-blue-400 group-hover:bg-slate-100 dark:group-hover:bg-gray-800 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.1)]">
                                 Actual Reconciliation
-                                <span className="block text-[9px] font-normal text-gray-400">Past Dates Only</span>
+                                <span className="block text-[9px] font-normal text-slate-400 dark:text-gray-500">Past Dates Only</span>
                             </td>
                             {dates.map(date => {
                                 const dateStr = formatLocalDate(date);
@@ -223,9 +223,9 @@ export default function PlanningGridWorkbench({
                                 const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                                 const act = monthlyProductionActuals[dateStr] || '';
 
-                                let cellClass = "border-r border-b p-0 h-10 relative ";
-                                if (isToday) cellClass += "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
-                                else if (!isPast) cellClass += "bg-gray-50/30 dark:bg-gray-800/50 "; // Future dates default
+                                let cellClass = "border-r border-b border-slate-200 dark:border-gray-700 p-0 h-10 relative ";
+                                if (isToday) cellClass += "bg-blue-50/80 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (!isPast) cellClass += "bg-slate-50/50 dark:bg-gray-800/50 "; // Future dates default
                                 else cellClass += "bg-white dark:bg-gray-800 "; // Past dates (editable)
 
                                 const isLocked = !isPast; // Locked if today or future
@@ -251,10 +251,10 @@ export default function PlanningGridWorkbench({
                         </tr>
 
                         {/* 2. Inbound Row */}
-                        <tr className="hover:bg-gray-50 group">
-                            <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 border-r border-b p-2 font-medium text-gray-600 group-hover:bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                        <tr className="hover:bg-slate-50 dark:hover:bg-gray-800 group">
+                            <td className="sticky left-0 z-10 bg-slate-50 dark:bg-gray-800 border-r border-b border-slate-300 dark:border-gray-700 p-2 font-bold text-slate-600 dark:text-gray-400 group-hover:bg-slate-100 dark:group-hover:bg-gray-800 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.1)]">
                                 Inbound Trucks
-                                <span className="block text-[9px] font-normal text-gray-400">Click to Manage</span>
+                                <span className="block text-[9px] font-normal text-slate-400 dark:text-gray-500">Click to Manage</span>
                             </td>
                             {dates.map(date => {
                                 const dateStr = formatLocalDate(date);
@@ -262,9 +262,9 @@ export default function PlanningGridWorkbench({
                                 const isToday = dateStr === todayStr;
                                 const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
 
-                                let cellClass = "border-r border-b p-0 h-12 align-middle ";
-                                if (isToday) cellClass += "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
-                                else if (isPast) cellClass += "bg-gray-50/50 dark:bg-gray-900/40 ";
+                                let cellClass = "border-r border-b border-slate-200 dark:border-gray-700 p-0 h-12 align-middle ";
+                                if (isToday) cellClass += "bg-blue-50/80 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (isPast) cellClass += "bg-slate-100 dark:bg-gray-900/40 ";
                                 else cellClass += "bg-white dark:bg-gray-800 ";
 
                                 return (
@@ -276,10 +276,10 @@ export default function PlanningGridWorkbench({
                         </tr>
 
                         {/* 3. Inventory Row (Read Only) */}
-                        <tr className="hover:bg-gray-50 group">
-                            <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 border-r border-b p-2 font-medium text-gray-600 group-hover:bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                        <tr className="hover:bg-slate-50 dark:hover:bg-gray-800 group">
+                            <td className="sticky left-0 z-10 bg-slate-50 dark:bg-gray-800 border-r border-b border-slate-300 dark:border-gray-700 p-2 font-bold text-slate-600 dark:text-gray-400 group-hover:bg-slate-100 dark:group-hover:bg-gray-800 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.1)]">
                                 Projected End
-                                <span className="block text-[9px] font-normal text-gray-400">Pallets & DOS</span>
+                                <span className="block text-[9px] font-normal text-slate-400 dark:text-gray-500">Pallets & DOS</span>
                             </td>
                             {dates.map(date => {
                                 const dateStr = formatLocalDate(date);
@@ -288,9 +288,9 @@ export default function PlanningGridWorkbench({
                                 const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                                 const ledger = getLedgerForDate(dateStr);
 
-                                let cellClass = "border-r border-b p-0 h-12 align-middle ";
-                                if (isToday) cellClass += "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
-                                else if (isPast) cellClass += "bg-gray-50/50 dark:bg-gray-900/40 ";
+                                let cellClass = "border-r border-b border-slate-200 dark:border-gray-700 p-0 h-12 align-middle ";
+                                if (isToday) cellClass += "bg-blue-50/80 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (isPast) cellClass += "bg-slate-100 dark:bg-gray-900/40 ";
                                 else cellClass += "bg-white dark:bg-gray-800 ";
 
                                 return (
