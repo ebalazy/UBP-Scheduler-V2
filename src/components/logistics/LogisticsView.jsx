@@ -29,13 +29,105 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
 
     // --- AGGREGATION LOGIC ---
     useEffect(() => {
-        // ... (lines 29-126 kept via context matching or I must include them if I replace start of function)
-        // To avoid replacing huge block, I will target the function signature and the Button specifically in separate chunks if possible,
-        // or just replace top half.
-        // I will use START LINE 14 and replace the signature.
+        try {
+            // We need to read from LocalStorage directly because 'state' (useMRP) is scoped to ONE SKU.
+            // This is a special "Executive Read" across all SKUs.
+
+            const agg = { today: [], tomorrow: [] };
+
+            bottleSizes.forEach(sku => {
+                // 1. Read Inbound Count (Legacy Manual)
+                const inboundKey = `mrp_${sku}_monthlyInbound`;
+                let inboundMap = {};
+                try {
+                    const raw = localStorage.getItem(inboundKey);
+                    if (raw) inboundMap = JSON.parse(raw);
+                } catch (e) { }
+
+                // 2. Read Local Dock Manifest (Detailed Schedule)
+                const manifestKey = `mrp_${sku}_truckManifest`;
+                let manifestMap = {};
+                try {
+                    const raw = localStorage.getItem(manifestKey);
+                    if (raw) manifestMap = JSON.parse(raw);
+                } catch (e) { }
+
+                // 3. Get Global POs for this SKU (New!)
+                const getGlobalPOs = (date) => {
+                    try {
+                        const dayData = poManifest[date];
+                        if (!dayData || !dayData.items) return [];
+                        // Filter items that match this SKU
+                        return dayData.items.filter(item => item.sku === sku);
+                    } catch (err) {
+                        console.warn("Error reading global POs for date:", date, err);
+                        return [];
+                    }
+                };
+
+                const globalToday = getGlobalPOs(todayStr);
+                const globalTomorrow = getGlobalPOs(tomorrowStr);
+
+                // 4. Check Today
+                const savedTodayCount = Number(inboundMap[todayStr]) || 0;
+                const todayLocalManifest = manifestMap[todayStr] || [];
+
+                const mappedGlobalToday = globalToday.map(po => ({
+                    id: po.id,
+                    time: po.time,
+                    carrier: po.carrier || po.supplier,
+                    type: 'PO',
+                    po: po.po,
+                    details: `PO#${po.po} (${po.qty})`,
+                    isGlobal: true
+                }));
+
+                const combinedTodayManifest = [...todayLocalManifest, ...mappedGlobalToday];
+                const effectiveTodayCount = Math.max(savedTodayCount, combinedTodayManifest.length);
+
+                if (effectiveTodayCount > 0 || combinedTodayManifest.length > 0) {
+                    agg.today.push({
+                        sku,
+                        count: effectiveTodayCount,
+                        manifest: combinedTodayManifest
+                    });
+                }
+
+                // 5. Check Tomorrow
+                const savedTmrCount = Number(inboundMap[tomorrowStr]) || 0;
+                const tmrLocalManifest = manifestMap[tomorrowStr] || [];
+
+                const mappedGlobalTmr = globalTomorrow.map(po => ({
+                    id: po.id,
+                    time: po.time,
+                    carrier: po.carrier || po.supplier,
+                    type: 'PO',
+                    po: po.po,
+                    details: `PO#${po.po} (${po.qty})`,
+                    isGlobal: true
+                }));
+
+                const combinedTmrManifest = [...tmrLocalManifest, ...mappedGlobalTmr];
+                const effectiveTmrCount = Math.max(savedTmrCount, combinedTmrManifest.length);
+
+                if (effectiveTmrCount > 0 || combinedTmrManifest.length > 0) {
+                    agg.tomorrow.push({
+                        sku,
+                        count: effectiveTmrCount,
+                        manifest: combinedTmrManifest
+                    });
+                }
+            });
+
+            setAggregatedSchedule(agg);
+        } catch (error) {
+            console.error("Critical Error in LogisticsView Aggregation:", error);
+            // Optionally set safe empty state?
+            setAggregatedSchedule({ today: [], tomorrow: [] });
+        }
     }, [bottleSizes, state.monthlyInbound, state.stateVersion, poManifest, todayStr, tomorrowStr]);
 
-    // ... (lines 128-140)
+
 
     // Filter Logic
     const filteredToday = filterSku === 'ALL'

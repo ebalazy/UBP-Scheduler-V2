@@ -5,7 +5,7 @@ import AuthModal from './auth/AuthModal';
 import ubpLogo from '../assets/ubp_logo_v4.png';
 
 export default function Header({ onOpenSettings, isSaving, saveError }) {
-    const { user, signOut } = useAuth();
+    const { user, userRole, signOut } = useAuth();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -87,7 +87,9 @@ export default function Header({ onOpenSettings, isSaving, saveError }) {
                         <div className="flex items-center gap-3">
                             <div className="hidden md:flex flex-col items-end">
                                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-none">{user.email?.split('@')[0]}</span>
-                                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">{user.email?.split('@')[1] || 'Union Bev'}</span>
+                                <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
+                                    {userRole || 'Unknown'}
+                                </span>
                             </div>
                             <button
                                 onClick={signOut}

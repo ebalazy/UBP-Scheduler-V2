@@ -9,9 +9,72 @@ import {
 
 export default function VisualScheduler({ schedule, truckSchedule, onUpdatePO, onDelete, specs, readOnly = false }) {
 
-    // ... (Helpers remain same)
+    // --- Helpers (Ported from DeliveryTable) ---
+    const generateTimestamps = (shiftName, loads) => {
+        if (!loads || loads === 0) return [];
+        let startHour = 0;
+        if (shiftName.includes('08:00-16:00')) startHour = 8;
+        else if (shiftName.includes('16:00-00:00')) startHour = 16;
+        else startHour = 0;
+        const shiftDuration = 8;
+        const interval = shiftDuration / loads;
+        const times = [];
+        for (let i = 0; i < loads; i++) {
+            const hourDecimal = startHour + (interval * i);
+            const normalized = hourDecimal % 24;
+            const hour = Math.round(normalized);
+            const safeHour = hour === 24 ? 0 : hour; // Fix 24:00 -> 00:00
+            const hStr = safeHour.toString().padStart(2, '0');
+            const mStr = "00";
+            times.push(`${hStr}:${mStr}`);
+        }
+        return times;
+    };
 
-    // ... (Export remains same)
+    const getExportData = () => {
+        if (!truckSchedule || truckSchedule.length === 0) return [];
+        return truckSchedule.map(truck => {
+            const bottleSize = specs ? specs.name : 'Unknown';
+            const pallets = specs ? specs.palletsPerTruck : 0;
+            const [h] = truck.time.split(':').map(Number);
+            let shift = 'Unknown';
+            if (h >= 0 && h < 8) shift = 'Shift 1';
+            else if (h >= 8 && h < 16) shift = 'Shift 2';
+            else shift = 'Shift 3';
+
+            return {
+                LoadID: truck.id,
+                Time: truck.time,
+                Shift: shift,
+                PO: truck.po || '',
+                BottleSize: bottleSize,
+                Pallets: pallets
+            };
+        });
+    };
+
+    const handleExportCSV = () => {
+        try {
+            const data = getExportData();
+            if (!data || data.length === 0) {
+                alert("No schedule to export.");
+                return;
+            }
+            const headers = ["Load ID", "Delivery Time", "Shift", "PO Number", "Bottle Size", "Pallets"];
+            let csvContent = "\uFEFF" + headers.join(",") + "\n";
+            data.forEach(row => {
+                const po = String(row.PO || '').replace(/"/g, '""');
+                csvContent += [row.LoadID, row.Time, row.Shift, `"${po}"`, row.BottleSize, row.Pallets].join(",") + "\n";
+            });
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+            saveAs(blob, `Schedule_${dateStr}.csv`);
+        } catch (error) {
+            console.error(error);
+            alert("Export failed");
+        }
+    };
 
     // --- Render ---
     return (
