@@ -1,5 +1,5 @@
 import { useSettings } from '../../context/SettingsContext';
-import VisualScheduler from './VisualScheduler';
+import DeliveryTable from './DeliveryTable';
 
 export default function SchedulerView({ state, setters, results }) {
     const { bottleSizes } = useSettings();
@@ -91,7 +91,7 @@ export default function SchedulerView({ state, setters, results }) {
 
 
                 {/* Visual Schedule Board (Replaces Table) */}
-                <VisualScheduler
+                <DeliveryTable
                     schedule={results.schedule}
                     truckSchedule={results.truckSchedule}
                     onUpdatePO={setters.updatePO}
