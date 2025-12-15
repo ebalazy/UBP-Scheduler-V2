@@ -27,7 +27,12 @@ export default function PlanningGridWorkbench({
     monthlyProductionActuals,
     monthlyInbound,
     updateDateDemand,
+    monthlyDemand,
+    monthlyProductionActuals,
+    monthlyInbound,
+    updateDateDemand,
     updateDateActual,
+    poManifest = {}, // Default to empty object
     dailyLedger = [],
     specs,
     userProfile
