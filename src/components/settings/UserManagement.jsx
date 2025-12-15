@@ -50,7 +50,7 @@ export default function UserManagement() {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                if (error.code === '42P01') { // undefined_table
+                if (error.code === '42P01' || error.message?.includes('Could not find the table')) { // undefined_table or schema cache error
                     setShowSqlHelp(true);
                     setUsers([]);
                     return;
