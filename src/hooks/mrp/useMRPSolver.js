@@ -73,6 +73,34 @@ export function useMRPSolver() {
                     operationsCount++;
                 }
             }
+            // Excess? (Reduce Trucks)
+            else if (adjustedInventory > (safetyTarget + specs.bottlesPerTruck)) {
+                // If we have AT LEAST 1 full truck of excess above Buffer...
+                // And there is a truck planned for this day...
+                // We can remove it.
+
+                let currentPlan = Number(plannedInbound[dateStr] || 0);
+
+                if (currentPlan > 0) {
+                    const surplus = adjustedInventory - safetyTarget;
+                    // How many can we remove without going under?
+                    const maxRemovable = Math.floor(surplus / specs.bottlesPerTruck);
+                    // Limit by what is actually there
+                    const toRemove = Math.min(maxRemovable, currentPlan);
+
+                    if (toRemove > 0) {
+                        const newPlan = currentPlan - toRemove;
+                        plannedInbound[dateStr] = newPlan;
+                        proposedUpdates[dateStr] = newPlan;
+
+                        // We removed supply, so we SUBTRACT from the cumulative wave (making it negative/less positive)
+                        // Wait, 'cumulativeAdded' is added to base.
+                        // Removing 1 truck = -Loads.
+                        cumulativeAddedBottles -= (toRemove * specs.bottlesPerTruck);
+                        operationsCount++;
+                    }
+                }
+            }
         });
 
         // 3. Return Result
