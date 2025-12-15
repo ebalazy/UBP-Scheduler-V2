@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '../../services/supabaseClient';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../../services/supabaseClient';
 import { UserPlusIcon, TrashIcon, ShieldCheckIcon, ClipboardDocumentIcon, InformationCircleIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 const ROLES = [
@@ -88,11 +88,8 @@ export default function UserManagement() {
 
         try {
             // 2. Create a temporary client to sign up WITHOUT logging out admin
-            // We use the environment variables exposed by Vite
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-            const tempClient = createClient(supabaseUrl, supabaseKey, {
+            // We use the exported variables which contain fallbacks if .env is missing
+            const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
                 auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
             });
 
