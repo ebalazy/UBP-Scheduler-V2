@@ -19,6 +19,8 @@ export default function MorningReconciliationModal({
     const sizes = Object.keys(bottleDefinitions);
     const specs = bottleDefinitions[state.selectedSize];
     const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
+    const bottlesPerPallet = (specs?.bottlesPerCase || 12) * (specs?.casesPerPallet || 100);
+    const palletsPerTruck = bottlesPerTruck / bottlesPerPallet;
 
     const [step, setStep] = useState(1);
 
@@ -121,10 +123,10 @@ export default function MorningReconciliationModal({
                                 Loads
                             </button>
                             <button
-                                onClick={() => setYardUnit('units')}
-                                className={`px-2 py-0.5 text-xs font-bold rounded-sm ${yardUnit === 'units' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                                onClick={() => setYardUnit('pallets')}
+                                className={`px-2 py-0.5 text-xs font-bold rounded-sm ${yardUnit === 'pallets' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
                             >
-                                Bottles
+                                Pallets
                             </button>
                         </div>
                     </div>
@@ -134,17 +136,17 @@ export default function MorningReconciliationModal({
                         </div>
                         <input
                             type="number"
-                            value={yardUnit === 'loads' ? yardCount : (yardCount === '' ? '' : Math.round(yardCount * bottlesPerTruck))}
+                            value={yardUnit === 'loads' ? yardCount : (yardCount === '' ? '' : Math.round(yardCount * palletsPerTruck))}
                             onChange={(e) => {
                                 const val = e.target.value === '' ? '' : Number(e.target.value);
                                 if (yardUnit === 'loads') setYardCount(val);
-                                else setYardCount(val === '' ? '' : val / bottlesPerTruck);
+                                else setYardCount(val === '' ? '' : val / palletsPerTruck);
                             }}
                             className="w-full pl-10 pr-4 py-3 text-xl font-bold border rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                         />
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                        {yardUnit === 'loads' ? 'Number of fully loaded trailers.' : `Total bottles (~${Math.round(bottlesPerTruck / 1000)}k per load).`}
+                        {yardUnit === 'loads' ? 'Number of fully loaded trailers.' : `Total pallets (~${Math.round(palletsPerTruck)} per load).`}
                     </p>
                 </div>
             </div>
@@ -173,7 +175,7 @@ export default function MorningReconciliationModal({
                 <div className="flex justify-between">
                     <span className="text-gray-500">New Yard Count:</span>
                     <span className="font-mono font-bold">
-                        {Number(yardCount).toFixed(1)} loads <span className="text-gray-400 text-xs">({Math.round(yardCount * bottlesPerTruck).toLocaleString()} bottles)</span>
+                        {Number(yardCount).toFixed(1)} loads <span className="text-gray-400 text-xs">({Math.round(yardCount * palletsPerTruck)} plts)</span>
                     </span>
                 </div>
             </div>
