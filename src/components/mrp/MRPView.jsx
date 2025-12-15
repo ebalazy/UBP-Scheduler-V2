@@ -263,56 +263,66 @@ export default function MRPView({ state, setters, results }) {
             {/* MAIN COMMAND CENTER */}
             <div className="flex flex-col space-y-6">
 
-                {/* 1. CONTROL BAR (Replaces Sidebar Controls) */}
-                <div className="flex flex-col md:flex-row justify-between items-center bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center space-x-4 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-                        {/* View Switchers */}
-                        <div className="flex bg-white dark:bg-gray-700 p-1 rounded-md shadow-sm border border-gray-200 dark:border-gray-600">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                            >
-                                Standard
-                            </button>
-                            <button
-                                onClick={() => setViewMode('workbench')}
-                                className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'workbench' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                            >
-                                Workbench
-                            </button>
-                            <button
-                                onClick={() => setViewMode('calendar')}
-                                className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                            >
-                                Calendar
-                            </button>
+                {/* 2. MAIN PLANNING GRID (FULL WIDTH) with Unified Header */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden min-h-[600px]">
+
+                    {/* Unified Header */}
+                    <div className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center bg-gray-50 dark:bg-gray-900/50 gap-4">
+
+                        {/* Title Section */}
+                        <div className="flex items-center space-x-3">
+                            <h3 className="font-bold text-gray-800 dark:text-white flex items-center text-sm uppercase tracking-wide">
+                                Activity Ledger
+                            </h3>
+                            <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300 font-mono">
+                                30 Days
+                            </span>
                         </div>
 
-                        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+                        {/* Controls Section (Merged) */}
+                        <div className="flex items-center gap-6">
+                            {/* Inventory Auto-Pilot Toggle */}
+                            <label className="flex items-center cursor-pointer group" title="Auto-Pilot: Automatically suggests truck orders to maintain safety stock.">
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only"
+                                        checked={state.isAutoReplenish || false}
+                                        onChange={(e) => setters.setIsAutoReplenish(e.target.checked)}
+                                    />
+                                    <div className={`block w-9 h-5 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                                    <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-4' : ''}`}></div>
+                                </div>
+                                <span className={`ml-2 text-xs font-bold uppercase tracking-wide ${state.isAutoReplenish ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500'}`}>
+                                    {state.isAutoReplenish ? 'Auto-Pilot' : 'Manual'}
+                                </span>
+                            </label>
 
-                        {/* Inventory Auto-Pilot Toggle */}
-                        <label className="flex items-center cursor-pointer group" title="Auto-Pilot: Automatically suggests truck orders to maintain safety stock.">
-                            <div className="relative">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only"
-                                    checked={state.isAutoReplenish || false}
-                                    onChange={(e) => setters.setIsAutoReplenish(e.target.checked)}
-                                />
-                                <div className={`block w-9 h-5 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-4' : ''}`}></div>
+                            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 hidden md:block"></div>
+
+                            {/* View Switchers */}
+                            <div className="flex bg-white dark:bg-gray-700 p-1 rounded-md shadow-sm border border-gray-200 dark:border-gray-600">
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                                >
+                                    Standard
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('workbench')}
+                                    className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'workbench' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                                >
+                                    Workbench
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('calendar')}
+                                    className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                                >
+                                    Calendar
+                                </button>
                             </div>
-                            <span className={`ml-2 text-xs font-bold uppercase tracking-wide ${state.isAutoReplenish ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500'}`}>
-                                {state.isAutoReplenish ? 'Auto-Pilot ON' : 'Manual Mode'}
-                            </span>
-                        </label>
+                        </div>
                     </div>
-                </div>
-
-
-                {/* 2. MAIN PLANNING GRID (FULL WIDTH) */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden min-h-[600px]">
-                    {/* Header Removed (Moved to Control Bar) */}
 
                     <div className="flex-1 overflow-hidden relative bg-white dark:bg-gray-800">
                         {viewMode === 'calendar' ? (
