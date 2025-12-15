@@ -48,20 +48,27 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
 
     // --- ESTIMATION LOGIC (Shared with Import) ---
     const getEstimatedTime = (index) => {
-        if (!schedulerSettings) return 'TBD';
+        if (!schedulerSettings) return 'TBD (Settings)';
 
         const order = sortedOrders[index];
-        const sku = order?.sku || activeSku; // Fallback to active context if order has no sku
+        const sku = order?.sku || activeSku;
         const specs = getProductSpecs(sku);
 
-        if (!specs) return 'TBD';
+        if (!specs) return 'TBD (No SKU)';
+
+        // Ensure numeric values
+        const rate = Number(specs.productionRate);
+        const capacity = Number(specs.bottlesPerTruck);
+
+        if (!rate || rate <= 0) return 'TBD (No Rate)';
+        if (!capacity) return 'TBD (No Cap)';
 
         const time24 = calculateDeliveryTime(
             index,
-            schedulerSettings.shiftStartTime,
-            specs.bottlesPerTruck,
-            specs.productionRate,
-            specs.bottlesPerCase
+            schedulerSettings.shiftStartTime || '06:00',
+            capacity,
+            rate,
+            Number(specs.bottlesPerCase) || 1
         );
 
         return time24 ? formatTime12h(time24) : 'TBD';
