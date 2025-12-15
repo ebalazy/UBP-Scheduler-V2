@@ -41,9 +41,13 @@ export default function PlanningGridWorkbench({
     // --- Date Logic (30 Days View) ---
     useEffect(() => {
         const d = [];
-        for (let i = 0; i < 30; i++) { // Show 30 days for power users
-            const next = new Date(startDate);
-            next.setDate(startDate.getDate() + i);
+        // Normalize start date to 00:00 to match keys
+        const anchor = new Date(startDate);
+        anchor.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i < 30; i++) {
+            const next = new Date(anchor);
+            next.setDate(anchor.getDate() + i);
             d.push(next);
         }
         setDates(d);
