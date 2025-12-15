@@ -36,6 +36,7 @@ export default function UserManagement() {
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserRole, setNewUserRole] = useState('viewer');
     const [error, setError] = useState(null);
+    const [createdUser, setCreatedUser] = useState(null); // { email, password }
     const [showSqlHelp, setShowSqlHelp] = useState(false);
 
     useEffect(() => {
@@ -77,12 +78,13 @@ export default function UserManagement() {
         setLoading(true);
         setError(null);
 
-        // 1. Generate Secure Temp Password (16 chars, alphanumeric)
-        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-        const passwordValues = new Uint32Array(16);
+        // 1. Generate Simple Temp Password (10 chars, alphanumeric)
+        // Easier to type, still sufficient for a temp password that should be changed.
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        const passwordValues = new Uint32Array(10);
         crypto.getRandomValues(passwordValues);
         let tempPassword = "";
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < 10; i++) {
             tempPassword += charset[passwordValues[i] % charset.length];
         }
 
@@ -122,14 +124,8 @@ export default function UserManagement() {
                 ...prev.filter(u => u.email !== newUserEmail.toLowerCase())
             ]);
 
-            // 6. Show Credentials
-            alert(
-                `USER CREATED SUCCESSFULLY!\n\n` +
-                `Email: ${newUserEmail}\n` +
-                `Temp Password: ${tempPassword}\n\n` +
-                `ACTION REQUIRED: Copy this password instantly. You will not see it again.`
-            );
-
+            // 6. Show Success Modal
+            setCreatedUser({ email: newUserEmail, password: tempPassword });
             setNewUserEmail('');
 
         } catch (err) {
@@ -204,7 +200,54 @@ create policy "Allow insert/update/delete for authenticated" on user_roles for a
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 relative">
+            {/* SUCCESS MODAL FOR NEW USER */}
+            {createdUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 dark:border-slate-700 overflow-hidden transform scale-100 transition-all">
+                        <div className="bg-emerald-500 h-2 w-full"></div>
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-full">
+                                    <ShieldCheckIcon className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">User Created!</h3>
+                            </div>
+
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                                The account for <strong className="text-slate-700 dark:text-slate-200">{createdUser.email}</strong> is ready. please copy the temporary password below.
+                            </p>
+
+                            <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mb-6">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Temporary Password</label>
+                                <div className="flex items-center gap-2">
+                                    <code className="text-lg font-mono font-bold text-slate-800 dark:text-emerald-400 break-all">
+                                        {createdUser.password}
+                                    </code>
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(createdUser.password);
+                                            alert("Password Copied!");
+                                        }}
+                                        className="ml-auto p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                        title="Copy Password"
+                                    >
+                                        <ClipboardDocumentIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setCreatedUser(null)}
+                                className="w-full bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Roles Legend */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {ROLES.map(role => (
