@@ -49,7 +49,11 @@ export function useMRPCalculations(state, poManifest = {}) {
         const effectiveScheduledCases = Math.max(0, totalScheduledCases - lostProductionCases);
 
         const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
-        const demandBottles = effectiveScheduledCases * specs.bottlesPerCase * scrapFactor;
+        const bottlesPerCase = specs.bottlesPerCase || 0;
+        const bottlesPerTruck = specs.bottlesPerTruck || 0;
+        const casesPerPallet = specs.casesPerPallet || 0;
+
+        const demandBottles = effectiveScheduledCases * bottlesPerCase * scrapFactor;
 
         const todayStr = getLocalISOString();
 
@@ -114,15 +118,20 @@ export function useMRPCalculations(state, poManifest = {}) {
                 // Use Unified Truck Count
                 const dInboundTrucks = getDailyTrucks(ds);
 
-                const palletsPerTruck = (specs.bottlesPerTruck / specs.bottlesPerCase) / (specs.casesPerPallet || 1);
+                // Safe Pallet Calc
+                const bpc = bottlesPerCase || 1;
+                const bpt = bottlesPerTruck || 1;
+                const cpp = casesPerPallet || 1;
+
+                const palletsPerTruck = (bpt / bpc) / cpp;
                 const dInboundPallets = dInboundTrucks * palletsPerTruck;
-                const dDemandPallets = dDemandCases / (specs.casesPerPallet || 1);
+                const dDemandPallets = dDemandCases / cpp;
 
                 derivedPallets = derivedPallets + dInboundPallets - dDemandPallets;
             }
         }
 
-        const inventoryBottles = derivedPallets * csm * specs.bottlesPerCase;
+        const inventoryBottles = derivedPallets * casesPerPallet * bottlesPerCase;
         const netInventory = (inventoryBottles + incomingBottles + yardBottles) - demandBottles;
         const safetyTarget = safetyStockLoads * specs.bottlesPerTruck;
 
@@ -146,11 +155,13 @@ export function useMRPCalculations(state, poManifest = {}) {
 
             const dailyCases = useActual ? Number(actual) : Number(plan || 0);
 
-            const dailyDemand = dailyCases * specs.bottlesPerCase * scrapFactor;
+
+
+            const dailyDemand = dailyCases * bottlesPerCase * scrapFactor;
 
             // Unified Supply Logic
             const dailyTrucks = getDailyTrucks(dateStr);
-            const dailySupply = dailyTrucks * specs.bottlesPerTruck;
+            const dailySupply = dailyTrucks * bottlesPerTruck;
 
             currentBalance = currentBalance + dailySupply - dailyDemand;
 
@@ -163,7 +174,7 @@ export function useMRPCalculations(state, poManifest = {}) {
                 demand: dailyDemand,
                 supply: dailySupply,
                 projectedEndInventory: currentBalance,
-                projectedPallets: currentBalance / ((specs.bottlesPerCase * specs.casesPerPallet) || 1),
+                projectedPallets: currentBalance / ((bottlesPerCase * casesPerPallet) || 1),
                 daysOfSupply: 0 // Placeholder, or implement per-day DoS later if needed
             });
 
