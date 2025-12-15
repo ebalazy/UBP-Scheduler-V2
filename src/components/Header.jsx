@@ -20,67 +20,76 @@ export default function Header({ onOpenSettings, isSaving, saveError }) {
     }, []);
 
     return (
-        <header className="bg-white dark:bg-gray-800 shadow relative z-10 transition-colors duration-200">
+        <header className="bg-slate-900 border-b border-slate-800 shadow-sm relative z-30 transition-colors duration-200">
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div className="max-w-[1920px] mx-auto px-4 lg:px-6 py-2.5 flex justify-between items-center">
                 {/* 1. Logo Section */}
-                <div className="flex items-center space-x-3">
-                    <div className="bg-blue-600 p-2 rounded-lg shadow-md">
-                        <span className="text-2xl">🥤</span>
+                <div className="flex items-center gap-3.5">
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-lg shadow-lg shadow-blue-900/40 transform transition-transform hover:scale-105 cursor-default">
+                        <span className="text-xl">🥤</span>
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
-                            Beverage Scheduler
-                            <span className="block text-xs text-blue-600 font-medium">UBP Co-Packer Edition</span>
+                        <h1 className="text-lg font-bold text-white tracking-tight leading-none">
+                            Beverage <span className="opacity-90 font-light">Scheduler</span>
                         </h1>
-                        {user && <span className="text-xs text-green-600 font-medium md:hidden">Logged in as {user.email}</span>}
+                        <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5 opacity-80">
+                            UBP Co-Packer Edition
+                        </p>
                     </div>
                 </div>
 
                 {/* 2. Global Actions */}
-                <div className="flex items-center space-x-2 md:space-x-4 no-print">
+                <div className="flex items-center gap-4 no-print">
 
                     {/* Sync Status - Always Show */}
                     {user ? (
-                        <div className="flex items-center text-sm font-medium transition-colors" title={saveError || (isOnline ? "Synced to Cloud" : "Offline Mode")}>
-                            <CloudIcon className={`h-6 w-6 mr-1 ${isSaving ? 'text-blue-500 animate-pulse' : saveError ? 'text-red-500' : isOnline ? 'text-green-500' : 'text-gray-400'}`} />
-                            <span className={`hidden md:inline ${isSaving ? 'text-blue-600 font-bold' : saveError ? 'text-red-600 font-bold' : isOnline ? 'text-green-600' : 'text-gray-500'}`}>
+                        <div className="flex items-center text-sm font-medium transition-colors bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700/50" title={saveError || (isOnline ? "Cloud Synced" : "Offline Mode")}>
+                            <CloudIcon className={`h-4 w-4 mr-2 ${isSaving ? 'text-blue-400 animate-pulse' : saveError ? 'text-red-500' : isOnline ? 'text-emerald-500' : 'text-slate-500'}`} />
+                            <span className={`hidden md:inline text-xs font-bold uppercase tracking-wide ${isSaving ? 'text-blue-400' : saveError ? 'text-red-400' : isOnline ? 'text-emerald-500' : 'text-slate-500'}`}>
                                 {isSaving ? 'Saving...' : saveError ? 'Sync Error' : isOnline ? 'All Saved' : 'Offline'}
                             </span>
                         </div>
                     ) : (
-                        <div className="flex items-center text-sm font-medium text-gray-400" title="Local Data Only (Not Logged In)">
-                            <CloudIcon className="h-6 w-6 mr-1" />
-                            <span className="hidden md:inline">Local Only</span>
+                        <div className="flex items-center text-sm font-medium text-slate-500 px-3 py-1.5 bg-slate-800/50 rounded-full" title="Local Data Only">
+                            <CloudIcon className="h-4 w-4 mr-2" />
+                            <span className="hidden md:inline text-xs font-bold uppercase tracking-wide">Local Only</span>
                         </div>
                     )}
 
-                    {/* Print Button -- NEW */}
-                    <button
-                        onClick={() => window.print()}
-                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors hidden md:block"
-                        title="Print View"
-                    >
-                        <PrinterIcon className="h-6 w-6" />
-                    </button>
+                    <div className="w-px h-6 bg-slate-700 hidden md:block mx-2"></div>
 
-                    <button
-                        onClick={onOpenSettings}
-                        className="flex items-center space-x-2 px-3 py-2 bg-white text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg border border-gray-200 shadow-sm transition-all"
-                        title="Settings"
-                    >
-                        <Cog6ToothIcon className="h-5 w-5 md:mr-2" />
-                        <span className="hidden md:inline font-medium">Settings</span>
-                    </button>
+                    {/* Tool Icons */}
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => window.print()}
+                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+                            title="Print View"
+                        >
+                            <PrinterIcon className="h-5 w-5" />
+                        </button>
+
+                        <button
+                            onClick={onOpenSettings}
+                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all group"
+                            title="Settings"
+                        >
+                            <Cog6ToothIcon className="h-5 w-5 group-hover:rotate-90 transition-transform duration-500" />
+                        </button>
+                    </div>
+
+                    <div className="w-px h-6 bg-slate-700 hidden md:block mx-2"></div>
 
                     {/* Auth Controls */}
                     {user ? (
-                        <div className="flex items-center space-x-4">
-                            <span className="text-sm text-gray-500 hidden md:inline">{user.email}</span>
+                        <div className="flex items-center gap-3">
+                            <div className="hidden md:flex flex-col items-end">
+                                <span className="text-sm font-semibold text-slate-200 leading-none">{user.email?.split('@')[0]}</span>
+                                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">{user.email?.split('@')[1] || 'Union Bev'}</span>
+                            </div>
                             <button
                                 onClick={signOut}
-                                className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition-all"
                                 title="Sign Out"
                             >
                                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
@@ -89,7 +98,7 @@ export default function Header({ onOpenSettings, isSaving, saveError }) {
                     ) : (
                         <button
                             onClick={() => setIsAuthModalOpen(true)}
-                            className="flex items-center text-white bg-blue-600 hover:bg-blue-700 font-medium px-4 py-2 rounded-md transition-colors shadow-sm"
+                            className="flex items-center text-white bg-blue-600 hover:bg-blue-500 font-bold px-4 py-2 rounded-lg transition-all shadow-lg shadow-blue-900/20 text-sm"
                         >
                             <UserCircleIcon className="h-5 w-5 md:mr-2" />
                             <span className="hidden md:inline">Sign In</span>
