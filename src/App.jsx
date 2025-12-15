@@ -16,6 +16,7 @@ import CockpitView from './components/cockpit/CockpitView';
 import LogisticsView from './components/logistics/LogisticsView';
 import ProductsView from './components/products/ProductsView';
 import { Boxes, CalendarClock, Crown, Gauge, Truck, Package } from 'lucide-react';
+import PulseHUD from './components/dashboard/PulseHUD';
 
 import { ProcurementProvider, useProcurement } from './context/ProcurementContext';
 
@@ -68,7 +69,7 @@ function AuthenticatedApp({ user }) {
   const { poManifest } = useProcurement();
   const mrp = useMRP(poManifest);
   const scheduler = useScheduler();
-  const { bottleSizes } = useSettings();
+  const { bottleSizes, activeSku } = useSettings();
   const masterSchedule = useMasterSchedule(bottleSizes);
 
   return (
@@ -78,6 +79,14 @@ function AuthenticatedApp({ user }) {
 
 
       <main className="flex-grow p-2 md:p-6 max-w-7xl mx-auto w-full">
+
+        {/* PULSE DASHBOARD (HUD) */}
+        <PulseHUD
+          mrp={mrp}
+          scheduler={scheduler}
+          activeSku={activeSku}
+        />
+
         {/* Modern Segmented Navigation */}
         <div className="mb-8 no-print overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
           <div className="inline-flex p-1.5 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-inner min-w-full md:min-w-0">
@@ -86,7 +95,7 @@ function AuthenticatedApp({ user }) {
             <button
               onClick={() => setActiveTab('logistics')}
               className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'logistics'
-                ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
                 }`}
             >
