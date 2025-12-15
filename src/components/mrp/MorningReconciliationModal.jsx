@@ -15,47 +15,26 @@ export default function MorningReconciliationModal({
     setters // mrp.setters
 }) {
     const [step, setStep] = useState(1);
-    const [yesterdayDate, setYesterdayDate] = useState('');
 
     // Temporary State for the Wizard
-    const [yesterdayActual, setYesterdayActual] = useState('');
-    const [yesterdayPlan, setYesterdayPlan] = useState(0);
     const [floorCount, setFloorCount] = useState('');
     const [yardCount, setYardCount] = useState('');
-    const [downtime, setDowntime] = useState(0);
 
     // Initialize Data when Modal Opens
     useEffect(() => {
         if (isOpen) {
-            const y = new Date();
-            y.setDate(y.getDate() - 1);
-            const dateStr = y.toISOString().split('T')[0];
-            setYesterdayDate(dateStr);
-
-            // Pre-fill
-            const plan = state.monthlyDemand[dateStr] || 0;
-            setYesterdayPlan(plan);
-
-            // If we already have actuals, use them. Otherwise default empty or to plan?
-            const existingActual = state.monthlyProductionActuals[dateStr];
-            setYesterdayActual(existingActual !== undefined ? existingActual : '');
-
             // Current Inventory
             setFloorCount(state.inventoryAnchor?.count || 0);
 
             // Yard
             setYardCount(state.yardInventory?.effectiveCount || 0);
 
-            setDowntime(state.downtimeHours || 0);
             setStep(1);
         }
-    }, [isOpen, state.monthlyDemand, state.monthlyProductionActuals, state.inventoryAnchor, state.yardInventory]);
+    }, [isOpen, state.inventoryAnchor, state.yardInventory]);
 
     const handleCommit = () => {
-        // 1. Save Yesterday's Production
-        if (yesterdayActual !== '') {
-            setters.updateDateActual(yesterdayDate, Number(yesterdayActual));
-        }
+        // 1. (Removed) Production Actuals are now handled in Planner Workbench
 
         // 2. Save Inventory Anchor (Sets the "Now" baseline)
         // We set the date to TODAY (Local), so the ledger starts calculation from today.
@@ -75,47 +54,6 @@ export default function MorningReconciliationModal({
     };
 
     const renderStep1 = () => (
-        <div className="space-y-6">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-                <h3 className="font-bold text-blue-900 dark:text-blue-300 mb-1">Production Check-in</h3>
-                <p className="text-sm text-blue-700 dark:text-blue-400">
-                    Recording actuals for <span className="font-bold">{yesterdayDate}</span>.
-                </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <span className="text-xs uppercase font-bold text-gray-500">Planned Cases</span>
-                    <div className="text-2xl font-mono font-bold text-gray-700 dark:text-gray-300 mt-1">
-                        {yesterdayPlan.toLocaleString()}
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                        Actual Cases Produced
-                    </label>
-                    <input
-                        type="number"
-                        autoFocus
-                        value={yesterdayActual}
-                        onChange={(e) => setYesterdayActual(e.target.value)}
-                        className="w-full text-2xl font-mono font-bold p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
-                        placeholder="0"
-                    />
-                </div>
-            </div>
-
-            <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md border border-amber-100 dark:border-amber-800 flex items-start">
-                <span className="text-xl mr-2">💡</span>
-                <p className="text-xs text-amber-800 dark:text-amber-200">
-                    Accuracy here helps the system learn your run-rates and predict future shortages more precisely.
-                </p>
-            </div>
-        </div>
-    );
-
-    const renderStep2 = () => (
         <div className="space-y-6">
             <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-100 dark:border-purple-800">
                 <h3 className="font-bold text-purple-900 dark:text-purple-300 mb-1">Morning Inventory Count</h3>
@@ -165,7 +103,8 @@ export default function MorningReconciliationModal({
         </div>
     );
 
-    const renderStep3 = () => (
+    // Old Step 2 Removed/Moved to Step 1
+    const renderStep2 = () => ( // Confirmation Step (was Step 3)
         <div className="text-center py-6 space-y-6">
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30">
                 <CheckCircleIcon className="h-10 w-10 text-green-600 dark:text-green-400" />
@@ -180,10 +119,6 @@ export default function MorningReconciliationModal({
 
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 max-w-sm mx-auto text-left text-sm space-y-2">
                 <div className="flex justify-between">
-                    <span className="text-gray-500">Yesterday actual:</span>
-                    <span className="font-mono font-bold">{yesterdayActual || 0} cases</span>
-                </div>
-                <div className="flex justify-between">
                     <span className="text-gray-500">New Floor Count:</span>
                     <span className="font-mono font-bold">{floorCount} plts</span>
                 </div>
@@ -194,6 +129,8 @@ export default function MorningReconciliationModal({
             </div>
         </div>
     );
+
+    // Was Step 3
 
     if (!isOpen) return null;
 
@@ -221,11 +158,9 @@ export default function MorningReconciliationModal({
                                 <div className="mt-2 text-left">
                                     {/* Progress Checkpoints */}
                                     <div className="flex items-center space-x-2 text-xs font-medium text-gray-400">
-                                        <span className={`${step === 1 ? 'text-blue-600 dark:text-blue-400' : ''}`}>1. Production</span>
+                                        <span className={`${step === 1 ? 'text-blue-600 dark:text-blue-400' : ''}`}>1. Inventory</span>
                                         <span>&rarr;</span>
-                                        <span className={`${step === 2 ? 'text-blue-600 dark:text-blue-400' : ''}`}>2. Inventory</span>
-                                        <span>&rarr;</span>
-                                        <span className={`${step === 3 ? 'text-blue-600 dark:text-blue-400' : ''}`}>3. Confirm</span>
+                                        <span className={`${step === 2 ? 'text-blue-600 dark:text-blue-400' : ''}`}>2. Confirm</span>
                                     </div>
                                 </div>
                             </div>
@@ -235,12 +170,11 @@ export default function MorningReconciliationModal({
                         <div className="mt-2">
                             {step === 1 && renderStep1()}
                             {step === 2 && renderStep2()}
-                            {step === 3 && renderStep3()}
                         </div>
 
                         {/* Footer / Controls */}
                         <div className="mt-8 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                            {step < 3 ? (
+                            {step < 2 ? (
                                 <button
                                     type="button"
                                     className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm"
