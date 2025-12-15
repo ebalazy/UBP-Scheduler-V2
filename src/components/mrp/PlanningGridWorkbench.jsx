@@ -165,18 +165,18 @@ export default function PlanningGridWorkbench({
 
                                 return (
                                     <td key={dateStr} className="border-r border-b p-0 h-10 relative">
-                                        {hasActual ? (
-                                            <div className="h-full w-full flex items-center justify-center bg-gray-100 text-gray-500 font-mono italic" title="Actuals Locked">
-                                                {act}
+                                        <input
+                                            type="number"
+                                            className={`w-full h-full text-center border-none focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-transparent p-0 ${act ? 'text-blue-600 font-bold' : ''}`}
+                                            value={val}
+                                            onChange={(e) => updateDateDemand(dateStr, e.target.value)}
+                                            placeholder="-"
+                                        />
+                                        {/* Optional: Show little indicator for actual */}
+                                        {hasActual && (
+                                            <div className="absolute bottom-0 right-0 text-[8px] bg-gray-100 text-gray-500 px-1 pointer-events-none" title={`Actual: ${act}`}>
+                                                Act: {act}
                                             </div>
-                                        ) : (
-                                            <input
-                                                type="number"
-                                                className="w-full h-full text-center border-none focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-transparent p-0"
-                                                value={val}
-                                                onChange={(e) => updateDateDemand(dateStr, e.target.value)}
-                                                placeholder="-"
-                                            />
                                         )}
                                     </td>
                                 );
