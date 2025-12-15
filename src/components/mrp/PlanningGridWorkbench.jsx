@@ -32,7 +32,7 @@ export default function PlanningGridWorkbench({
     specs,
     userProfile
 }) {
-    const { poManifest } = useProcurement();
+    const { poManifest, saveProcurementEntry, deleteProcurementEntry } = useProcurement();
     const { bottleSizes } = useSettings();
     const [startDate, setStartDate] = useState(new Date());
     const [managerDate, setManagerDate] = useState(null);
@@ -225,6 +225,11 @@ export default function PlanningGridWorkbench({
                     isOpen={!!managerDate}
                     onClose={() => setManagerDate(null)}
                     date={managerDate}
+                    monthlyInbound={monthlyInbound}
+                    specs={specs}
+                    orders={poManifest[managerDate]?.items || []}
+                    onSave={saveProcurementEntry}
+                    onDelete={deleteProcurementEntry}
                 />
             )}
         </div>
