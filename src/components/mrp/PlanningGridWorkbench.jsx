@@ -35,7 +35,12 @@ export default function PlanningGridWorkbench({
 }) {
     const { saveProcurementEntry, deleteProcurementEntry } = useProcurement();
     const { bottleSizes } = useSettings();
-    const [startDate, setStartDate] = useState(new Date());
+    // Start view 3 days in the past to show recent actuals for reconciliation
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 3);
+        return d;
+    });
     const [managerDate, setManagerDate] = useState(null);
     const [dates, setDates] = useState([]);
 
