@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import ubpLogo from '../../assets/ubp_logo_v2.png';
+import ubpLogo from '../../assets/ubp_logo.jpg';
 
 export default function AuthModal({ isOpen, onClose }) {
     const { signIn, resendVerificationEmail } = useAuth(); // Removed signUp
