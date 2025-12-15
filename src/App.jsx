@@ -78,7 +78,7 @@ function AuthenticatedApp({ user }) {
 
 
 
-      <main className="flex-grow p-2 md:p-6 max-w-7xl mx-auto w-full">
+      <main className="flex-grow p-2 md:p-6 w-full">
 
         {/* PULSE DASHBOARD (HUD) */}
         <PulseHUD
