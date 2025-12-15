@@ -1,5 +1,5 @@
 import { useSettings } from '../../context/SettingsContext';
-import DeliveryTable from './DeliveryTable';
+import VisualScheduler from './VisualScheduler';
 
 export default function SchedulerView({ state, setters, results }) {
     const { bottleSizes } = useSettings();
@@ -10,8 +10,9 @@ export default function SchedulerView({ state, setters, results }) {
 
     return (
         <div className="space-y-8">
-            {/* Inputs & Key Metrics */}
+            {/* ... (Existing Settings Inputs) ... */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors">
+                {/* ... kept as is ... */}
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2">🚚 Logistics Settings</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
@@ -89,13 +90,13 @@ export default function SchedulerView({ state, setters, results }) {
 
 
 
-                {/* Schedule Table */}
-                <DeliveryTable
+                {/* Visual Schedule Board (Replaces Table) */}
+                <VisualScheduler
                     schedule={results.schedule}
                     truckSchedule={results.truckSchedule}
                     onUpdatePO={setters.updatePO}
                     onDelete={setters.toggleCancelled}
-                    specs={results.specs} // Pass specs for export
+                    specs={results.specs}
                 />
             </div>
         </div>
