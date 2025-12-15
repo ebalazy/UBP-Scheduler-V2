@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import ubpLogo from '../../assets/ubp_logo.jpg';
 
 export default function AuthModal({ isOpen, onClose }) {
     const { signIn, resendVerificationEmail } = useAuth(); // Removed signUp
@@ -54,7 +55,14 @@ export default function AuthModal({ isOpen, onClose }) {
                 </button>
 
                 <div className="p-8">
-                    <h2 className="text-2xl font-bold text-white mb-2">
+                    {/* Brand Logo */}
+                    <div className="flex justify-center mb-6">
+                        <div className="h-20 w-20 bg-white rounded-full shadow-2xl shadow-blue-500/20 flex items-center justify-center overflow-hidden">
+                            <img src={ubpLogo} alt="UBP" className="h-full w-full object-cover transform scale-105" />
+                        </div>
+                    </div>
+
+                    <h2 className="text-2xl font-bold text-white mb-2 text-center">
                         Welcome Back
                     </h2>
                     <p className="text-gray-400 text-sm mb-6">

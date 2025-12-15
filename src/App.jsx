@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import SettingsModal from './components/SettingsModal';
+import ubpLogo from './assets/ubp_logo.jpg';
 
 import MRPView from './components/mrp/MRPView';
 import SchedulerView from './components/scheduler/SchedulerView';
@@ -39,8 +40,15 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 transition-colors">
+        <div className="flex flex-col items-center">
+          <div className="h-24 w-24 bg-white rounded-full shadow-2xl shadow-blue-500/20 flex items-center justify-center overflow-hidden animate-pulse">
+            <img src={ubpLogo} className="h-[95%] w-[95%] object-contain" alt="Loading..." />
+          </div>
+          <div className="mt-6 text-slate-400 font-extrabold tracking-[0.2em] uppercase text-xs animate-pulse">
+            Loading Planner...
+          </div>
+        </div>
       </div>
     );
   }
