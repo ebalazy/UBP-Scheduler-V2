@@ -15,19 +15,44 @@ import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { formatLocalDate, getLocalISOString } from '../../utils/dateUtils';
 
+import { useMRPSolver } from '../../hooks/mrp/useMRPSolver';
+import { useProducts } from '../../context/ProductsContext';
+
 export default function MRPView({ state, setters, results }) {
-    const { bottleSizes, leadTimeDays } = useSettings();
+    const { bottleSizes, leadTimeDays, schedulerSettings } = useSettings();
+    const { productMap: bottleDefinitions } = useProducts();
     const { user } = useAuth();
+    const { solve } = useMRPSolver();
+
+    const handleAutoBalance = () => {
+        if (!confirm("Auto-Balance will populate Planned Loads to ensure safety stock is met. Proceed?")) return;
+
+        const { newInbound, updatesCount } = solve(
+            results,
+            6, // Default Safety Stock Loads (fallback) or derived from settings
+            bottleDefinitions,
+            state.selectedSize,
+            schedulerSettings,
+            state
+        ) || {};
+
+        if (updatesCount > 0) {
+            setters.setMonthlyInbound(newInbound);
+            // alert(`Auto-Balanced: Added trucks to ${updatesCount} days.`);
+        } else {
+            alert("Schedule is already balanced! No changes needed.");
+        }
+    };
+
+    // ... existing state ...
     const [isEditingFloor, setIsEditingFloor] = useState(false);
     const [isEditingYard, setIsEditingYard] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
-    const [isEmailOpen, setIsEmailOpen] = useState(false); // NEW
-    const [isExportOpen, setIsExportOpen] = useState(false); // NEW
-    const [isMasterListOpen, setIsMasterListOpen] = useState(false); // NEW
+    const [isEmailOpen, setIsEmailOpen] = useState(false);
+    const [isExportOpen, setIsExportOpen] = useState(false);
+    const [isMasterListOpen, setIsMasterListOpen] = useState(false);
     const [viewMode, setViewMode] = useState('grid');
-
-    // Morning Reconciliation Modal State
     const [isReconcileOpen, setIsReconcileOpen] = useState(false);
 
     if (!results) return <div>Loading...</div>;
@@ -388,10 +413,40 @@ export default function MRPView({ state, setters, results }) {
                     </button>
 
                     <button
+                        onClick={handleAutoBalance}
+                        className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors border border-indigo-200 w-full justify-center mb-2"
+                        title="Auto-fill Planned Loads to meet Safety Stock"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                        </svg>
+                        Auto-Balance
+                    </button>
+
+                    <button
                         onClick={() => setIsReconcileOpen(true)}
                         className="flex items-center text-orange-600 dark:text-orange-400 hover:text-orange-800 bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
                     >
                         ☀️ Morning True-Up
+                    </button>
+
+                    <button
+                        onClick={handleAutoBalance}
+                        className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
+                        title="Auto-fill Planned Loads"
+                    >
+                        🪄 Auto-Balance
+                    </button>
+
+                    <button
+                        onClick={handleAutoBalance}
+                        className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors border border-indigo-200"
+                        title="Auto-fill Planned Loads to meet Safety Stock"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                        </svg>
+                        Auto-Balance
                     </button>
 
                     <button
