@@ -22,6 +22,11 @@ export function useMRPSolver() {
         const plannedInbound = { ...(state.monthlyInbound || {}) }; // Mutable copy
         const dailyResults = currentResults.dailyResults; // Sorted Array Day 1 -> N
 
+        // Lead Time Gate (Frozen Period)
+        const todayStr = getLocalISOString();
+        const frozenDays = schedulerSettings?.leadTimeDays || 2;
+        const frozenUntil = addDays(todayStr, frozenDays);
+
         let cumulativeAddedBottles = 0; // The "Rolling Wave" of added inventory
         const proposedUpdates = {};
 
@@ -39,6 +44,9 @@ export function useMRPSolver() {
 
             // Adjusted Inventory (Base + What we added in previous loops)
             const adjustedInventory = baseInventory + cumulativeAddedBottles;
+
+            // Skip updates inside frozen window
+            if (dateStr <= frozenUntil) return;
 
             // Target Calc (Use Day's own target if calculated, else fallback)
             const safetyTarget = day.safetyStockTarget || ((specs.productionRate * 24) * (safetyStockLoads || 2));
