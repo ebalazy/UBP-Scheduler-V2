@@ -37,7 +37,11 @@ export default function PlanningGrid({
     const ledger = dailyLedger;
 
     // -- State --
-    const [startDate, setStartDate] = useState(new Date());
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 3);
+        return d;
+    });
     const [dates, setDates] = useState([]);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
