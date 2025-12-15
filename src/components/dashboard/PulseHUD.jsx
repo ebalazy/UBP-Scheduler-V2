@@ -6,11 +6,14 @@ import {
     CubeIcon,
     PencilSquareIcon
 } from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/24/solid';
 import { formatLocalDate, getLocalISOString } from '../../utils/dateUtils';
+import { useSettings } from '../../context/SettingsContext';
 
 export default function PulseHUD({ mrp, scheduler, activeSku }) {
     // Extract State & Setters
     const { formState: state, setters, results } = mrp;
+    const { bottleSizes } = useSettings();
 
     // Safety Checks
     if (!results) return null;
@@ -55,10 +58,19 @@ export default function PulseHUD({ mrp, scheduler, activeSku }) {
                         </div>
                         <div>
                             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                Active Line 1
+                                Production Plan
                             </h2>
-                            <div className="text-xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
-                                {activeSku || 'Unknown SKU'}
+                            <div className="relative group flex items-center">
+                                <select
+                                    className="appearance-none bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800 text-xl font-extrabold text-slate-800 dark:text-white pr-6 py-0.5 rounded cursor-pointer outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                                    value={state.selectedSize}
+                                    onChange={(e) => setters.setSelectedSize(e.target.value)}
+                                >
+                                    {bottleSizes.map(size => (
+                                        <option key={size} value={size}>{size}</option>
+                                    ))}
+                                </select>
+                                <ChevronDownIcon className="w-4 h-4 text-slate-400 -ml-4 pointer-events-none group-hover:text-blue-500" />
                             </div>
                         </div>
                     </div>

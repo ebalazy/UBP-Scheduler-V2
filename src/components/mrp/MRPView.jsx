@@ -253,23 +253,7 @@ export default function MRPView({ state, setters, results }) {
                         ✉️ Email
                     </button>
 
-                    <div className="relative group w-full sm:w-auto mt-2 sm:mt-0">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span className="text-gray-400">SKU:</span>
-                        </div>
-                        <select
-                            value={state.selectedSize}
-                            onChange={(e) => setters.setSelectedSize(e.target.value)}
-                            className="w-full sm:w-auto appearance-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-base font-bold pl-12 pr-10 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                        >
-                            {bottleSizes.map(size => (
-                                <option key={size} value={size}>{size}</option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                        </div>
-                    </div>
+
                 </div>
             </div>
 
