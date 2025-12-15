@@ -24,12 +24,31 @@ export default function PlanningRowActual({ dates, monthlyProductionActuals, upd
     );
 }
 
-const ActualCell = React.memo(({ initialValue }) => {
+const ActualCell = React.memo(({ dateStr, initialValue, updateDateActual }) => {
+    const [val, setVal] = React.useState(initialValue || '');
+
+    React.useEffect(() => {
+        setVal(initialValue || '');
+    }, [initialValue]);
+
+    const handleBlur = () => {
+        const num = val === '' ? null : Number(val);
+        // Only update if changed
+        if (num !== initialValue) {
+            updateDateActual(dateStr, num);
+        }
+    };
+
     return (
-        <td className="p-0 border-r border-gray-100 dark:border-gray-700 bg-blue-50/10 dark:bg-blue-900/5">
-            <div className={`w-full h-full p-2 text-center text-xs flex items-center justify-center font-bold ${initialValue ? 'text-blue-700 dark:text-blue-300' : 'text-gray-300'}`}>
-                {initialValue || '-'}
-            </div>
+        <td className="p-0 border-r border-gray-100 dark:border-gray-700 bg-blue-50/10 dark:bg-blue-900/5 min-w-[60px]">
+            <input
+                type="number"
+                className="w-full h-full text-center text-xs bg-transparent focus:bg-white dark:focus:bg-gray-700 outline-none p-1 font-bold text-blue-700 dark:text-blue-300"
+                value={val}
+                onChange={(e) => setVal(e.target.value)}
+                onBlur={handleBlur}
+                placeholder="-"
+            />
         </td>
     );
 });
