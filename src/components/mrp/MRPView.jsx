@@ -2,7 +2,7 @@ import { useState } from 'react';
 import CalendarDemand from './CalendarDemand';
 import PlanningGrid from './PlanningGrid';
 import OrderActionLog from './OrderActionLog';
-import SharePlanModal from '../SharePlanModal';
+
 import BulkImportModal from '../procurement/BulkImportModal';
 import SupplierEmailModal from '../procurement/SupplierEmailModal';
 import YMSExportModal from '../procurement/YMSExportModal'; // NEW
@@ -48,7 +48,7 @@ export default function MRPView({ state, setters, results }) {
     // ... existing state ...
     const [isEditingFloor, setIsEditingFloor] = useState(false);
     const [isEditingYard, setIsEditingYard] = useState(false);
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [isEmailOpen, setIsEmailOpen] = useState(false);
     const [isExportOpen, setIsExportOpen] = useState(false);
@@ -354,64 +354,9 @@ export default function MRPView({ state, setters, results }) {
                 </div>
 
                 <div className="flex flex-wrap items-center mt-4 md:mt-0 gap-2">
-                    <button
-                        onClick={() => setIsShareModalOpen(true)}
-                        className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 px-3 py-2 rounded-lg font-medium text-sm transition-colors"
-                    >
-                        Share Plan
-                    </button>
 
-                    <button
-                        onClick={async () => {
-                            if (!user) return alert("No User");
-                            const date = getLocalISOString();
-                            const sku = state.selectedSize || "12oz";
-                            // 1. Get Product ID
-                            let { data: prod } = await supabase.from('products').select('id').eq('name', sku).maybeSingle();
 
-                            // 2. Create if Missing (Self-Healing)
-                            if (!prod) {
-                                const { data: newProd, error: createErr } = await supabase.from('products').insert({
-                                    name: sku,
-                                    user_id: user.id,
-                                    bottles_per_case: 12,
-                                    bottles_per_truck: 20000,
-                                    cases_per_pallet: 100
-                                }).select('id').single();
 
-                                if (createErr) return alert("Error Creating Product: " + createErr.message);
-                                prod = newProd;
-                                alert(`Created Missing Product: ${sku}`);
-                            }
-
-                            // 3. Write Snapshot
-                            const val = 999;
-                            const { error: wErr } = await supabase.from('inventory_snapshots').upsert({
-                                product_id: prod.id,
-                                user_id: user.id,
-                                date: date,
-                                location: 'yard',
-                                quantity_pallets: val
-                            }, { onConflict: 'product_id, date, location' });
-
-                            if (wErr) return alert("Write Error: " + wErr.message);
-
-                            // 3. Read
-                            const { data: read, error: rErr } = await supabase.from('inventory_snapshots')
-                                .select('*')
-                                .eq('product_id', prod.id)
-                                .eq('user_id', user.id)
-                                .eq('location', 'yard')
-                                .eq('date', date)
-                                .maybeSingle();
-
-                            if (rErr) return alert("Read Error: " + rErr.message);
-                            alert(`DEBUG SUCCESS:\nSaved: ${val}\nRead Back: ${read?.quantity_pallets}\nDate: ${read?.date}`);
-                        }}
-                        className="flex items-center text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg font-medium text-xs border border-red-200"
-                    >
-                        🐞 DEBUG DB
-                    </button>
 
                     <button
                         onClick={() => setIsReconcileOpen(true)}
@@ -579,14 +524,7 @@ export default function MRPView({ state, setters, results }) {
             </div>
 
             {/* MODALS */}
-            <SharePlanModal
-                isOpen={isShareModalOpen}
-                onClose={() => setIsShareModalOpen(false)}
-                selectedSize={state.selectedSize}
-                monthlyDemand={state.monthlyDemand}
-                monthlyInbound={state.monthlyInbound}
-                monthlyProductionActuals={state.monthlyProductionActuals}
-            />
+
 
             <MorningReconciliationModal
                 isOpen={isReconcileOpen}
