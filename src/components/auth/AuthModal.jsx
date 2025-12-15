@@ -3,101 +3,102 @@ import { useAuth } from '../../context/AuthContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import ubpLogo from '../../assets/ubp_logo_v4.png';
 
-const { signIn } = useAuth();
+export default function AuthModal({ isOpen, onClose }) {
+    const { signIn } = useAuth();
 
-// State
-const [email, setEmail] = useState('');
-const [password, setPassword] = useState('');
-const [error, setError] = useState(null);
-const [loading, setLoading] = useState(false);
+    // State
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
 
-if (!isOpen) return null;
+    if (!isOpen) return null;
 
-const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError(null);
+        setLoading(true);
 
-    try {
-        await signIn(email, password);
-        onClose();
-    } catch (err) {
-        setError(err.message);
-    } finally {
-        setLoading(false);
-    }
-};
+        try {
+            await signIn(email, password);
+            onClose();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
-            {/* Close Button */}
-            <button
-                onClick={onClose}
-                className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
-            >
-                <XMarkIcon className="h-6 w-6" />
-            </button>
+    return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
+                {/* Close Button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+                >
+                    <XMarkIcon className="h-6 w-6" />
+                </button>
 
-            <div className="p-8">
-                {/* Brand Logo */}
-                <div className="flex justify-center mb-6">
-                    <div className="h-20 w-20 bg-white rounded-full shadow-2xl shadow-blue-500/20 flex items-center justify-center overflow-hidden">
-                        <img src={ubpLogo} alt="UBP" className="h-full w-full object-cover transform scale-105" />
-                    </div>
-                </div>
-
-                <h2 className="text-2xl font-bold text-white mb-2 text-center">
-                    Welcome Back
-                </h2>
-                <p className="text-gray-400 text-sm mb-6 text-center">
-                    Sign in to access your production schedule.
-                </p>
-
-                {error && (
-                    <div className="p-3 rounded-lg mb-4 text-sm font-medium border bg-red-900/30 text-red-300 border-red-800">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300">Email</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="mt-1 block w-full rounded-lg bg-gray-800 border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border transition-colors"
-                            placeholder="name@company.com"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300">Password</label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="mt-1 block w-full rounded-lg bg-gray-800 border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border transition-colors"
-                            placeholder="••••••••"
-                        />
+                <div className="p-8">
+                    {/* Brand Logo */}
+                    <div className="flex justify-center mb-6">
+                        <div className="h-20 w-20 bg-white rounded-full shadow-2xl shadow-blue-500/20 flex items-center justify-center overflow-hidden">
+                            <img src={ubpLogo} alt="UBP" className="h-full w-full object-cover transform scale-105" />
+                        </div>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-bold hover:bg-blue-500 transition-all disabled:opacity-50 shadow-lg shadow-blue-900/20"
-                    >
-                        {loading ? 'Processing...' : 'Sign In'}
-                    </button>
-                </form>
+                    <h2 className="text-2xl font-bold text-white mb-2 text-center">
+                        Welcome Back
+                    </h2>
+                    <p className="text-gray-400 text-sm mb-6 text-center">
+                        Sign in to access your production schedule.
+                    </p>
 
-                <div className="mt-6 text-center text-sm text-gray-500">
-                    <span className="italic">Authorized personnel only.</span>
+                    {error && (
+                        <div className="p-3 rounded-lg mb-4 text-sm font-medium border bg-red-900/30 text-red-300 border-red-800">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300">Email</label>
+                            <input
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="mt-1 block w-full rounded-lg bg-gray-800 border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border transition-colors"
+                                placeholder="name@company.com"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300">Password</label>
+                            <input
+                                type="password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="mt-1 block w-full rounded-lg bg-gray-800 border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border transition-colors"
+                                placeholder="••••••••"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-bold hover:bg-blue-500 transition-all disabled:opacity-50 shadow-lg shadow-blue-900/20"
+                        >
+                            {loading ? 'Processing...' : 'Sign In'}
+                        </button>
+                    </form>
+
+                    <div className="mt-6 text-center text-sm text-gray-500">
+                        <span className="italic">Authorized personnel only.</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
 }
