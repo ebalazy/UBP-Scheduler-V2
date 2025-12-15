@@ -33,6 +33,10 @@ export default function PulseHUD({ mrp, scheduler, activeSku }) {
     const safetyTargetBottles = results.safetyTarget || 0;
     const safetyTargetPallets = safetyTargetBottles / (bpc * cpp);
 
+    // Calculate Total Effective Inventory (Floor + Yard)
+    const palletsPerTruck = (specs.bottlesPerTruck || 20000) / (bpc * cpp);
+    const totalEffectivePallets = floorBalance + (yardBalance * palletsPerTruck);
+
     // Coverage Logic
     let runwayDays = 0;
     let isCritical = false;
@@ -135,11 +139,11 @@ export default function PulseHUD({ mrp, scheduler, activeSku }) {
 
                     {/* Status Badge */}
                     <div className="hidden md:flex flex-col items-end justify-center border-l dark:border-slate-700 pl-6">
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${floorBalance >= safetyTargetPallets
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${totalEffectivePallets >= safetyTargetPallets
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400'
                             : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400'
                             }`}>
-                            {floorBalance >= safetyTargetPallets ? 'Secure' : 'Below Safety'}
+                            {totalEffectivePallets >= safetyTargetPallets ? 'Secure' : 'Below Safety'}
                         </div>
                     </div>
 
