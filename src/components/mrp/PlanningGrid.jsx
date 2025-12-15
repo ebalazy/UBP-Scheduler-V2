@@ -27,7 +27,8 @@ export default function PlanningGrid({
     // deleteProcurementEntry, // Now from Context
     dailyLedger = [], // Renamed from ledger and defaulted
     specs,
-    userProfile
+    userProfile,
+    startDate // Lifted State from Parent (MRPView)
 }) {
     const { bottleSizes } = useSettings();
     const { poManifest, saveProcurementEntry, deleteProcurementEntry } = useProcurement();
@@ -37,11 +38,13 @@ export default function PlanningGrid({
     const ledger = dailyLedger;
 
     // -- State --
-    const [startDate, setStartDate] = useState(() => {
+    // startDate is now a Prop. defaulting to today-3 just in case prop is missing (robustness)
+    const effectiveStartDate = startDate || (() => {
         const d = new Date();
         d.setDate(d.getDate() - 3);
         return d;
-    });
+    })();
+
     const [dates, setDates] = useState([]);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -57,24 +60,28 @@ export default function PlanningGrid({
 
     useEffect(() => {
         // Generate 14 days from start date
+        // Wait, Parent controls "30 Days" text. Should we show 14 or 30?
+        // Original code showed 14. Export showed 30.
+        // Let's stick to 14 for the Grid View to keep performance high, or increase if requested.
+        // The parent "Activity Ledger 30 Days" badge implies 30 days history/forecast context?
+        // Let's generate 21 days for a fuller view? 
+        // User said "No shortcuts". Let's verify original intent.
+        // Original loop: `for (let i = 0; i < 14; i++)`.
+        // Let's keep 14 for now to avoid breaking horizontal layout constraints.
+
         const d = [];
+        // Ensure effectiveStartDate is a generic Date object
+        const base = new Date(effectiveStartDate);
+
         for (let i = 0; i < 14; i++) {
-            const next = new Date(startDate);
-            next.setDate(startDate.getDate() + i);
+            const next = new Date(base);
+            next.setDate(base.getDate() + i);
             d.push(next);
         }
         setDates(d);
-    }, [startDate]);
+    }, [effectiveStartDate]);
 
     // -- Handlers --
-    const shiftDate = (days) => {
-        const newDate = new Date(startDate);
-        newDate.setDate(newDate.getDate() + days);
-        setStartDate(newDate);
-    };
-
-    const resetDate = () => setStartDate(new Date());
-
     const openManager = (dateStr) => setManagerDate(dateStr);
     const closeManager = () => setManagerDate(null);
 
@@ -97,11 +104,7 @@ export default function PlanningGrid({
                 specs={specs}
                 orders={currentItems}
                 onSave={async (item) => {
-                    // Item: { po, qty, sku, supplier... }
-                    // We need to save to DB via prop
                     await saveProcurementEntry(item);
-                    // The hook will auto-refresh/optimistic update? 
-                    // No, `saveProcurementEntry` in `useMRPActions` should trigger a refresh.
                 }}
                 onDelete={async (po) => {
                     await deleteProcurementEntry(po);
@@ -113,20 +116,12 @@ export default function PlanningGrid({
     // -- Mobile View --
     if (isMobile) {
         return (
-            <div className="flex flex-col gap-2 pb-24">
-                <div className="flex justify-between items-center mb-2 px-1">
-                    <button onClick={resetDate} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                        Today
-                    </button>
-                    <div className="flex gap-2">
-                        <button onClick={() => shiftDate(-1)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
-                            ←
-                        </button>
-                        <button onClick={() => shiftDate(1)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
-                            →
-                        </button>
-                    </div>
-                </div>
+            <div className="flex flex-col gap-2 pb-24 relative pt-2">
+                {/* Mobile Date Nav is now handled by the Parent Header which stays visible? 
+                    Actually, on Mobile, the parent header might scroll away or stick.
+                    MRPView header is sticky: `sticky top-0 z-20`.
+                    So we don't need redundant controls here. 
+                */}
 
                 {dates.map(date => {
                     const dateStr = formatLocalDate(date);
@@ -163,105 +158,9 @@ export default function PlanningGrid({
         return acc;
     }, {});
 
-    const { schedulerSettings } = useSettings();
-    const [copied, setCopied] = useState(false);
-
-    const handleExportMonth = () => {
-        // Start from Today
-        // FIX: addDays expects a string (YYYY-MM-DD), not a Date object.
-        const baseDate = formatLocalDate(new Date());
-        let text = `Monthly Replenishment Plan - Generated ${new Date().toLocaleDateString()}\n`;
-        text += `--------------------------------------------------\n\n`;
-
-        let hasData = false;
-        const rate = specs?.productionRate || 0;
-        const capacity = specs?.casesPerTruck || ((specs?.bottlesPerTruck || 20000) / (specs?.bottlesPerCase || 1));
-        const [startH, startM] = (schedulerSettings?.shiftStartTime || '00:00').split(':').map(Number);
-        const startDecimal = startH + (startM / 60);
-
-        for (let i = 0; i < 30; i++) {
-            const dateStr = addDays(baseDate, i); // Returns String "YYYY-MM-DD"
-            const count = Math.round(Number(monthlyInbound[dateStr] || 0));
-
-            if (count > 0) {
-                hasData = true;
-                // Parse for display (Force local timezone interpretation)
-                const [y, m, da] = dateStr.split('-').map(Number);
-                const dateObj = new Date(y, m - 1, da);
-
-                text += `DATE: ${dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric', year: 'numeric' })}\n`;
-                text += `TRUCKS: ${count}\n`;
-
-                // Details
-                if (rate > 0) {
-                    const hoursPerTruck = capacity / rate;
-                    for (let truckIdx = 0; truckIdx < count; truckIdx++) {
-                        const arrivalDecimal = startDecimal + (truckIdx * hoursPerTruck);
-                        const roundedH = Math.round(arrivalDecimal % 24) % 24;
-                        const period = roundedH >= 12 ? 'PM' : 'AM';
-                        const displayH = roundedH % 12 || 12;
-
-                        text += `  - Load #${truckIdx + 1}: Est. ${displayH}:00 ${period}\n`;
-                    }
-                }
-                text += `\n`;
-            }
-        }
-
-        if (!hasData) text += "No planned replenishment needs for the next 30 days.\n";
-
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
     return (
         <div className="overflow-x-auto pb-4 relative">
-            {/* Header Controls */}
-            <div className="sticky left-0 flex justify-between mb-2 p-2 bg-white dark:bg-gray-900 z-20 min-w-full">
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => shiftDate(-7)}
-                        className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                    >
-                        &lt;&lt; Prev Week
-                    </button>
-                    <button
-                        onClick={resetDate}
-                        className="px-3 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold rounded"
-                    >
-                        Today
-                    </button>
-                    <button
-                        onClick={() => shiftDate(7)}
-                        className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                    >
-                        Next Week &gt;&gt;
-                    </button>
-                </div>
-
-                <div className="pr-4">
-                    <button
-                        onClick={handleExportMonth}
-                        className={`flex items-center px-4 py-1 text-xs font-bold rounded border transition-all ${copied
-                            ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                            : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
-                            }`}
-                    >
-                        {copied ? (
-                            <>
-                                <CheckCircleIcon className="w-4 h-4 mr-1.5" />
-                                Copied Full Month!
-                            </>
-                        ) : (
-                            <>
-                                <ClipboardDocumentListIcon className="w-4 h-4 mr-1.5" />
-                                Export 30-Day Plan
-                            </>
-                        )}
-                    </button>
-                </div>
-            </div>
+            {/* Header Controls REMOVED (Lifted to Parent) */}
 
             <table className="w-full border-collapse text-sm">
                 <PlanningHeader dates={dates} todayStr={todayStr} />

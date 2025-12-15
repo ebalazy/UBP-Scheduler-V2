@@ -195,10 +195,10 @@ function EditableStat({ label, value, unit, onSave, colorClass = 'text-slate-700
 function EditableInput({ label, value, onChange, width }) {
     return (
         <div className="flex flex-col">
-            <label className="text-[10px] uppercase font-bold text-slate-400 mb-1">{label}</label>
+            <label className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 ml-1">{label}</label>
             <input
                 type="number"
-                className={`${width} bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded p-1 text-sm font-bold text-slate-700 dark:text-slate-200 text-center focus:ring-2 focus:ring-blue-400 outline-none`}
+                className={`${width} bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800 border-b-2 border-transparent hover:border-slate-300 dark:hover:border-slate-600 rounded-t p-1 text-lg font-extrabold text-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-blue-500 focus:ring-0 outline-none transition-all`}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
             />

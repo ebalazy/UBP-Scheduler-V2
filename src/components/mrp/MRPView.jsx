@@ -18,11 +18,14 @@ import {
     ArrowPathIcon,
     ArrowDownTrayIcon,
     ClipboardDocumentListIcon,
-    EnvelopeIcon
+    EnvelopeIcon,
+    CheckCircleIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
-import { formatLocalDate, getLocalISOString } from '../../utils/dateUtils';
+import { formatLocalDate, getLocalISOString, addDays } from '../../utils/dateUtils';
 
 import { useMRPSolver } from '../../hooks/mrp/useMRPSolver';
 import { useProducts } from '../../context/ProductsContext';
@@ -34,6 +37,70 @@ export default function MRPView({ state, setters, results }) {
     const { user } = useAuth();
     const { solve } = useMRPSolver();
     const { poManifest } = useProcurement();
+
+    // -- Grid Navigation State --
+    const [gridStartDate, setGridStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 3);
+        return d;
+    });
+
+    const shiftDate = (days) => {
+        setGridStartDate(prev => {
+            const n = new Date(prev);
+            n.setDate(n.getDate() + days);
+            return n;
+        });
+    };
+
+    const resetDate = () => {
+        const d = new Date();
+        d.setDate(d.getDate() - 3);
+        setGridStartDate(d);
+    };
+
+    // -- Export Logic --
+    const [copied, setCopied] = useState(false);
+    const handleExportMonth = () => {
+        const baseDate = formatLocalDate(new Date());
+        let text = `Monthly Replenishment Plan - Generated ${new Date().toLocaleDateString()}\n`;
+        text += `--------------------------------------------------\n\n`;
+
+        const rate = results.specs?.productionRate || 0;
+        const capacity = results.specs?.casesPerTruck || ((results.specs?.bottlesPerTruck || 20000) / (results.specs?.bottlesPerCase || 1));
+        const [startH, startM] = (schedulerSettings?.shiftStartTime || '00:00').split(':').map(Number);
+        const startDecimal = startH + (startM / 60);
+
+        for (let i = 0; i < 30; i++) {
+            const dateStr = addDays(baseDate, i);
+            const count = Math.round(Number(state.monthlyInbound[dateStr] || 0));
+
+            if (count > 0) {
+                const [y, m, da] = dateStr.split('-').map(Number);
+                const dateObj = new Date(y, m - 1, da);
+                text += `DATE: ${dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric', year: 'numeric' })}\n`;
+                text += `TRUCKS: ${count}\n`;
+
+                if (rate > 0) {
+                    const hoursPerTruck = capacity / rate;
+                    for (let truckIdx = 0; truckIdx < count; truckIdx++) {
+                        const arrivalDecimal = startDecimal + (truckIdx * hoursPerTruck);
+                        const roundedH = Math.round(arrivalDecimal % 24) % 24;
+                        const mins = Math.round((arrivalDecimal % 1) * 60);
+                        const timeStr = `${roundedH}:${mins.toString().padStart(2, '0')}`;
+                        text += `  - Truck ${truckIdx + 1}: Arrive approx ${timeStr}\n`;
+                    }
+                }
+                text += `\n`;
+            }
+        }
+
+        navigator.clipboard.writeText(text).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+            alert("Copied 30-Day Plan to Clipboard!");
+        });
+    };
 
     const handleAutoBalance = () => {
         if (!confirm("Auto-Balance will populate Planned Loads to ensure safety stock is met. Proceed?")) return;
@@ -82,14 +149,18 @@ export default function MRPView({ state, setters, results }) {
         const warningThreshold = criticalThreshold + 2;
 
         let runwayStatus = 'Healthy';
-        let runwayColor = 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-800 dark:text-emerald-300';
+        // Polished KPI Card Style (Suggestion #2)
+        let runwayColor = 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm border-l-4 border-l-emerald-500';
+        let statusTextColor = 'text-emerald-600 dark:text-emerald-400';
 
         if (daysOfSupply <= criticalThreshold) {
             runwayStatus = 'CRITICAL';
-            runwayColor = 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/40 dark:border-red-800 dark:text-red-300 animate-pulse';
+            runwayColor = 'bg-red-50 border-red-200 border-l-4 border-l-red-500 animate-pulse';
+            statusTextColor = 'text-red-700';
         } else if (daysOfSupply <= warningThreshold) {
             runwayStatus = 'Warning';
-            runwayColor = 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/40 dark:border-amber-800 dark:text-amber-300';
+            runwayColor = 'bg-amber-50 border-amber-200 border-l-4 border-l-amber-500';
+            statusTextColor = 'text-amber-700';
         }
 
         const stockoutDateObj = results.firstStockoutDate ? new Date(results.firstStockoutDate) : null;
@@ -107,15 +178,15 @@ export default function MRPView({ state, setters, results }) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 {/* KPI 1: MATERIALS HEALTH */}
-                <div className={`p-5 rounded-xl border-2 shadow-sm flex flex-col justify-between ${runwayColor}`}>
+                <div className={`p-5 rounded-xl border ${runwayColor} flex flex-col justify-between`}>
                     <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-xs font-bold uppercase tracking-wider opacity-90">Coverage Health</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-wider opacity-60 text-gray-500 dark:text-gray-400">Coverage Health</h3>
                         {runwayStatus === 'CRITICAL' && <span className="text-xl">🚨</span>}
-                        {runwayStatus === 'Healthy' && <span className="text-xl">✅</span>}
+                        {runwayStatus === 'Healthy' && <CheckCircleIcon className="w-6 h-6 text-emerald-500" />}
                     </div>
                     <div>
-                        <div className="text-3xl font-black tracking-tight">{runwayStatus}</div>
-                        <div className="text-sm font-medium opacity-80 mt-1">
+                        <div className={`text-3xl font-black tracking-tight ${statusTextColor}`}>{runwayStatus}</div>
+                        <div className="text-sm font-medium opacity-80 mt-1 dark:text-gray-300">
                             {runwayStatus === 'CRITICAL'
                                 ? `Empty by ${stockoutLabel}`
                                 : runwayStatus === 'Warning'
@@ -128,7 +199,7 @@ export default function MRPView({ state, setters, results }) {
                 {/* KPI 2: RUNWAY */}
                 <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-between">
                     <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Runway</h3>
+                        <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Runway</h3>
                         <div className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
                             Target: {safetyTarget ? Math.round(safetyTarget / (specs.bottlesPerCase * (specs.casesPerPallet || 1))) : '-'} plts
                         </div>
@@ -153,7 +224,7 @@ export default function MRPView({ state, setters, results }) {
                         : (runwayStatus === 'CRITICAL' ? 'bg-red-50 border-red-200' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')
                     }`}>
                     <div className="flex justify-between items-center mb-2">
-                        <h3 className={`text-xs font-bold uppercase tracking-wider ${displayTrucks > 0 ? 'text-blue-100' : 'text-gray-400'}`}>
+                        <h3 className={`text-xs font-bold uppercase tracking-wider ${displayTrucks > 0 ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
                             Replenishment
                         </h3>
                         {displayTrucks > 0 && <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>}
@@ -268,23 +339,32 @@ export default function MRPView({ state, setters, results }) {
                 {/* MAIN PLANNING GRID (FULL WIDTH) with Unified Header */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden min-h-[600px]">
 
-                    {/* Unified Header */}
-                    <div className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center bg-gray-50 dark:bg-gray-900/50 gap-4">
+                    {/* Unified Header with Date Nav */}
+                    <div className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col lg:flex-row justify-between items-center bg-gray-50 dark:bg-gray-900/50 gap-4">
 
-                        {/* Title Section */}
-                        <div className="flex items-center space-x-3">
-                            <h3 className="font-bold text-gray-800 dark:text-white flex items-center text-sm uppercase tracking-wide">
-                                Activity Ledger
-                            </h3>
-                            <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300 font-mono">
-                                30 Days
+                        {/* LEFT: Title & Date Range */}
+                        <div className="flex items-center gap-4 w-full lg:w-auto">
+                            <div className="flex bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-0.5">
+                                <button onClick={() => shiftDate(-7)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-500 transition-colors" title="Previous Week">
+                                    <ChevronLeftIcon className="w-4 h-4" />
+                                </button>
+                                <button onClick={resetDate} className="px-3 py-1 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-x border-gray-100 dark:border-gray-700 mx-0.5 transition-colors">
+                                    Today
+                                </button>
+                                <button onClick={() => shiftDate(7)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-500 transition-colors" title="Next Week">
+                                    <ChevronRightIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <span className="text-xs font-medium text-gray-400 hidden sm:block">
+                                {gridStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {addDays(formatLocalDate(gridStartDate), 6).split('-').slice(1).join('/')}
                             </span>
                         </div>
 
-                        {/* Controls Section (Merged) */}
-                        <div className="flex items-center gap-6">
-                            {/* Inventory Auto-Pilot Toggle */}
-                            <label className="flex items-center cursor-pointer group" title="Auto-Pilot: Automatically suggests truck orders to maintain safety stock.">
+                        {/* RIGHT: Controls */}
+                        <div className="flex items-center gap-6 w-full lg:w-auto justify-end">
+
+                            {/* Auto-Pilot */}
+                            <label className="flex items-center cursor-pointer group" title="Auto-Pilot">
                                 <div className="relative">
                                     <input
                                         type="checkbox"
@@ -300,29 +380,26 @@ export default function MRPView({ state, setters, results }) {
                                 </span>
                             </label>
 
-                            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 hidden md:block"></div>
+                            <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 hidden md:block"></div>
 
                             {/* View Switchers */}
                             <div className="flex bg-white dark:bg-gray-700 p-1 rounded-md shadow-sm border border-gray-200 dark:border-gray-600">
-                                <button
-                                    onClick={() => setViewMode('grid')}
-                                    className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                                >
-                                    Standard
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('workbench')}
-                                    className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'workbench' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                                >
-                                    Workbench
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('calendar')}
-                                    className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-blue-100 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
-                                >
-                                    Calendar
-                                </button>
+                                <button onClick={() => setViewMode('grid')} className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-blue-50 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100'}`}>Standard</button>
+                                <button onClick={() => setViewMode('workbench')} className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${viewMode === 'workbench' ? 'bg-blue-50 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100'}`}>Workbench</button>
+                                <button onClick={() => setViewMode('calendar')} className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-blue-50 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100'}`}>Calendar</button>
                             </div>
+
+                            {/* Export Button */}
+                            <button
+                                onClick={handleExportMonth}
+                                className={`ml-2 p-1.5 rounded-md border transition-all ${copied
+                                    ? 'bg-green-50 border-green-200 text-green-600'
+                                    : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 hover:text-gray-700'
+                                    }`}
+                                title="Export 30-Day Plan"
+                            >
+                                {copied ? <CheckCircleIcon className="w-5 h-5" /> : <ClipboardDocumentListIcon className="w-5 h-5" />}
+                            </button>
                         </div>
                     </div>
 
@@ -353,6 +430,7 @@ export default function MRPView({ state, setters, results }) {
                                 specs={results?.specs}
                                 dailyLedger={results?.dailyLedger}
                                 userProfile={user}
+                                startDate={gridStartDate}
                             />
                         ) : (
                             <PlanningGrid
@@ -367,6 +445,7 @@ export default function MRPView({ state, setters, results }) {
                                 safetyTarget={results?.safetyTarget}
                                 dailyLedger={results?.dailyLedger}
                                 userProfile={user}
+                                startDate={gridStartDate}
                             />
                         )}
                     </div>
