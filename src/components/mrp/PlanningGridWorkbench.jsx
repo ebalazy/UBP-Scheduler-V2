@@ -68,7 +68,7 @@ export default function PlanningGridWorkbench({
 
         return (
             <div
-                className={`relative h-full w-full flex flex-col justify-center px-1 cursor-pointer transition-colors ${count > 0 ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`}
+                className={`relative h-full w-full flex flex-col justify-center px-1 cursor-pointer transition-colors ${count > 0 ? 'bg-blue-50 text-blue-900 dark:bg-blue-900/40 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                 onClick={() => setManagerDate(dateStr)}
             >
                 {count > 0 ? (
@@ -80,7 +80,7 @@ export default function PlanningGridWorkbench({
 
                         {/* Time Pills (Max 2 shown to save space) */}
                         {times.slice(0, 2).map((t, idx) => (
-                            <span key={idx} className="text-[9px] bg-blue-100 text-blue-800 px-0.5 border border-blue-200 rounded-sm">
+                            <span key={idx} className="text-[9px] bg-blue-100 text-blue-800 px-0.5 border border-blue-200 rounded-sm dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
                                 {t}
                             </span>
                         ))}
@@ -99,9 +99,9 @@ export default function PlanningGridWorkbench({
         const target = ledger.safetyStockTarget || 0;
 
         // Colors
-        let bgClass = "bg-emerald-50 text-emerald-900";
-        if (days < 2) bgClass = "bg-red-50 text-red-900 font-bold";
-        else if (days < 4) bgClass = "bg-amber-50 text-amber-900";
+        let bgClass = "bg-emerald-50 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-300";
+        if (days < 2) bgClass = "bg-red-50 text-red-900 font-bold dark:bg-red-900/40 dark:text-red-300";
+        else if (days < 4) bgClass = "bg-amber-50 text-amber-900 dark:bg-amber-900/40 dark:text-amber-300";
 
         return (
             <div className={`h-full w-full flex flex-col justify-center px-1 text-right text-xs ${bgClass}`}>
