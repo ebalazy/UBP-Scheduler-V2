@@ -153,9 +153,9 @@ export default function PlanningGridWorkbench({
 
                                 let headerClass = "min-w-[80px] p-1 border-b border-r text-center font-medium transition-colors ";
                                 if (isToday) headerClass += "bg-blue-600 text-white border-blue-600 ring-2 ring-blue-600 ring-inset ring-offset-0 z-20";
-                                else if (isPast) headerClass += "bg-gray-100 text-gray-500 border-gray-200";
-                                else if (isWeekend) headerClass += "bg-gray-50 text-gray-400";
-                                else headerClass += "bg-white text-gray-700";
+                                else if (isPast) headerClass += "bg-gray-100 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700";
+                                else if (isWeekend) headerClass += "bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500";
+                                else headerClass += "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200";
 
                                 return (
                                     <th key={dateStr} className={headerClass}>
@@ -186,21 +186,22 @@ export default function PlanningGridWorkbench({
                                 const hasActual = act !== undefined && act !== null;
 
                                 let cellClass = "border-r border-b p-0 h-10 relative ";
-                                if (isToday) cellClass += "bg-blue-50/30 ring-2 ring-inset ring-blue-500 z-10 ";
-                                else if (isPast) cellClass += "bg-gray-50/50 ";
+                                if (isToday) cellClass += "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (isPast) cellClass += "bg-gray-50/50 dark:bg-gray-900/40 ";
+                                else cellClass += "bg-white dark:bg-gray-800 ";
 
                                 return (
                                     <td key={dateStr} className={cellClass}>
                                         <input
                                             type="number"
-                                            className={`w-full h-full text-center border-none focus:ring-0 bg-transparent p-0 ${act ? 'text-blue-600 font-bold' : ''} ${isToday ? 'font-bold' : ''}`}
+                                            className={`w-full h-full text-center border-none focus:ring-0 bg-transparent p-0 text-gray-900 dark:text-gray-100 ${act ? 'font-bold' : ''} ${isToday ? 'font-bold' : ''}`}
                                             value={val}
                                             onChange={(e) => updateDateDemand(dateStr, e.target.value)}
                                             placeholder="-"
                                         />
                                         {/* Optional: Show little indicator for actual */}
                                         {hasActual && (
-                                            <div className="absolute bottom-0 right-0 text-[8px] bg-gray-100 text-gray-500 px-1 pointer-events-none" title={`Actual: ${act}`}>
+                                            <div className="absolute bottom-0 right-0 text-[8px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1 pointer-events-none" title={`Actual: ${act}`}>
                                                 Act: {act}
                                             </div>
                                         )}
@@ -223,8 +224,9 @@ export default function PlanningGridWorkbench({
                                 const act = monthlyProductionActuals[dateStr] || '';
 
                                 let cellClass = "border-r border-b p-0 h-10 relative ";
-                                if (isToday) cellClass += "bg-blue-50/30 ring-2 ring-inset ring-blue-500 z-10 ";
-                                else if (!isPast) cellClass += "bg-gray-50/30 "; // Future dates default
+                                if (isToday) cellClass += "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (!isPast) cellClass += "bg-gray-50/30 dark:bg-gray-800/50 "; // Future dates default
+                                else cellClass += "bg-white dark:bg-gray-800 "; // Past dates (editable)
 
                                 const isLocked = !isPast; // Locked if today or future
 
@@ -239,7 +241,7 @@ export default function PlanningGridWorkbench({
                                                 placeholder="-"
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-300 text-[10px] select-none cursor-not-allowed italic">
+                                            <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600 text-[10px] select-none cursor-not-allowed italic">
                                                 Locked
                                             </div>
                                         )}
@@ -261,8 +263,9 @@ export default function PlanningGridWorkbench({
                                 const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
 
                                 let cellClass = "border-r border-b p-0 h-12 align-middle ";
-                                if (isToday) cellClass += "bg-blue-50/30 ring-2 ring-inset ring-blue-500 z-10 ";
-                                else if (isPast) cellClass += "bg-gray-50/50 ";
+                                if (isToday) cellClass += "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (isPast) cellClass += "bg-gray-50/50 dark:bg-gray-900/40 ";
+                                else cellClass += "bg-white dark:bg-gray-800 ";
 
                                 return (
                                     <td key={dateStr} className={cellClass}>
@@ -286,8 +289,9 @@ export default function PlanningGridWorkbench({
                                 const ledger = getLedgerForDate(dateStr);
 
                                 let cellClass = "border-r border-b p-0 h-12 align-middle ";
-                                if (isToday) cellClass += "bg-blue-50/30 ring-2 ring-inset ring-blue-500 z-10 ";
-                                else if (isPast) cellClass += "bg-gray-50/50 ";
+                                if (isToday) cellClass += "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10 ";
+                                else if (isPast) cellClass += "bg-gray-50/50 dark:bg-gray-900/40 ";
+                                else cellClass += "bg-white dark:bg-gray-800 ";
 
                                 return (
                                     <td key={dateStr} className={cellClass}>
