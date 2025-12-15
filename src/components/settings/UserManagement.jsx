@@ -77,8 +77,14 @@ export default function UserManagement() {
         setLoading(true);
         setError(null);
 
-        // 1. Generate Temp Password (random 12 chars)
-        const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4) + "!";
+        // 1. Generate Secure Temp Password (16 chars, alphanumeric)
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+        const passwordValues = new Uint32Array(16);
+        crypto.getRandomValues(passwordValues);
+        let tempPassword = "";
+        for (let i = 0; i < 16; i++) {
+            tempPassword += charset[passwordValues[i] % charset.length];
+        }
 
         try {
             // 2. Create a temporary client to sign up WITHOUT logging out admin
@@ -87,17 +93,21 @@ export default function UserManagement() {
             const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
             const tempClient = createClient(supabaseUrl, supabaseKey, {
-                auth: { persistSession: false, autoRefreshToken: false }
+                auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
             });
 
             // 3. Sign Up the User
-            // Note: This requires "Disable Signup" to be OFF in Supabase settings.
             const { data: authData, error: authError } = await tempClient.auth.signUp({
                 email: newUserEmail,
                 password: tempPassword,
             });
 
-            if (authError) throw authError;
+            if (authError) {
+                if (authError.message?.includes('Signups not allowed')) {
+                    throw new Error("Cannot create user: Public Signups are disabled in your Supabase Project Settings. Enable them or use the Invite button in the Dashboard.");
+                }
+                throw authError;
+            }
 
             // 4. Add to User Roles (Authorizing)
             const { error: dbError } = await supabase
@@ -120,8 +130,7 @@ export default function UserManagement() {
                 `USER CREATED SUCCESSFULLY!\n\n` +
                 `Email: ${newUserEmail}\n` +
                 `Temp Password: ${tempPassword}\n\n` +
-                `ACTION REQUIRED: Copy this password and send it to the user via Slack/Email.\n` +
-                `They will also receive a confirmation email they must click.`
+                `ACTION REQUIRED: Copy this password instantly. You will not see it again.`
             );
 
             setNewUserEmail('');
