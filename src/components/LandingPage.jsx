@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ShieldCheckIcon, ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
-import ubpLogo from '../assets/ubp_logo_v3.jpg';
+import ubpLogo from '../assets/ubp_logo_v4.png';
 
 export default function LandingPage() {
     const { signIn, resendVerificationEmail } = useAuth();
