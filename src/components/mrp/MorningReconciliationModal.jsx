@@ -17,12 +17,15 @@ export default function MorningReconciliationModal({
 }) {
     const { bottleDefinitions } = useSettings();
     const sizes = Object.keys(bottleDefinitions);
+    const specs = bottleDefinitions[state.selectedSize];
+    const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
 
     const [step, setStep] = useState(1);
 
     // Temporary State for the Wizard
     const [floorCount, setFloorCount] = useState('');
     const [yardCount, setYardCount] = useState('');
+    const [yardUnit, setYardUnit] = useState('loads'); // 'loads' or 'units'
 
     // Initialize Data when Modal Opens
     useEffect(() => {
@@ -75,8 +78,8 @@ export default function MorningReconciliationModal({
                             key={size}
                             onClick={() => setters.setSelectedSize(size)}
                             className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${state.selectedSize === size
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                 }`}
                         >
                             {size}
@@ -106,21 +109,43 @@ export default function MorningReconciliationModal({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                        Yard Count (Full Loads)
-                    </label>
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">
+                            Yard Count
+                        </label>
+                        <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
+                            <button
+                                onClick={() => setYardUnit('loads')}
+                                className={`px-2 py-0.5 text-xs font-bold rounded-sm ${yardUnit === 'loads' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                            >
+                                Loads
+                            </button>
+                            <button
+                                onClick={() => setYardUnit('units')}
+                                className={`px-2 py-0.5 text-xs font-bold rounded-sm ${yardUnit === 'units' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                            >
+                                Bottles
+                            </button>
+                        </div>
+                    </div>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <TruckIcon className="h-5 w-5 text-gray-400" />
                         </div>
                         <input
                             type="number"
-                            value={yardCount}
-                            onChange={(e) => setYardCount(e.target.value)}
+                            value={yardUnit === 'loads' ? yardCount : (yardCount === '' ? '' : Math.round(yardCount * bottlesPerTruck))}
+                            onChange={(e) => {
+                                const val = e.target.value === '' ? '' : Number(e.target.value);
+                                if (yardUnit === 'loads') setYardCount(val);
+                                else setYardCount(val === '' ? '' : val / bottlesPerTruck);
+                            }}
                             className="w-full pl-10 pr-4 py-3 text-xl font-bold border rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                         />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Number of fully loaded trailers available.</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                        {yardUnit === 'loads' ? 'Number of fully loaded trailers.' : `Total bottles (~${Math.round(bottlesPerTruck / 1000)}k per load).`}
+                    </p>
                 </div>
             </div>
         </div>
@@ -147,7 +172,9 @@ export default function MorningReconciliationModal({
                 </div>
                 <div className="flex justify-between">
                     <span className="text-gray-500">New Yard Count:</span>
-                    <span className="font-mono font-bold">{yardCount} loads</span>
+                    <span className="font-mono font-bold">
+                        {Number(yardCount).toFixed(1)} loads <span className="text-gray-400 text-xs">({Math.round(yardCount * bottlesPerTruck).toLocaleString()} bottles)</span>
+                    </span>
                 </div>
             </div>
         </div>
