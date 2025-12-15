@@ -41,13 +41,9 @@ export default function PlanningGridWorkbench({
     // --- Date Logic (30 Days View) ---
     useEffect(() => {
         const d = [];
-        // Normalize start date to 00:00 to match keys
-        const anchor = new Date(startDate);
-        anchor.setHours(0, 0, 0, 0);
-
         for (let i = 0; i < 30; i++) {
-            const next = new Date(anchor);
-            next.setDate(anchor.getDate() + i);
+            const next = new Date(startDate);
+            next.setDate(startDate.getDate() + i);
             d.push(next);
         }
         setDates(d);
@@ -142,7 +138,7 @@ export default function PlanningGridWorkbench({
                                 Metric
                             </th>
                             {dates.map(date => {
-                                const dateStr = getLocalISOString(date);
+                                const dateStr = formatLocalDate(date); // Use shared util
                                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                                 return (
                                     <th key={dateStr} className={`min-w-[80px] p-1 border-b border-r text-center font-medium ${isWeekend ? 'bg-gray-50 text-gray-400' : 'text-gray-700'}`}>
@@ -162,7 +158,7 @@ export default function PlanningGridWorkbench({
                                 <span className="block text-[9px] font-normal text-gray-400">Cases</span>
                             </td>
                             {dates.map(date => {
-                                const dateStr = getLocalISOString(date);
+                                const dateStr = formatLocalDate(date);
                                 const val = monthlyDemand[dateStr] || '';
                                 const act = monthlyProductionActuals[dateStr];
                                 const hasActual = act !== undefined && act !== null;
@@ -194,7 +190,7 @@ export default function PlanningGridWorkbench({
                                 <span className="block text-[9px] font-normal text-gray-400">Click to Manage</span>
                             </td>
                             {dates.map(date => {
-                                const dateStr = getLocalISOString(date);
+                                const dateStr = formatLocalDate(date);
                                 return (
                                     <td key={dateStr} className="border-r border-b p-0 h-12 align-middle">
                                         {renderInboundCell(dateStr)}
@@ -210,7 +206,7 @@ export default function PlanningGridWorkbench({
                                 <span className="block text-[9px] font-normal text-gray-400">Pallets & DOS</span>
                             </td>
                             {dates.map(date => {
-                                const dateStr = getLocalISOString(date);
+                                const dateStr = formatLocalDate(date);
                                 const ledger = getLedgerForDate(dateStr);
                                 return (
                                     <td key={dateStr} className="border-r border-b p-0 h-12 align-middle">
