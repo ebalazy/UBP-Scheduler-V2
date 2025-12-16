@@ -139,12 +139,12 @@ export default function PlanningGridWorkbench({
 
     // --- Summary Statistics (Visible Horizon) ---
     const summaryStats = React.useMemo(() => {
-        if (!specs || !specs.bottles_per_truck || !specs.bottlesPerCase) return null;
+        if (!specs || !specs.bottlesPerTruck || !specs.bottlesPerCase) return null;
 
         let totalCases = 0;
         let totalScheduled = 0;
 
-        const casesPerTruck = specs.bottles_per_truck / specs.bottlesPerCase;
+        const casesPerTruck = specs.bottlesPerTruck / specs.bottlesPerCase;
 
         dates.forEach(date => {
             const dateStr = formatLocalDate(date);
