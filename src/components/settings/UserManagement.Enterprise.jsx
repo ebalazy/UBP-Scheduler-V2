@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../services/supabaseClient';
+import { supabase } from '../../services/supabase/client';
+import * as AdminService from '../../services/supabase/admin';
 import { UserPlusIcon, TrashIcon, ShieldCheckIcon, ClipboardDocumentIcon, InformationCircleIcon, PlusIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 
 const ROLES = [
@@ -44,31 +45,24 @@ export default function UserManagementEnterprise() {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('user_roles')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                if (error.code === '42P01' || error.message?.includes('Could not find the table')) {
-                    setShowSqlHelp(true);
-                    setUsers([]);
-                    return;
-                }
-                throw error;
-            }
-            setUsers(data || []);
+            const data = await AdminService.fetchAllUserRoles();
+            setUsers(data);
             setShowSqlHelp(false);
         } catch (err) {
             console.error(err);
-            setError(err.message);
+            if (err.code === '42P01' || err.message?.includes('Could not find the table')) {
+                setShowSqlHelp(true);
+                setUsers([]);
+            } else {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
     };
 
     // --- ENTERPRISE PROVISIONING LOGIC ---
-    // Uses Supabase Edge Function 'invite-user'
+    // Uses Supabase Edge Function 'invite-user' via AdminService
     const provisionUser = async (e) => {
         e.preventDefault();
         if (!newUserEmail) return;
@@ -77,28 +71,8 @@ export default function UserManagementEnterprise() {
         setError(null);
 
         try {
-            // Call the Backend Function
-            const { data, error: funcError } = await supabase.functions.invoke('invite-user', {
-                body: {
-                    email: newUserEmail,
-                    role: newUserRole
-                }
-            });
-
-            if (funcError) {
-                // Parse error body if available
-                let msg = funcError.message;
-                try {
-                    const body = await funcError.context.json();
-                    if (body.error) msg = body.error;
-                } catch (e) { }
-
-                throw new Error(msg || "Failed to invite user via backend.");
-            }
-
-            if (data?.error) {
-                throw new Error(data.error);
-            }
+            // Call the Backend Function via Service
+            await AdminService.inviteUserEnterprise(newUserEmail, newUserRole);
 
             // Success UI
             alert(`Invitation sent to ${newUserEmail}!\n\nThey will receive an email from Supabase to set their password.`);
@@ -117,8 +91,7 @@ export default function UserManagementEnterprise() {
     const handleDeleteUser = async (email) => {
         if (!confirm(`Revoke access for ${email}?`)) return;
         try {
-            const { error } = await supabase.from('user_roles').delete().match({ email });
-            if (error) throw error;
+            await AdminService.deleteUserRole(email);
             setUsers(users.filter(u => u.email !== email));
         } catch (err) {
             setError(err.message);
@@ -129,13 +102,10 @@ export default function UserManagementEnterprise() {
         try {
             // Optimistic Update
             setUsers(users.map(u => u.email === email ? { ...u, role: newRole } : u));
-            const { error } = await supabase.from('user_roles').update({ role: newRole }).match({ email });
-            if (error) {
-                fetchUsers();
-                throw error;
-            }
+            await AdminService.updateUserRole(email, newRole);
         } catch (err) {
             setError(err.message);
+            fetchUsers(); // Revert
         }
     };
 

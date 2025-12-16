@@ -4,11 +4,7 @@ import { useAuth } from './AuthContext';
 import { useSupabaseSync } from '../hooks/useSupabaseSync';
 
 const DEFAULTS = {
-    bottleDefinitions: {
-        '20oz': { bottlesPerCase: 12, bottlesPerTruck: 80784, casesPerTruck: 6732, casesPerPallet: 306, palletsPerTruck: 22, productionRate: 1000, scrapPercentage: 0 },
-        '16.9oz': { bottlesPerCase: 24, bottlesPerTruck: 90288, casesPerTruck: 3762, casesPerPallet: 171, palletsPerTruck: 22, productionRate: 1200, scrapPercentage: 0 },
-        '32oz': { bottlesPerCase: 15, bottlesPerTruck: 50820, casesPerTruck: 3388, casesPerPallet: 154, palletsPerTruck: 22, productionRate: 800, scrapPercentage: 0 },
-    },
+    bottleDefinitions: {}, // Deprecated: Use ProductsContext
     safetyStockLoads: 6,
     csvMapping: {
         statusColumn: 'Trailer State',

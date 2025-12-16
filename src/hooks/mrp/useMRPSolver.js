@@ -26,7 +26,11 @@ export function useMRPSolver() {
         const todayStr = getLocalISOString();
         // Use specific lead time if provided, else fallback to global setting
         const frozenDays = effectiveLeadTime !== undefined ? effectiveLeadTime : (schedulerSettings?.leadTimeDays || 2);
-        const frozenUntil = addDays(todayStr, frozenDays);
+        // Fix: Subtract 1 day. 
+        // If Lead Time = 1 Day (Order Tue -> Arrive Wed), we want Wed to be Open.
+        // Old Logic: frozenUntil = Tue + 1 = Wed. Wed <= Wed is blocked.
+        // New Logic: frozenUntil = Tue + (1-1) = Tue. Wed <= Tue is False (Allowed).
+        const frozenUntil = addDays(todayStr, Math.max(0, frozenDays - 1));
 
         let cumulativeAddedBottles = 0; // The "Rolling Wave" of added inventory
         const proposedUpdates = {};
@@ -54,7 +58,10 @@ export function useMRPSolver() {
             if (state.monthlyProductionActuals && state.monthlyProductionActuals[dateStr]) return;
 
             // Target Calc (Use Day's own target if calculated, else fallback)
-            const safetyTarget = day.safetyStockTarget || ((specs.productionRate * 24) * (safetyStockLoads || 2));
+            // Target Calc: Align with `mrpLogic.js` (Loads * Capacity)
+            // Was: ((specs.productionRate * 24) * (safetyStockLoads || 2)) -> This treated loads as "Days"
+            // New: (safetyStockLoads || 2) * specs.bottlesPerTruck
+            const safetyTarget = day.safetyStockTarget || ((safetyStockLoads || 0) * specs.bottlesPerTruck);
 
             // Deficit?
             if (adjustedInventory < safetyTarget) {

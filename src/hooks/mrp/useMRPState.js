@@ -45,27 +45,21 @@ export function useMRPState() {
     // For logged-in users, we start with EMPTY/Loading state to avoid "flashing" local stale data.
     // For anon users, we initialize directly from LocalStorage.
 
-    const init = (key, defaultVal, parse = false) => {
-        // if (user) return defaultVal; // Return default (empty) if user exists, wait for fetch
-        return loadLocalState(key, defaultVal, selectedSize, parse);
-    };
-
-    const [monthlyDemand, setMonthlyDemand] = useState(() => init('monthlyDemand', {}, true));
-    const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => init('monthlyProductionActuals', {}, true));
-    const [monthlyInbound, setMonthlyInbound] = useState(() => init('monthlyInbound', {}, true));
-    const [truckManifest, setTruckManifest] = useState(() => init('truckManifest', {}, true));
+    const [monthlyDemand, setMonthlyDemand] = useState(() => loadLocalState('monthlyDemand', {}, selectedSize, true));
+    const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => loadLocalState('monthlyProductionActuals', {}, selectedSize, true));
+    const [monthlyInbound, setMonthlyInbound] = useState(() => loadLocalState('monthlyInbound', {}, selectedSize, true));
+    const [truckManifest, setTruckManifest] = useState(() => loadLocalState('truckManifest', {}, selectedSize, true));
 
     // Derived states (some initialized from LocalStorage)
-    const [downtimeHours, setDowntimeHours] = useState(() => user ? 0 : Number(loadLocalState('downtimeHours', 0, selectedSize)));
-    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => user ? 0 : Number(loadLocalState('currentInventoryPallets', 0, selectedSize)));
+    // Derived states (some initialized from LocalStorage)
+    const [downtimeHours, setDowntimeHours] = useState(() => Number(loadLocalState('downtimeHours', 0, selectedSize)));
+    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => Number(loadLocalState('currentInventoryPallets', 0, selectedSize)));
     const [inventoryAnchor, setInventoryAnchor] = useState(() =>
-        user ? { date: getLocalISOString(), count: 0 } :
-            loadLocalState('inventoryAnchor', { date: getLocalISOString(), count: 0 }, selectedSize, true)
+        loadLocalState('inventoryAnchor', { date: getLocalISOString(), count: 0 }, selectedSize, true)
     );
-    const [incomingTrucks, setIncomingTrucks] = useState(() => user ? 0 : Number(loadLocalState('incomingTrucks', 0, selectedSize)));
+    const [incomingTrucks, setIncomingTrucks] = useState(() => Number(loadLocalState('incomingTrucks', 0, selectedSize)));
     const [yardInventory, setYardInventory] = useState(() =>
-        user ? { count: 0, date: null, fileName: null } :
-            loadLocalState('yardInventory', { count: 0, date: null, fileName: null }, selectedSize, true)
+        loadLocalState('yardInventory', { count: 0, date: null, fileName: null }, selectedSize, true)
     );
 
     const [isAutoReplenish, setIsAutoReplenish] = useState(() => user ? true : loadLocalState('isAutoReplenish', true, selectedSize, true));

@@ -15,7 +15,7 @@ import { useProcurement } from '../../context/ProcurementContext';
 export default function LogisticsView({ state, setters, results, readOnly = false }) {
     const [isRecModalOpen, setIsRecModalOpen] = useState(false);
     const { productMap } = useProducts();
-    const bottleSizes = Object.keys(productMap); // Derived from Products
+    const bottleSizes = useMemo(() => Object.keys(productMap || {}), [productMap]); // Memoized to stabilize dependency
     const [aggregatedSchedule, setAggregatedSchedule] = useState({ today: [], tomorrow: [] });
     const [filterSku, setFilterSku] = useState('ALL');
 

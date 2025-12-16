@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
-import { supabase } from '../../services/supabaseClient';
+import { supabase } from '../../services/supabase/client';
 import { useAuth } from '../../context/AuthContext';
 import { TrashIcon, PlusIcon } from '@heroicons/react/24/outline'; // Need to ensure imports exist
 

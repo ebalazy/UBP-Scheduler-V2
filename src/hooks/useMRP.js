@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useMRPState } from './mrp/useMRPState';
 import { useMRPCalculations } from './mrp/useMRPCalculations';
 import { useMRPActions } from './mrp/useMRPActions';
@@ -11,8 +12,10 @@ export function useMRP(poManifest = {}) {
     const { calculations, totalScheduledCases, productionRate } = useMRPCalculations(state, poManifest);
 
     // 3. Actions (Handlers)
+    // 3. Actions (Handlers)
     // Returns { setters, formState }
-    const { setters, formState: actionFormState } = useMRPActions(state, { calculations });
+    const actionDeps = useMemo(() => ({ calculations }), [calculations]);
+    const { setters, formState: actionFormState } = useMRPActions(state, actionDeps);
 
     // 4. Combine & Return (Maintaining Original API Surface)
     return {

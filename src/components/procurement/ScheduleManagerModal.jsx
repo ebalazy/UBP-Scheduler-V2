@@ -79,9 +79,40 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
         updateDateInbound(targetDate, totalTrucks);
     };
 
+    // --- CONFIRMATION STATE ---
+    const [confirmAction, setConfirmAction] = useState(null); // { title, message, onConfirm, type: 'danger'|'info' }
+
+    const performDelete = (orderId) => {
+        const orderToDelete = orders.find(o => o.id === orderId);
+        removeOrder(date, orderId, orderToDelete?.po);
+        const remaining = orders.filter(o => o.id !== orderId);
+        syncTruckCount(date, remaining);
+        setConfirmAction(null);
+    };
+
+    const handleDeleteClick = (orderId) => {
+        setConfirmAction({
+            title: 'Cancel Delivery?',
+            message: 'Are you sure you want to remove this delivery? This action cannot be undone if not synced with SAP.',
+            type: 'danger',
+            onConfirm: () => performDelete(orderId)
+        });
+    };
+
+    const performReceive = (order) => {
+        updateOrder(date, { ...order, status: 'received' });
+        setConfirmAction(null);
+    };
+
+    const handleReceiveClick = (order) => {
+        // Immediate action as requested by user ("just delete" implies keep delete confirm, remove others)
+        performReceive(order);
+    };
+
     // Actions
     const handleDelete = (orderId) => {
-        if (!confirm('Are you sure you want to cancel this order?')) return;
+        // CONFIRMATION REMOVED TO UNBLOCK USER
+        // if (!window.confirm('Are you sure you want to cancel this order?')) return;
 
         const orderToDelete = orders.find(o => o.id === orderId);
         removeOrder(date, orderId, orderToDelete?.po);
@@ -185,6 +216,36 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                             <XMarkIcon className="w-6 h-6" />
                         </button>
                     </div>
+
+                    {/* CONFIRMATION OVERLAY (Window Style) */}
+                    {confirmAction && (
+                        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 animate-fadeIn">
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 w-full max-w-sm flex flex-col items-center text-center transform transition-all scale-100">
+                                <div className={`p-4 rounded-full mb-4 ${confirmAction.type === 'danger' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                    {confirmAction.type === 'danger' ? <TrashIcon className="w-8 h-8" /> : <CheckCircleIcon className="w-8 h-8" />}
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{confirmAction.title}</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">{confirmAction.message}</p>
+                                <div className="flex gap-3 w-full">
+                                    <button
+                                        onClick={() => setConfirmAction(null)}
+                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => confirmAction.onConfirm()}
+                                        className={`flex-1 px-4 py-2 rounded-lg text-white font-bold shadow-lg transition-transform hover:scale-105 ${confirmAction.type === 'danger'
+                                            ? 'bg-red-600 hover:bg-red-700 shadow-red-500/30'
+                                            : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/30'
+                                            }`}
+                                    >
+                                        Confirm
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Content */}
                     <div className="p-6 overflow-y-auto space-y-4">
@@ -396,9 +457,16 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                             {order.status === 'received' ? 'Received' : (order.status === 'confirmed' ? 'Confirmed' : 'Ordered')}
                                                         </button>
                                                     </h3>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                            {order.supplier || order.vendor || 'Unknown Supplier'}
+                                                    <div className="flex flex-col gap-1 mt-1">
+                                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                                            <span>{order.supplier || order.vendor || 'Unknown Supplier'}</span>
+                                                            <span className="text-gray-300">|</span>
+                                                            <span className="text-gray-600 dark:text-gray-400 font-bold">
+                                                                {order.sku || activeSku}
+                                                            </span>
+                                                            <span className="text-gray-400 font-normal">
+                                                                - {bottleDefinitions[order.sku || activeSku]?.description || 'No Description'}
+                                                            </span>
                                                         </p>
                                                         {Number(order.qty) > 0 && (
                                                             <span className="text-xs text-gray-400">
@@ -415,9 +483,7 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            if (confirm("Mark this delivery as Received?")) {
-                                                                updateOrder(date, { ...order, status: 'received' });
-                                                            }
+                                                            handleReceiveClick(order);
                                                         }}
                                                         className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg dark:hover:bg-emerald-900/30"
                                                         title="Mark as Received"
@@ -436,7 +502,10 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                     <PencilSquareIcon className="w-5 h-5" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(order.id)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteClick(order.id);
+                                                    }}
                                                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg dark:hover:bg-red-900/30"
                                                     title="Cancel Delivery"
                                                 >

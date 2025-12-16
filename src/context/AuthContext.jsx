@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../services/supabase/client';
 
 const AuthContext = createContext();
 
@@ -39,17 +39,23 @@ export function AuthProvider({ children }) {
                 .eq('email', email)
                 .maybeSingle();
 
-            if (error && error.code !== '42P01') { // Ignore missing table error
-                console.error('Error fetching role:', error);
+            if (error) {
+                // If table is missing (42P01) or other error, log it and default to viewer
+                if (error.code !== '42P01') {
+                    console.error('Error fetching role:', error);
+                }
+                setUserRole('viewer');
+                return;
             }
 
-            const newRole = data?.role || 'admin';
+            // If user not found in table, or field is null, default to viewer
+            const newRole = data?.role || 'viewer';
             setUserRole(newRole);
             localStorage.setItem('ubp_user_role', newRole);
 
         } catch (e) {
-            console.error(e);
-            setUserRole('admin'); // Fallback
+            console.error('Unexpected error fetching role:', e);
+            setUserRole('viewer');
         }
     };
 

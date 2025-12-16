@@ -1,16 +1,64 @@
-# React + Vite
+# UBP Production Scheduler v2
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React-based Manufacturing Resource Planning (MRP) and Production Scheduling dashboard tailored for Beverage Co-Packers.
 
-Currently, two official plugins are available:
+## 🚀 Features
+*   **MRP Engine**: Calculates material needs based on demand, inventory, and lead times.
+*   **Production Scheduler**: Drag-and-drop interface for planning production runs.
+*   **Procurement**: Manage Purchase Orders (POs) and track inbound supply.
+*   **Role-Based Access**: Granular permissions for Admin, Planner, Logistics, and Viewer.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🛠 Tech Stack
+*   **Frontend**: React 18, Vite, Tailwind CSS
+*   **Backend**: Supabase (PostgreSQL, Auth, Edge Functions)
+*   **State Management**: React Context + Custom Hooks
+*   **Testing**: Vitest, React Testing Library
 
-## React Compiler
+## 🚦 Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
+*   Node.js (v18+)
+*   Supabase Account
 
-## Expanding the ESLint configuration
+### Installation
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/ebalazy/UBP-Scheduler-V2.git
+    cd UBP-Scheduler-V2
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Configuration
+Create a `.env` file in the root directory:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### Running Locally
+```bash
+npm run dev
+```
+Open `http://localhost:5173` in your browser.
+
+## 🧪 Testing
+Run the unit test suite (focuses on MRP logic):
+```bash
+npm test
+```
+
+## 📦 Deployment
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for build and deploy instructions.
+
+## 🔒 Security
+*   **RLS**: Row Level Security is enabled. Run `src/supabase/migrations/20251216_secure_procurement_rls.sql` in your Supabase SQL Editor.
+*   **Auth**: Users are assigned roles (`admin`, `planner`, `viewer`) in the `user_roles` table.
+
+## 📂 Project Structure
+*   `src/components`: UI widgets and views.
+*   `src/services`: Database interaction layer.
+*   `src/utils`: Pure business logic (e.g., `mrpLogic.js`).
+*   `src/types`: JSDoc definitions and Zod schemas.

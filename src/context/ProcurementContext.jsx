@@ -123,7 +123,8 @@ export function ProcurementProvider({ children }) {
         setPoManifest(prev => {
             const next = { ...prev };
             if (next[date]) {
-                next[date].items = next[date].items.filter(i => i.id !== orderId && i.po !== poNumber);
+                // Fix: Only filter by ID. PO check was causing undefined !== undefined issues.
+                next[date].items = next[date].items.filter(i => i.id !== orderId);
             }
             return next;
         });

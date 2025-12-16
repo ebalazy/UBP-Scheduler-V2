@@ -25,7 +25,7 @@ export function useMRPActions(state, calculationsResult) {
         setYardInventory,
         setManualYardOverride,
         isAutoReplenish, setIsAutoReplenish,
-        setInventoryAnchor
+        setInventoryAnchor, inventoryAnchor
     } = state;
 
     const { calculations } = calculationsResult;
@@ -91,8 +91,12 @@ export function useMRPActions(state, calculationsResult) {
         };
     }, []);
 
-    const runAutoReplenishment = useCallback((demandMap, actualMap, inboundMap) => {
+    const runAutoReplenishment = useCallback(() => { // Removed arguments, use Refs
         if (!calculations || !isAutoReplenish) return;
+
+        const demandMap = demandRef.current;
+        const actualMap = actualRef.current;
+        const inboundMap = inboundRef.current;
 
         const specs = bottleDefinitions[selectedSize];
         const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
@@ -181,6 +185,9 @@ export function useMRPActions(state, calculationsResult) {
             });
         }
     }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, userRole, savePlanningEntry, setMonthlyInbound, saveLocalState, saveWithStatus]);
+    // ^ Removed maps from deps, using Refs inside.
+
+    // ...
 
     const updateDateDemand = useCallback((date, value) => {
         // Allow raw value flow for decimals/empty string. 
@@ -229,7 +236,15 @@ export function useMRPActions(state, calculationsResult) {
 
     const updateDateInbound = useCallback((date, value) => {
         const val = value; // Allow raw string
-        const newInbound = { ...inboundRef.current, [date]: val };
+        const newInbound = { ...inboundRef.current };
+
+        // If empty or 0, delete from local state and db
+        if (val === '' || val === '0' || Number(val) === 0) {
+            delete newInbound[date];
+        } else {
+            newInbound[date] = val;
+        }
+
         setMonthlyInbound(newInbound);
         scheduleLocalSave('monthlyInbound', () => {
             saveLocalState('monthlyInbound', newInbound, selectedSize, true);
@@ -238,46 +253,43 @@ export function useMRPActions(state, calculationsResult) {
         if (user) {
             scheduleSave(
                 `inbound-${date}`,
-                () => savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', Number(val)),
+                () => savePlanningEntry(
+                    user.id,
+                    selectedSize,
+                    date,
+                    'inbound_trucks',
+                    (val === '' || val === '0' || Number(val) === 0) ? null : Number(val)
+                ),
                 1000
             );
         }
     }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyInbound, savePlanningEntry]);
 
-    // Auto-Replenish Logic (Reactive)
-
-    // Removed 'monthlyInbound' from deps to prevent loop, passing it as arg is sufficient for logic.
-    // The effect below will control triggering.
-    // Added setMonthlyInbound, monthlyInbound to dep array, logic seems fine? 
-    // Wait, monthlyInbound is passed as arg inboundMap to avoid closure issues in the useMRP effect.
-
-    // Reactive Trigger for Auto-Replenishment
     // Reactive Trigger for Auto-Replenishment
     useEffect(() => {
         if (!isAutoReplenish || !calculations) return;
 
-        // TIMESTAMP GUARD:
-        // If we just ran a manual update (Sync) < 250ms ago, ignore this Effect trigger.
-        // This swallows "Echo" renders and prevents double-calculation loops.
+        // TIMESTAMP GUARD...
         if (Date.now() - lastManualRun.current < 250) {
-            // console.warn("GUARD BLOCKED EFFECT (Echo Protection)");
             return;
         }
 
-        // console.warn("EFFECT TRIGGERED (Running Auto-Replenish)");
         const timer = setTimeout(() => {
-            runAutoReplenishment(monthlyDemand, monthlyProductionActuals, monthlyInbound);
+            runAutoReplenishment(); // No args
         }, 50);
 
         return () => clearTimeout(timer);
     }, [
-        calculations?.initialInventory,
+        inventoryAnchor, // Stable Input (breaks feedback loop)
         safetyStockLoads,
         leadTimeDays,
         isAutoReplenish,
-        monthlyDemand,
-        monthlyProductionActuals,
-        monthlyInbound,
+        monthlyDemand,            // Still trigger on INPUT change
+        leadTimeDays,
+        isAutoReplenish,
+        monthlyDemand,            // Still trigger on INPUT change
+        monthlyProductionActuals, // Still trigger on INPUT change
+        calculations,             // Fix: Trigger when calculated inventory state changes (e.g. Yard Stock update)
         runAutoReplenishment
     ]);
 

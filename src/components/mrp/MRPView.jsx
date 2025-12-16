@@ -24,7 +24,7 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon
 } from '@heroicons/react/24/outline';
-import { supabase } from '../../services/supabaseClient';
+import { supabase } from '../../services/supabase/client';
 import { useAuth } from '../../context/AuthContext';
 import { formatLocalDate, getLocalISOString, addDays } from '../../utils/dateUtils';
 

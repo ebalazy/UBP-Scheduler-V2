@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import { useProducts } from '../../context/ProductsContext';
-import { getLocalISOString, addDays } from '../../utils/dateUtils';
+import { getLocalISOString } from '../../utils/dateUtils';
+import { calculateMRP } from '../../utils/mrpLogic';
 
 export function useMRPCalculations(state, poManifest = {}) {
-    const { safetyStockLoads, leadTimeDays } = useSettings();
+    const { safetyStockLoads } = useSettings();
     const { productMap: bottleDefinitions } = useProducts();
     const {
         selectedSize,
@@ -20,238 +21,39 @@ export function useMRPCalculations(state, poManifest = {}) {
     // Derived productionRate for calculations
     const productionRate = bottleDefinitions[selectedSize]?.productionRate || 0;
 
-    // Updated to use Actuals if present, otherwise Demand
-    const totalScheduledCases = useMemo(() => {
-        const today = getLocalISOString();
-        const allDates = new Set([...Object.keys(monthlyDemand), ...Object.keys(monthlyProductionActuals)]);
-
-        return Array.from(allDates).reduce((acc, date) => {
-            if (date >= today) {
-                const actual = monthlyProductionActuals[date];
-                const plan = monthlyDemand[date];
-
-                // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
-                const isFuture = date > today;
-                const useActual = (actual !== undefined && actual !== null) && (!isFuture || Number(actual) !== 0);
-
-                const val = useActual ? Number(actual) : Number(plan);
-                return acc + (val || 0);
-            }
-            return acc;
-        }, 0);
-    }, [monthlyDemand, monthlyProductionActuals]);
-
-    const calculations = useMemo(() => {
+    const results = useMemo(() => {
         const specs = bottleDefinitions[selectedSize];
         if (!specs) return null;
 
-        const lostProductionCases = downtimeHours * productionRate;
-        const effectiveScheduledCases = Math.max(0, totalScheduledCases - lostProductionCases);
-
-        const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
-        const bottlesPerCase = specs.bottlesPerCase || 0;
-        const bottlesPerTruck = specs.bottlesPerTruck || 0;
-        const casesPerPallet = specs.casesPerPallet || 0;
-
-        const demandBottles = effectiveScheduledCases * bottlesPerCase * scrapFactor;
-
-        const todayStr = getLocalISOString();
-
-        // ---------------------------------------------------------
-        // CALCULATION UPDATE: Use PO Manifest if available
-        // ---------------------------------------------------------
-        const getDailyTrucks = (date) => {
-            // 1. If POs exist for this date, they are the Truth.
-            if (poManifest[date]?.items?.length > 0) {
-                return poManifest[date].items.length;
-            }
-            // 2. Fallback to Manual Count
-            return Number(monthlyInbound[date]) || 0;
-        };
-
-        const scheduledInboundTrucks = Object.keys(monthlyInbound).reduce((acc, date) => {
-            return acc;
-        }, 0);
-
-        // RE-IMPLEMENTING scheduledInboundTrucks correctly:
-        const allInboundDates = new Set([...Object.keys(monthlyInbound), ...Object.keys(poManifest)]);
-        const totalScheduledInbound = Array.from(allInboundDates).reduce((acc, date) => {
-            if (date >= todayStr) {
-                return acc + getDailyTrucks(date);
-            }
-            return acc;
-        }, 0);
-
-
-        const totalIncomingTrucks = incomingTrucks + totalScheduledInbound;
-        const incomingBottles = totalIncomingTrucks * specs.bottlesPerTruck;
-
-        const effectiveYardLoads = yardInventory.count || 0;
-        const yardBottles = effectiveYardLoads * specs.bottlesPerTruck;
-
-        const csm = specs.casesPerPallet || 0;
-
-        let derivedPallets = inventoryAnchor.count;
-
-        // SAFE DATE PARSING (Avoid UTC Shift)
-        const parseLocal = (dateStr) => {
-            const [y, m, d] = dateStr.split('-').map(Number);
-            return new Date(y, m - 1, d, 0, 0, 0, 0);
-        };
-
-        const anchorDate = parseLocal(inventoryAnchor.date);
-        const todayDate = parseLocal(todayStr); // Use calculated todayStr from above
-
-        const diffTime = todayDate - anchorDate;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        // Anchor Loop Logic Update
-        // Ensure todayStr is available (already defined above at line 54)
-        if (diffDays > 0 && diffDays < 365) {
-            for (let i = 0; i < diffDays; i++) {
-                const ds = addDays(inventoryAnchor.date, i);
-
-                const actual = monthlyProductionActuals[ds];
-                const plan = monthlyDemand[ds];
-
-                // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0
-                const isFuture = ds > todayStr;
-                const useActual = (actual !== undefined && actual !== null) && (!isFuture || Number(actual) !== 0);
-                const dDemandCases = useActual ? Number(actual) : Number(plan || 0);
-
-                // Use Unified Truck Count
-                const dInboundTrucks = getDailyTrucks(ds);
-
-                // Safe Pallet Calc
-                const bpc = bottlesPerCase || 1;
-                const bpt = bottlesPerTruck || 1;
-                const cpp = casesPerPallet || 1;
-
-                const palletsPerTruck = (bpt / bpc) / cpp;
-                const dInboundPallets = dInboundTrucks * palletsPerTruck;
-                const dDemandPallets = dDemandCases / cpp;
-
-                derivedPallets = derivedPallets + dInboundPallets - dDemandPallets;
-            }
-        }
-
-        const inventoryBottles = derivedPallets * casesPerPallet * bottlesPerCase;
-        const netInventory = (inventoryBottles + incomingBottles + yardBottles) - demandBottles;
-        const safetyTarget = safetyStockLoads * specs.bottlesPerTruck;
-
-        const dailyLedger = [];
-        console.log("DEBUG CALC:", { derivedPallets, effectiveYardLoads, yardBottles, inventoryBottles });
-        let currentBalance = inventoryBottles + yardBottles;
-        let firstStockoutDate = null;
-        let firstOverflowDate = null;
-
-
-
-        for (let i = 0; i < 30; i++) {
-            const dateStr = addDays(getLocalISOString(), i);
-
-            const actual = monthlyProductionActuals[dateStr];
-            const plan = monthlyDemand[dateStr];
-
-            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
-            const isFuture = dateStr > todayStr;
-            const useActual = (actual !== undefined && actual !== null) && (!isFuture || Number(actual) !== 0);
-
-            const dailyCases = useActual ? Number(actual) : Number(plan || 0);
-
-
-
-            const dailyDemand = dailyCases * bottlesPerCase * scrapFactor;
-
-            // Unified Supply Logic
-            const dailyTrucks = getDailyTrucks(dateStr);
-            const dailySupply = dailyTrucks * bottlesPerTruck;
-
-            currentBalance = currentBalance + dailySupply - dailyDemand;
-
-
-
-            dailyLedger.push({
-                date: dateStr,
-                dateStr: dateStr, // Add alias for Workbench
-                balance: currentBalance,
-                demand: dailyDemand,
-                supply: dailySupply,
-                projectedEndInventory: currentBalance,
-                projectedPallets: currentBalance / ((bottlesPerCase * casesPerPallet) || 1),
-                daysOfSupply: 0 // Placeholder, or implement per-day DoS later if needed
-            });
-
-            if (currentBalance < safetyTarget && !firstStockoutDate) {
-                firstStockoutDate = dateStr;
-            }
-            if (currentBalance > (safetyTarget + specs.bottlesPerTruck * 2) && !firstOverflowDate) {
-                firstOverflowDate = dateStr;
-            }
-        }
-
-        let trucksToOrder = 0;
-        let trucksToCancel = 0;
-        if (netInventory < safetyTarget) {
-            trucksToOrder = Math.ceil((safetyTarget - netInventory) / specs.bottlesPerTruck);
-        } else if (netInventory > safetyTarget + specs.bottlesPerTruck) {
-            const surplus = netInventory - safetyTarget;
-            if (surplus > specs.bottlesPerTruck) trucksToCancel = Math.floor(surplus / specs.bottlesPerTruck);
-        }
-
-        // --- DoS (Days of Supply) Calculation ---
-        let daysOfSupply = 30; // Default cap (30+ days)
-        if (dailyLedger.length > 0) {
-            // Find the index where balance first goes below 0 (absolute stockout)
-            const stockoutIndex = dailyLedger.findIndex(d => d.balance < 0);
-
-            if (stockoutIndex !== -1) {
-                const failingDay = dailyLedger[stockoutIndex];
-                const prevBalance = stockoutIndex > 0 ? dailyLedger[stockoutIndex - 1].balance : (inventoryBottles + yardBottles); // Initial
-
-                let partial = 0;
-                if (failingDay.demand > 0 && prevBalance > 0) {
-                    partial = prevBalance / failingDay.demand;
-                }
-
-                daysOfSupply = stockoutIndex + partial;
-            } else {
-                daysOfSupply = 30;
-            }
-        }
-
-        return {
-            netInventory, safetyTarget, trucksToOrder, trucksToCancel,
-            lostProductionCases, effectiveScheduledCases, specs,
-            yardInventory: { ...yardInventory, effectiveCount: effectiveYardLoads, isOverridden: false },
-            dailyLedger, firstStockoutDate, firstOverflowDate, totalIncomingTrucks,
-            initialInventory: inventoryBottles + yardBottles,
-            calculatedPallets: derivedPallets,
-            daysOfSupply,
+        const params = {
+            todayStr: getLocalISOString(),
+            productionRate,
+            downtimeHours,
+            selectedSize,
+            bottleSpecs: specs,
             inventoryAnchor,
-            plannedOrders: (() => {
-                const orders = {};
-                Object.entries(monthlyInbound).forEach(([needDateStr, trucks]) => {
-                    // Filter 1: Valid Truck Count
-                    if (Number(trucks) <= 0) return;
-
-                    // Filter 2: PO Coverage
-                    // If we already have confirmed POs for this date, we don't need the Ghost prediction.
-                    // The "Health" math uses the POs, so suppressing the Ghost visual prevents double-signaling.
-                    if (poManifest[needDateStr]?.items?.length > 0) return;
-
-                    const needDate = new Date(needDateStr);
-                    const orderDate = new Date(needDate);
-                    orderDate.setDate(orderDate.getDate() - (leadTimeDays || 0));
-                    const orderDateStr = orderDate.toISOString().split('T')[0];
-                    if (!orders[orderDateStr]) orders[orderDateStr] = { count: 0, items: [] };
-                    orders[orderDateStr].count += Number(trucks);
-                    orders[orderDateStr].items.push({ needDate: needDateStr, trucks: Number(trucks) });
-                });
-                return orders;
-            })()
+            yardInventory,
+            incomingTrucks,
+            monthlyDemand,
+            monthlyProductionActuals,
+            monthlyInbound,
+            poManifest,
+            safetyStockLoads
         };
-    }, [selectedSize, totalScheduledCases, productionRate, downtimeHours, incomingTrucks, bottleDefinitions, safetyStockLoads, yardInventory, monthlyDemand, monthlyInbound, inventoryAnchor, leadTimeDays, poManifest, monthlyProductionActuals]);
 
-    return { totalScheduledCases, productionRate, calculations };
+        return calculateMRP(params);
+
+    }, [
+        selectedSize, productionRate, downtimeHours, incomingTrucks,
+        bottleDefinitions, safetyStockLoads, yardInventory,
+        monthlyDemand, monthlyInbound, inventoryAnchor, poManifest,
+        monthlyProductionActuals
+    ]);
+
+    // Backward compatibility wrapper for old components expecting direct returns
+    return useMemo(() => ({
+        totalScheduledCases: results?.effectiveScheduledCases || 0, // Fallback mapping 
+        productionRate,
+        calculations: results
+    }), [results, productionRate, results?.effectiveScheduledCases]);
 }

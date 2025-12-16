@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { supabase, supabaseUrl, supabaseAnonKey } from '../../services/supabaseClient';
+import { supabase } from '../../services/supabase/client';
+import * as AdminService from '../../services/supabase/admin';
 import { UserPlusIcon, TrashIcon, ShieldCheckIcon, ClipboardDocumentIcon, InformationCircleIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 const ROLES = [
@@ -46,24 +46,17 @@ export default function UserManagement() {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('user_roles')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                if (error.code === '42P01' || error.message?.includes('Could not find the table')) {
-                    setShowSqlHelp(true);
-                    setUsers([]);
-                    return;
-                }
-                throw error;
-            }
-            setUsers(data || []);
+            const data = await AdminService.fetchAllUserRoles();
+            setUsers(data);
             setShowSqlHelp(false);
         } catch (err) {
             console.error(err);
-            setError(err.message);
+            if (err.code === '42P01' || err.message?.includes('Could not find the table')) {
+                setShowSqlHelp(true);
+                setUsers([]);
+            } else {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -79,7 +72,6 @@ export default function UserManagement() {
         setError(null);
 
         // 1. Generate Simple Temp Password (10 chars, alphanumeric)
-        // Easier to type, still sufficient for a temp password that should be changed.
         const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         const passwordValues = new Uint32Array(10);
         crypto.getRandomValues(passwordValues);
@@ -89,42 +81,26 @@ export default function UserManagement() {
         }
 
         try {
-            // 2. Create a temporary client to sign up WITHOUT logging out admin
-            // We use the exported variables which contain fallbacks if .env is missing
-            const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-                auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
-            });
-
-            // 3. Sign Up the User
-            const { data: authData, error: authError } = await tempClient.auth.signUp({
-                email: newUserEmail,
-                password: tempPassword,
-            });
-
-            if (authError) {
+            // 2. Sign Up the User (Client Side Hack via Service)
+            try {
+                await AdminService.provisionUserClientSide(newUserEmail, tempPassword);
+            } catch (authError) {
                 if (authError.message?.includes('Signups not allowed')) {
-                    throw new Error("Cannot create user: Public Signups are disabled in your Supabase Project Settings. Enable them or use the Invite button in the Dashboard.");
+                    throw new Error("Cannot create user: Public Signups are disabled. Enable them or use Enterprise Invite.");
                 }
                 throw authError;
             }
 
-            // 4. Add to User Roles (Authorizing)
-            const { error: dbError } = await supabase
-                .from('user_roles')
-                .upsert({
-                    email: newUserEmail.toLowerCase(),
-                    role: newUserRole,
-                }, { onConflict: 'email' });
+            // 3. Add to User Roles
+            await AdminService.upsertUserRole(newUserEmail, newUserRole);
 
-            if (dbError) throw dbError;
-
-            // 5. Update Local State
+            // 4. Update Local State
             setUsers(prev => [
                 { email: newUserEmail.toLowerCase(), role: newUserRole, created_at: new Date().toISOString() },
                 ...prev.filter(u => u.email !== newUserEmail.toLowerCase())
             ]);
 
-            // 6. Show Success Modal
+            // 5. Show Success Modal
             setCreatedUser({ email: newUserEmail, password: tempPassword });
             setNewUserEmail('');
 
@@ -140,8 +116,7 @@ export default function UserManagement() {
     const handleDeleteUser = async (email) => {
         if (!confirm(`Revoke access for ${email}?`)) return;
         try {
-            const { error } = await supabase.from('user_roles').delete().match({ email });
-            if (error) throw error;
+            await AdminService.deleteUserRole(email);
             setUsers(users.filter(u => u.email !== email));
         } catch (err) {
             setError(err.message);
@@ -152,13 +127,10 @@ export default function UserManagement() {
         try {
             // Optimistic Update
             setUsers(users.map(u => u.email === email ? { ...u, role: newRole } : u));
-            const { error } = await supabase.from('user_roles').update({ role: newRole }).match({ email });
-            if (error) {
-                fetchUsers();
-                throw error;
-            }
+            await AdminService.updateUserRole(email, newRole);
         } catch (err) {
             setError(err.message);
+            fetchUsers(); // Revert
         }
     };
 
