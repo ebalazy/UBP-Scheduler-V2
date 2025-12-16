@@ -10,8 +10,16 @@ export function useProducts() {
 
 export function ProductsProvider({ children }) {
     const { user } = useAuth();
-    const [productsList, setProductsList] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // Optimistic Init: Load from cache
+    const [productsList, setProductsList] = useState(() => {
+        try {
+            const cached = localStorage.getItem('ubp_products_list');
+            return cached ? JSON.parse(cached) : [];
+        } catch { return []; }
+    });
+
+    // If we have cached products, we aren't "loading" in a blocking sense.
+    const [loading, setLoading] = useState(() => !localStorage.getItem('ubp_products_list'));
 
     // Fetch Logic
     const fetchProducts = async () => {
@@ -28,7 +36,12 @@ export function ProductsProvider({ children }) {
                 `);
 
             if (error) throw error;
-            setProductsList(data || []);
+            const list = data || [];
+
+            // Update State & Cache
+            setProductsList(list);
+            localStorage.setItem('ubp_products_list', JSON.stringify(list));
+
         } catch (err) {
             console.error("Error loading products:", err);
         } finally {
