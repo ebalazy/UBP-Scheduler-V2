@@ -4,13 +4,32 @@ import { supabase } from '../services/supabaseClient';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    const [userRole, setUserRole] = useState(null); // 'admin', 'planner', 'viewer', 'production'
-    const [loading, setLoading] = useState(true);
+    // Optimistic User: Load from cache to prevent "Login Flash"
+    const [user, setUser] = useState(() => {
+        try {
+            const cached = localStorage.getItem('ubp_session_user');
+            return cached ? JSON.parse(cached) : null;
+        } catch { return null; }
+    });
+
+    // Initialize role from cache if available to prevent blocking load
+    const [userRole, setUserRole] = useState(() => localStorage.getItem('ubp_user_role') || null);
+
+    // Optimistic Load: If we have a role/user, assume we are good to go.
+    // If we have a user in cache but no role, we still might be loading role.
+    // So 'loading' should be false if we have ENOUGH to render AuthenticatedApp (which needs user).
+    // Actually, App.jsx checks `if (!user)`. So if we have cached user, App renders App.
+    // loading can be initialized false if we have a user.
+    const [loading, setLoading] = useState(() => {
+        return !localStorage.getItem('ubp_session_user');
+    });
+
+
 
     const fetchRole = async (email) => {
         if (!email) {
             setUserRole(null);
+            localStorage.removeItem('ubp_user_role');
             return;
         }
         try {
@@ -24,44 +43,68 @@ export function AuthProvider({ children }) {
                 console.error('Error fetching role:', error);
             }
 
-            // If user exists in table, use their role.
-            // If table missing or user not found, default to 'admin' (for dev) or 'viewer'?
-            // SAFEST FOR DEV: Default to 'admin' if row is missing, so they don't get locked out during setup.
-            // ONCE SETUP: They should add themselves to table.
-            setUserRole(data?.role || 'admin');
+            const newRole = data?.role || 'admin';
+            setUserRole(newRole);
+            localStorage.setItem('ubp_user_role', newRole);
+
         } catch (e) {
-            setUserRole('admin');
+            console.error(e);
+            setUserRole('admin'); // Fallback
         }
     };
 
+
+
     useEffect(() => {
+        let mounted = true;
+
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!mounted) return;
             const u = session?.user ?? null;
             setUser(u);
-            if (u) fetchRole(u.email);
-            else setLoading(false);
-        });
+            if (u) {
+                // Cache user for next load
+                localStorage.setItem('ubp_session_user', JSON.stringify(u));
+                // Background refresh role
+                fetchRole(u.email);
+            } else {
+                // Session Invalid/Expired
+                localStorage.removeItem('ubp_session_user');
+                localStorage.removeItem('ubp_user_role');
 
-        // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            const u = session?.user ?? null;
-            setUser(u);
-            if (u) fetchRole(u.email);
-            else {
-                setUserRole(null);
+                // If we optimistically set loading=false (cached user existed?) but now find no user,
+                // we must trigger a re-render to show LandingPage.
                 setLoading(false);
             }
         });
 
-        return () => subscription.unsubscribe();
+        // Listen for changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (!mounted) return;
+            const u = session?.user ?? null;
+            setUser(u);
+            if (u) {
+                localStorage.setItem('ubp_session_user', JSON.stringify(u));
+                fetchRole(u.email);
+            } else {
+                setUserRole(null);
+                localStorage.removeItem('ubp_user_role');
+                localStorage.removeItem('ubp_session_user');
+                setLoading(false);
+            }
+        });
+
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
-    // Ensure loading is false only after role is fetched (if user exists)
-    useEffect(() => {
-        if (user && userRole !== null) setLoading(false);
-        if (!user && !loading) setLoading(false);
-    }, [user, userRole]);
+    // Remove the secondary effect that was forcing loading state logic
+    // We now rely on initial state + async updates.
+
+
 
     const signIn = async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });

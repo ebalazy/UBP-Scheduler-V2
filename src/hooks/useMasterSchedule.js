@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseSync } from './useSupabaseSync';
 
-export function useMasterSchedule(bottleSizes) {
+export function useMasterSchedule(bottleSizes, enabled = true) {
     const { user } = useAuth();
     const { fetchMRPState } = useSupabaseSync();
 
@@ -13,12 +13,13 @@ export function useMasterSchedule(bottleSizes) {
 
     // 1. Fetch All SKUs
     useEffect(() => {
+        if (!enabled) return; // Lazy load
+
         const loadAll = async () => {
             setLoading(true);
             const newState = {};
 
-            // Helper to get local state (Copy-paste logic from useMRP is safer than sharing internal helpers)
-            // Or better: Assume useMRP internal logic is stable and implement simplified reader here.
+            // Helper to get local state
             const getLocalState = (key, sku) => {
                 const legacyKey = `mrp_${key}`;
                 const fullKey = `mrp_${sku}_${key}`;
@@ -30,32 +31,40 @@ export function useMasterSchedule(bottleSizes) {
                 catch { return {}; }
             };
 
-            for (const sku of bottleSizes) {
+            const promises = bottleSizes.map(async (sku) => {
                 if (user) {
                     // Cloud Load
                     try {
                         const data = await fetchMRPState(user.id, sku);
-                        if (data) {
-                            newState[sku] = {
+                        return {
+                            sku,
+                            data: data ? {
                                 demand: data.monthlyDemand || {},
                                 actuals: data.monthlyProductionActuals || {},
                                 inbound: data.monthlyInbound || {}
-                            };
-                        } else {
-                            newState[sku] = { demand: {}, actuals: {}, inbound: {} };
-                        }
+                            } : { demand: {}, actuals: {}, inbound: {} }
+                        };
                     } catch (e) {
                         console.error(`Failed to load master state for ${sku}`, e);
+                        return { sku, data: { demand: {}, actuals: {}, inbound: {} } };
                     }
                 } else {
                     // Local Load
-                    newState[sku] = {
-                        demand: getLocalState('monthlyDemand', sku),
-                        actuals: getLocalState('monthlyProductionActuals', sku),
-                        inbound: getLocalState('monthlyInbound', sku)
+                    return {
+                        sku,
+                        data: {
+                            demand: getLocalState('monthlyDemand', sku),
+                            actuals: getLocalState('monthlyProductionActuals', sku),
+                            inbound: getLocalState('monthlyInbound', sku)
+                        }
                     };
                 }
-            }
+            });
+
+            const results = await Promise.all(promises);
+            results.forEach(({ sku, data }) => {
+                newState[sku] = data;
+            });
 
             setSkuStates(newState);
             setLoading(false);
@@ -63,7 +72,7 @@ export function useMasterSchedule(bottleSizes) {
 
         if (bottleSizes.length > 0) loadAll();
 
-    }, [bottleSizes, user, fetchMRPState]); // Re-run if user/SKUs change
+    }, [bottleSizes, user, fetchMRPState, enabled]); // Re-run if enabled toggles
 
     // 2. Aggregate into Master Ledger
     const masterLedger = useMemo(() => {

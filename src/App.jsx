@@ -90,7 +90,7 @@ function AuthenticatedApp({ user }) {
   const mrp = useMRP(poManifest);
   const scheduler = useScheduler();
   const { bottleSizes, activeSku } = useSettings();
-  const masterSchedule = useMasterSchedule(bottleSizes);
+  const masterSchedule = useMasterSchedule(bottleSizes, activeTab === 'master');
 
   return (
     <div id="main-app-wrapper" className="min-h-screen flex flex-col transition-colors duration-200 bg-slate-300 dark:bg-slate-900">

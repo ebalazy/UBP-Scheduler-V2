@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { createPortal } from 'react-dom';
 import { addDays, formatLocalDate } from '../../utils/dateUtils';
+import CalendarDay from './CalendarDay';
 
 export default function CalendarDemand({
     monthlyDemand,
@@ -195,13 +196,6 @@ export default function CalendarDemand({
     };
 
 
-    // --- RENDER HELPERS ---
-    const getInventoryColor = (day) => {
-        if (day.isSafetyRisk) return 'bg-red-500';
-        if (day.isOverflow) return 'bg-amber-400';
-        return 'bg-emerald-400'; // Healthy
-    };
-
     return (
         <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl">
             {/* Header Navigation */}
@@ -246,70 +240,19 @@ export default function CalendarDemand({
                     if (!day) return <div key={`pad-${i}`} className="bg-transparent" />; // Empty slot
 
                     const isToday = day.dateStr === new Date().toLocaleDateString('en-CA');
-                    const hasTrucks = day.trucks > 0;
-                    const hasDemand = day.val > 0;
 
                     return (
-                        <div
+                        <CalendarDay
                             key={day.dateStr}
-                            onContextMenu={(e) => handleContextMenu(e, day.dateStr, day.val)}
-                            className={`
-                                relative group flex flex-col justify-between p-2 rounded-xl transition-all duration-200 border
-                                ${isToday
-                                    ? 'bg-white dark:bg-slate-800 ring-2 ring-blue-500 border-blue-500 shadow-blue-500/10 z-10 scale-[1.02]'
-                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md hover:-translate-y-0.5'
-                                }
-                                ${day.isSafetyRisk ? 'ring-1 ring-red-500/20 bg-red-50/10' : ''}
-                            `}
-                        >
-                            {/* Date Header */}
-                            <div className="flex justify-between items-start">
-                                <span className={`
-                                    text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full
-                                    ${isToday
-                                        ? 'bg-blue-600 text-white shadow-sm'
-                                        : 'text-slate-700 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-700'
-                                    }
-                                `}>
-                                    {day.dayNum}
-                                </span>
-                                {day.isConfirmed && (
-                                    <span title="Confirmed POs" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-800">
-                                        PO
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Main Metrics */}
-                            <div className="flex flex-col gap-1 mt-1">
-                                {hasTrucks && (
-                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-md border border-emerald-100 dark:border-emerald-800/50">
-                                        <span className="text-xs">🚛</span>
-                                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-                                            {Number(day.trucks)}
-                                        </span>
-                                    </div>
-                                )}
-                                {hasDemand && (
-                                    <div className="flex items-center gap-1.5 px-2 py-0.5">
-                                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Dem</span>
-                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                                            {Number(day.val).toLocaleString()}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Inventory Health Bar (Footer) */}
-                            <div className="mt-2 h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden flex">
-                                <div
-                                    className={`h-full ${getInventoryColor(day)}`}
-                                    style={{ width: '100%' }}
-                                    title={`Inventory Health: ${day.isSafetyRisk ? 'Critical' : 'Healthy'}`}
-                                />
-                            </div>
-
-                        </div>
+                            day={day}
+                            isToday={isToday}
+                            updateDateDemand={updateDateDemand}
+                            updateDateActual={updateDateActual}
+                            updateDateInbound={updateDateInbound}
+                            onContextMenu={handleContextMenu}
+                            performBulkFill={performBulkFill}
+                            readOnly={readOnly}
+                        />
                     );
                 })}
             </div>

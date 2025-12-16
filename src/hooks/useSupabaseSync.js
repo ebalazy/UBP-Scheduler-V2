@@ -216,6 +216,19 @@ export const useSupabaseSync = () => {
     const savePlanningEntry = useCallback(async (userId, skuName, date, type, value) => {
         const productId = await ensureProduct(userId, skuName);
 
+        // Check for deletion (null or undefined value)
+        if (value === null || value === undefined) {
+            const { error } = await supabase
+                .from('planning_entries')
+                .delete()
+                .eq('product_id', productId)
+                .eq('date', date)
+                .eq('entry_type', type);
+
+            if (error) throw error;
+            return;
+        }
+
         const { data: existing } = await supabase
             .from('planning_entries')
             .select('id')
