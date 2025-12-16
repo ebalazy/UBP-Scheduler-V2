@@ -1,17 +1,20 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { formatLocalDate } from '../../../utils/dateUtils';
 
-function PlanningRowCoverage({ dates, ledgerMap, monthlyDemand, specs }) {
+const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, specs, todayStr }) => {
     return (
-        <tr className="border-t border-gray-300 dark:border-gray-600">
-            <th className="sticky left-0 min-w-[140px] w-[140px] bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 p-2 text-left text-xs font-bold text-gray-500 uppercase z-10 shadow-md">
-                Coverage (DOS)
+        <tr className="border-t border-slate-300 dark:border-slate-600 bg-slate-200 dark:bg-slate-800">
+            <th className="sticky left-0 min-w-[140px] w-[140px] h-8 bg-slate-300 dark:bg-slate-800 border-r border-slate-400 dark:border-slate-600 pl-2 pr-2 text-left text-xs font-bold text-slate-500 uppercase z-10 shadow-md">
+                <div className="w-full h-full flex items-center">
+                    Coverage (DOS)
+                </div>
             </th>
             {dates.map((date) => {
                 const dateStr = formatLocalDate(date);
                 const ledgerItem = ledgerMap[dateStr];
                 const balance = ledgerItem ? ledgerItem.balance : 0;
                 const specsScrap = 1 + ((specs?.scrapPercentage || 0) / 100);
+                const isToday = dateStr === todayStr;
 
                 let coverage = 0;
                 let remaining = balance;
@@ -44,21 +47,28 @@ function PlanningRowCoverage({ dates, ledgerMap, monthlyDemand, specs }) {
                 const val = coverage.toFixed(1);
                 const numericVal = parseFloat(val);
 
-                let colorClass = 'text-gray-400';
+                let colorClass = 'text-slate-400';
                 if (balance > 0) {
                     if (numericVal < 2.0) colorClass = 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold';
                     else if (numericVal < 4.0) colorClass = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 font-bold';
                     else colorClass = 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold';
                 }
 
+                // Override for Today Highlight (Overlay style)
+                if (isToday) {
+                    colorClass += ' bg-blue-50/50 dark:bg-blue-900/10 border-x-2 border-x-blue-300';
+                }
+
                 return (
-                    <td key={dateStr} className={`p-2 text-center text-xs border-r border-gray-200 dark:border-gray-700 ${colorClass}`}>
-                        {isInfinite ? '>30' : val}
+                    <td key={dateStr} className={`min-w-[100px] w-[100px] h-8 p-0 text-center text-xs border-r border-slate-300 dark:border-slate-600 ${colorClass}`}>
+                        <div className="w-full h-full flex items-center justify-center">
+                            {isInfinite ? '∞' : val}
+                        </div>
                     </td>
                 );
             })}
         </tr>
     );
-}
+});
 
-export default React.memo(PlanningRowCoverage);
+export default PlanningRowCoverage;

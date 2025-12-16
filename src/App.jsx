@@ -93,12 +93,16 @@ function AuthenticatedApp({ user }) {
   const masterSchedule = useMasterSchedule(bottleSizes);
 
   return (
-    <div id="main-app-wrapper" className="min-h-screen flex flex-col transition-colors duration-200">
-      <Header onOpenSettings={() => setIsSettingsOpen(true)} isSaving={mrp.formState.isSaving} saveError={mrp.formState.saveError} />
+    <div id="main-app-wrapper" className="min-h-screen flex flex-col transition-colors duration-200 bg-slate-300 dark:bg-slate-900">
+      <Header
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        isSaving={mrp.formState.isSaving}
+        saveError={mrp.formState.saveError}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
-
-
-      <main className="flex-grow p-2 md:p-6 w-full">
+      <main className="flex-grow p-2 md:p-6 w-full pt-4">
 
         {/* PULSE DASHBOARD (HUD) */}
         <PulseHUD
@@ -106,96 +110,6 @@ function AuthenticatedApp({ user }) {
           scheduler={scheduler}
           activeSku={activeSku}
         />
-
-        {/* Modern Segmented Navigation */}
-        <div className="mb-8 no-print overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-          <div className="inline-flex p-1.5 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-inner min-w-full md:min-w-0">
-
-            {/* Floor Ops (Logistics) Tab - NEW */}
-            <button
-              onClick={() => setActiveTab('logistics')}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'logistics'
-                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
-                }`}
-            >
-              <Truck className="w-4 h-4" />
-              <span>Floor Ops</span>
-            </button>
-
-            {/* MRP Tab - Admin/Planner Only */}
-            {showPlanning && (
-              <button
-                onClick={() => setActiveTab('mrp')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'mrp'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
-                  }`}
-              >
-                <Boxes className="w-4 h-4" />
-                <span>Materials</span>
-              </button>
-            )}
-
-            {/* Scheduler Tab */}
-            <button
-              onClick={() => setActiveTab('scheduler')}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'scheduler'
-                ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
-                }`}
-            >
-              <CalendarClock className="w-4 h-4" />
-              <span>Scheduler</span>
-            </button>
-
-            {/* Master Plan Tab - Admin/Planner Only */}
-            {showPlanning && (
-              <button
-                onClick={() => setActiveTab('master')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'master'
-                  ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
-                  }`}
-              >
-                <Crown className="w-4 h-4" />
-                <span>Master Plan</span>
-              </button>
-            )}
-
-            {/* Products Tab */}
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'products'
-                ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
-                }`}
-            >
-              <Package className="w-4 h-4" />
-              <span>Products</span>
-            </button>
-
-            {/* Divisor Line */}
-            <div className="w-px bg-gray-300 dark:bg-gray-600 mx-1 my-2 hidden md:block"></div>
-
-            {/* Cockpit Tab */}
-            <button
-              onClick={() => setActiveTab('cockpit')}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex-1 md:flex-none justify-center whitespace-nowrap ${activeTab === 'cockpit'
-                ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-md ring-1 ring-black/20'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
-                }`}
-            >
-              <Gauge className="w-4 h-4" />
-              <span>Cockpit</span>
-              {activeTab !== 'cockpit' && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900 text-[10px] text-blue-700 dark:text-blue-300 font-extrabold uppercase tracking-wide">
-                  Beta
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
 
         {/* View Content */}
         <div className={activeTab === 'logistics' ? 'block' : 'hidden'}>

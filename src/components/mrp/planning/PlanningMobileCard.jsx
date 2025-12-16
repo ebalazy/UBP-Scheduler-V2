@@ -26,8 +26,8 @@ export default function PlanningMobileCard({
             {/* Header */}
             <div className="flex justify-between items-center mb-3">
                 <div>
-                    <span className="text-xs font-bold text-gray-500 uppercase">{date.toLocaleDateString('en-US', { weekday: 'long' })}</span>
-                    <div className="text-lg font-black text-gray-800 dark:text-white">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                    <span className="text-xs font-bold text-gray-500 uppercase">{new Date(date).toLocaleDateString('en-US', { weekday: 'long' })}</span>
+                    <div className="text-lg font-black text-gray-800 dark:text-white">{new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                 </div>
                 {isToday && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Today</span>}
             </div>

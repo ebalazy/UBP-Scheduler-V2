@@ -1,7 +1,24 @@
-import { useState, useMemo } from 'react';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'; // Falling back to text if icons issue, but package.json has heroicons
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { createPortal } from 'react-dom';
+import { addDays, formatLocalDate } from '../../utils/dateUtils';
 
-export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthlyInbound, updateDateInbound, monthlyProductionActuals, updateDateActual, specs, trucksToCancel, dailyLedger, safetyTarget, poManifest = {} }) {
+export default function CalendarDemand({
+    monthlyDemand,
+    updateDateDemand,
+    updateDateDemandBulk, // New Prop
+    monthlyInbound,
+    updateDateInbound,
+    monthlyProductionActuals,
+    updateDateActual,
+    specs,
+    trucksToCancel,
+    dailyLedger,
+    safetyTarget,
+    poManifest = {},
+    readOnly = false
+}) {
+    // Start with strictly local date (no time component issues)
     const [viewDate, setViewDate] = useState(new Date());
 
     // Generate calendar grid
@@ -19,11 +36,13 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
         const padding = Array(startDayOfWeek).fill(null);
 
         // Find next truck date (for Push Alert)
-        const today = new Date().toISOString().split('T')[0];
+        // Use local date string comparison
+        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+
         let nextTruckDate = null;
         if (trucksToCancel > 0) {
             const allDates = Object.keys(monthlyInbound || {}).sort();
-            nextTruckDate = allDates.find(d => d >= today && monthlyInbound[d] > 0);
+            nextTruckDate = allDates.find(d => d >= todayStr && monthlyInbound[d] > 0);
         }
 
         // Map dailyLedger to a dictionary for fast lookup
@@ -34,16 +53,17 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
 
         // Array of days
         const dateArray = Array.from({ length: daysInMonth }, (_, i) => {
+            // Safe Local Date Construction
             const d = new Date(year, month, i + 1);
-            const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+
+            // Format to YYYY-MM-DD strictly local
+            const yStr = d.getFullYear();
+            const mStr = String(d.getMonth() + 1).padStart(2, '0');
+            const dStr = String(d.getDate()).padStart(2, '0');
+            const dateStr = `${yStr}-${mStr}-${dStr}`;
 
             // Get Ending Inventory (Balance) for this date
             const endInvBottles = ledgerMap[dateStr];
-            // Format to Load Equivalent (more readable?) or just bottles. 
-            // Planners often think in "Weeks of Supply" or "Trucks". 
-            // Let's show "Trucks" or "Pallets"? Or raw bottles?
-            // "Cases" is usually best denominator.
-            // Let's us "Cases" (balance / bottlesPerCase).
             let endInvCases = null;
             if (endInvBottles !== undefined && specs?.bottlesPerCase) {
                 endInvCases = Math.round(endInvBottles / specs.bottlesPerCase);
@@ -72,7 +92,6 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
         // Est Trucks Calculation
         let totalEstTrucks = 0;
         if (specs && specs.bottlesPerTruck && specs.bottlesPerCase) {
-            // Cases per truck = bottlesPerTruck / bottlesPerCase
             const casesPerTruck = specs.bottlesPerTruck / specs.bottlesPerCase;
             totalEstTrucks = Math.ceil(totalMonthlyDemand / casesPerTruck);
         }
@@ -81,8 +100,9 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
             days: [...padding, ...dateArray],
             monthLabel: firstDay.toLocaleString('default', { month: 'long', year: 'numeric' }),
             totalMonthlyDemand,
+            totalEstTrucks
         };
-    }, [viewDate, monthlyDemand, monthlyInbound, monthlyProductionActuals, specs, trucksToCancel, poManifest]);
+    }, [viewDate, monthlyDemand, monthlyInbound, monthlyProductionActuals, specs, trucksToCancel, poManifest, dailyLedger, safetyTarget]); // Added missing deps
 
     const changeMonth = (offset) => {
         setViewDate(prev => {
@@ -92,186 +112,235 @@ export default function CalendarDemand({ monthlyDemand, updateDateDemand, monthl
         });
     };
 
+    // --- Context Menu Logic for Calendar ---
+    const [contextMenu, setContextMenu] = useState(null); // { x, y, dateStr, currentVal }
+
+    const closeContextMenu = () => setContextMenu(null);
+
+    const handleContextMenu = (e, dateStr, currentVal) => {
+        if (readOnly) return;
+        e.preventDefault();
+        setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            dateStr,
+            currentVal
+        });
+    };
+
+    const performBulkFill = (mode) => {
+        if (!contextMenu) return;
+        const { dateStr, currentVal } = contextMenu;
+
+        // Parse value cleanly
+        const valStr = String(currentVal || '').replace(/,/g, '');
+        const val = parseInt(valStr, 10);
+
+        if (!val && val !== 0) { // Allow 0? Usually we explicitly set numbers. If empty/NaN skip.
+            closeContextMenu();
+            return;
+        }
+
+        const updates = {};
+        updates[dateStr] = val.toString();
+
+        if (mode === 'week') {
+            for (let i = 1; i < 7; i++) {
+                updates[addDays(dateStr, i)] = val.toString();
+            }
+        }
+
+        if (mode === 'month') {
+            const [y, m] = dateStr.split('-').map(Number);
+            const currentMonth = m - 1; // 0-indexed for comparison
+            let i = 1;
+            while (true) {
+                const nextDS = addDays(dateStr, i);
+                const [ny, nm] = nextDS.split('-').map(Number);
+                if ((nm - 1) !== currentMonth) break;
+                updates[nextDS] = val.toString();
+                i++;
+                if (i > 31) break;
+            }
+        }
+
+        if (mode === 'restOfWeek') {
+            // For calendar, rest of week means until the row ends (Saturday)
+            // Calendar is visual.
+            // Standard: Sun(0) ... Sat(6).
+            // If today is Wed(3), fill Thu(4), Fri(5), Sat(6).
+            const d = new Date(dateStr.replace(/-/g, '/')); // Split/Map safer usually but this logic needs Day Index
+            // Actually, safely parse y,m,d
+            const [y, m, day] = dateStr.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, day);
+
+            let i = 1;
+            while (true) {
+                const nextDS = addDays(dateStr, i);
+                const [ny, nm, nd] = nextDS.split('-').map(Number);
+                const nextD = new Date(ny, nm - 1, nd);
+
+                // If we wrap week? Calendar rows usually end Saturday.
+                // If nextD is Sunday (0), we stopped Saturday.
+                if (nextD.getDay() === 0) break;
+
+                updates[nextDS] = val.toString();
+                i++;
+                if (i > 7) break;
+            }
+        }
+
+        if (updateDateDemandBulk) updateDateDemandBulk(updates);
+        closeContextMenu();
+    };
+
+
+    // --- RENDER HELPERS ---
+    const getInventoryColor = (day) => {
+        if (day.isSafetyRisk) return 'bg-red-500';
+        if (day.isOverflow) return 'bg-amber-400';
+        return 'bg-emerald-400'; // Healthy
+    };
+
     return (
-        <div className="h-full flex flex-col transition-colors">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
-                <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300">
-                    &lt; Prev
-                </button>
-                <div className="text-center">
-                    <h3 className="font-bold text-gray-800 dark:text-gray-100">{monthLabel}</h3>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        {totalMonthlyDemand.toLocaleString()} Cases
-                        {totalEstTrucks > 0 && <span className="text-gray-400 dark:text-gray-500 ml-1">(~{totalEstTrucks} Trucks)</span>}
-                    </p>
+        <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl">
+            {/* Header Navigation */}
+            <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-4">
+                    <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-full shadow-sm transition-all text-slate-500 hover:text-blue-600">
+                        <ChevronLeftIcon className="w-5 h-5" />
+                    </button>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
+                        {monthLabel}
+                        <span className="text-sm font-medium text-slate-400 font-mono tracking-normal bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                            {viewDate.getFullYear()}
+                        </span>
+                    </h2>
+                    <button onClick={() => changeMonth(1)} className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-full shadow-sm transition-all text-slate-500 hover:text-blue-600">
+                        <ChevronRightIcon className="w-5 h-5" />
+                    </button>
                 </div>
-                <button onClick={() => changeMonth(1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300">
-                    Next &gt;
-                </button>
+
+                <div className="flex gap-4 text-xs font-bold text-slate-500">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>{totalEstTrucks} Trucks Est.</span>
+                    </div>
+                </div>
             </div>
 
-            {/* Day Header (Desktop Only) */}
-            <div className="hidden md:grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">
-                <div>SUN</div>
-                <div>MON</div>
-                <div>TUE</div>
-                <div>WED</div>
-                <div>THU</div>
-                <div>FRI</div>
-                <div>SAT</div>
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 gap-4 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+                    <div key={d} className={`text-center text-xs font-bold uppercase tracking-wider py-1
+                        ${i === 0 || i === 6 ? 'text-slate-400' : 'text-slate-600 dark:text-slate-300'}
+                    `}>
+                        {d}
+                    </div>
+                ))}
             </div>
 
-            {/* Calendar Grid / List */}
-            <div className="flex flex-col space-y-2 md:space-y-0 md:grid md:grid-cols-7 md:gap-1 flex-1">
-                {days.map((day, idx) => {
-                    // Padding slots (Desktop only)
-                    if (!day) return <div key={`pad-${idx}`} className="hidden md:block bg-gray-50/50 dark:bg-gray-800/50 rounded" />;
+            {/* Calendar Grid */}
+            <div className="flex-1 grid grid-cols-7 grid-rows-5 gap-3 min-h-0">
+                {days.map((day, i) => {
+                    if (!day) return <div key={`pad-${i}`} className="bg-transparent" />; // Empty slot
 
-                    const isToday = new Date().toISOString().split('T')[0] === day.dateStr;
-                    const hasDemand = day.val > 0;
-                    const hasActual = day.actual !== undefined;
+                    const isToday = day.dateStr === new Date().toLocaleDateString('en-CA');
                     const hasTrucks = day.trucks > 0;
-                    const isPush = day.isPushCandidate;
+                    const hasDemand = day.val > 0;
 
                     return (
                         <div
                             key={day.dateStr}
+                            onContextMenu={(e) => handleContextMenu(e, day.dateStr, day.val)}
                             className={`
-                                relative rounded border transition-all
-                                ${isToday ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500' : 'border-gray-100 dark:border-gray-700'}
-                                ${hasDemand || hasTrucks || hasActual ? 'bg-white dark:bg-gray-700' : 'bg-gray-50 dark:bg-gray-800'}
-                                ${isPush ? 'ring-2 ring-red-400 ring-opacity-50 dark:ring-red-500' : ''}
-                                
-                                /* Desktop Styles */
-                                md:p-1 md:min-h-[90px] md:flex-col md:justify-between
-                                
-                                /* Mobile Styles (List Row) */
-                                flex flex-row items-center p-3 justify-between shadow-sm md:shadow-none
+                                relative group flex flex-col justify-between p-2 rounded-xl transition-all duration-200 border
+                                ${isToday
+                                    ? 'bg-white dark:bg-slate-800 ring-2 ring-blue-500 border-blue-500 shadow-blue-500/10 z-10 scale-[1.02]'
+                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md hover:-translate-y-0.5'
+                                }
+                                ${day.isSafetyRisk ? 'ring-1 ring-red-500/20 bg-red-50/10' : ''}
                             `}
                         >
-                            {/* Date Label */}
-                            <div className="flex flex-col md:items-start w-16 md:w-auto">
-                                <span className={`text-sm md:text-[10px] ${isToday ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500 dark:text-gray-400 font-medium'}`}>
-                                    {day.date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
-                                </span>
-                                {/* Mobile-only Month label on first of month? Optional */}
-                            </div>
-
-                            {/* Inputs Container */}
-                            <div className="flex flex-row md:flex-col space-x-4 md:space-x-0 md:space-y-1 items-center md:items-stretch flex-1 md:flex-none justify-center">
-
-                                {/* Plan Input */}
-                                <div className="flex items-center space-x-1">
-                                    <span className="text-[10px] text-gray-400 dark:text-gray-500 w-3 md:inline hidden">P:</span>
-                                    <span className="text-[10px] text-gray-400 dark:text-gray-500 md:hidden font-bold">Plan</span>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        className={`
-                                            w-12 md:w-full text-center text-sm md:text-xs p-1 md:p-0 border rounded md:border-0 md:bg-transparent focus:ring-1 focus:ring-blue-200 font-medium
-                                            ${hasDemand
-                                                ? 'text-gray-900 dark:text-white border-gray-300 bg-white dark:bg-gray-600'
-                                                : 'text-gray-300 dark:text-gray-600 border-gray-200 bg-white dark:bg-gray-800/50'}
-                                        `}
-                                        placeholder="-"
-                                        value={day.val ? day.val.toLocaleString() : ''}
-                                        onChange={(e) => {
-                                            const raw = e.target.value.replace(/,/g, '');
-                                            if (!isNaN(raw)) {
-                                                const val = Number(raw);
-                                                updateDateDemand(day.dateStr, raw);
-
-                                                // Auto-Calculate Inbound Trucks (User Request)
-                                                if (specs && specs.bottlesPerTruck && specs.bottlesPerCase) {
-                                                    if (val > 0) {
-                                                        const casesPerTruck = specs.bottlesPerTruck / specs.bottlesPerCase;
-                                                        const trucksNeeded = Math.ceil(val / casesPerTruck);
-                                                        updateDateInbound(day.dateStr, trucksNeeded);
-                                                    } else {
-                                                        updateDateInbound(day.dateStr, 0);
-                                                    }
-                                                }
-                                            }
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Actual Input */}
-                                <div className="flex items-center space-x-1">
-                                    <span className="text-[10px] text-blue-400 w-3 font-bold md:inline hidden">A:</span>
-                                    <span className="text-[10px] text-blue-400 md:hidden font-bold">Act</span>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        className={`
-                                            w-12 md:w-full text-center text-sm md:text-xs p-1 md:p-0 border rounded md:border-0 md:bg-transparent focus:ring-1 focus:ring-blue-200 font-bold
-                                            ${hasActual
-                                                ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/50 border-blue-200 dark:border-blue-800'
-                                                : 'text-gray-300 dark:text-gray-600 border-gray-200 bg-white dark:bg-gray-800/50'}
-                                        `}
-                                        placeholder="-"
-                                        value={hasActual ? day.actual.toLocaleString() : ''}
-                                        onChange={(e) => {
-                                            const raw = e.target.value.replace(/,/g, '');
-                                            if (!isNaN(raw)) updateDateActual(day.dateStr, raw);
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Right Side Actions (Trucks + End Inv) */}
-                            <div className="flex flex-row md:flex-col items-center space-x-3 md:space-x-0 md:space-y-1 justify-end w-24 md:w-auto">
-
-                                {/* Inbound Trucks Input */}
-                                <div className={`
-                                    flex items-center justify-center transition-all duration-500
-                                    md:mt-1 md:border-t md:border-gray-100 dark:md:border-gray-600 md:pt-1 md:w-full
-                                    ${hasTrucks ? (isPush ? 'bg-red-50 dark:bg-red-900/30 animate-pulse rounded p-1 md:p-0' : 'bg-green-50 dark:bg-green-900/30 animate-pulse rounded p-1 md:p-0') : ''}
+                            {/* Date Header */}
+                            <div className="flex justify-between items-start">
+                                <span className={`
+                                    text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full
+                                    ${isToday
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'text-slate-700 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-700'
+                                    }
                                 `}>
-                                    <span className="text-xs md:text-[9px] mr-1 text-gray-400 dark:text-gray-500">🚛</span>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        className={`
-                                            w-6 text-center text-sm md:text-[10px] p-0 border-0 bg-transparent focus:ring-0 font-bold
-                                            ${hasTrucks ? (isPush ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400') : 'text-gray-300 dark:text-gray-600'}
-                                        `}
-                                        placeholder="0"
-                                        value={day.trucks > 0 ? day.trucks : ''}
-                                        onChange={(e) => {
-                                            const raw = e.target.value.replace(/,/g, '');
-                                            if (!isNaN(raw)) updateDateInbound(day.dateStr, raw);
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Confirmed Badge (Dot or Check) */}
+                                    {day.dayNum}
+                                </span>
                                 {day.isConfirmed && (
-                                    <div className="absolute top-1 right-1">
-                                        <span className="flex h-2 w-2 relative">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                    <span title="Confirmed POs" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-800">
+                                        PO
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Main Metrics */}
+                            <div className="flex flex-col gap-1 mt-1">
+                                {hasTrucks && (
+                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-md border border-emerald-100 dark:border-emerald-800/50">
+                                        <span className="text-xs">🚛</span>
+                                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+                                            {Number(day.trucks)}
                                         </span>
                                     </div>
                                 )}
-
-                                {/* Ending Inventory Row */}
-                                {day.endInvCases !== null && (
-                                    <div className={`
-                                        text-[10px] md:text-[9px] text-center md:mt-auto md:pt-1 font-mono
-                                        ${day.isSafetyRisk ? 'text-red-500 dark:text-red-400 font-bold' :
-                                            day.isOverflow ? 'text-orange-500 dark:text-orange-400 font-bold' : 'text-gray-400 dark:text-gray-500'}
-                                    `}>
-                                        {day.endInvCases.toLocaleString()}
-                                        <span className="md:hidden ml-1">cs</span>
-                                        <span className="hidden md:inline"> cs</span>
+                                {hasDemand && (
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5">
+                                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Dem</span>
+                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                                            {Number(day.val).toLocaleString()}
+                                        </span>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Inventory Health Bar (Footer) */}
+                            <div className="mt-2 h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden flex">
+                                <div
+                                    className={`h-full ${getInventoryColor(day)}`}
+                                    style={{ width: '100%' }}
+                                    title={`Inventory Health: ${day.isSafetyRisk ? 'Critical' : 'Healthy'}`}
+                                />
+                            </div>
+
                         </div>
                     );
                 })}
             </div>
+
+            {/* Context Menu Portal */}
+            {contextMenu && createPortal(
+                <div
+                    className="fixed z-50 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-100"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="px-3 py-2 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Quick Fill</p>
+                    </div>
+                    <button onClick={() => performBulkFill('week')} className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 flex items-center gap-2">
+                        <span>📅</span> Fill Next 7 Days
+                    </button>
+                    <button onClick={() => performBulkFill('restOfWeek')} className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 flex items-center gap-2">
+                        <span>➡️</span> Rest of Week
+                    </button>
+                    <button onClick={() => performBulkFill('month')} className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 flex items-center gap-2">
+                        <span>🗓️</span> Fill Rest of Month
+                    </button>
+                    <div className="border-t dark:border-slate-700 my-1"></div>
+                    <button onClick={closeContextMenu} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        Cancel
+                    </button>
+                </div>,
+                document.body
+            )}
         </div>
     );
 }
+

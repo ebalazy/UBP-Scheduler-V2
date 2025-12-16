@@ -81,9 +81,12 @@ export default function PlanningGrid({
         <ScheduleManagerModal
             isOpen={managerState.isOpen}
             onClose={closeManager}
-            dateStr={managerState.date || ''}
+            date={managerState.date || ''}
             // Use poManifest (map) instead of truckManifest
-            existingManifest={managerState.date ? (poManifest[managerState.date]?.items || []) : []}
+            // Pass correct props
+            orders={managerState.date ? (poManifest[managerState.date]?.items || []) : []}
+            monthlyInbound={monthlyInbound}
+            updateDateInbound={updateDateInbound}
             onSave={handleSaveProcurement}
             onDelete={handleDeleteProcurement}
             specs={specs}
@@ -129,6 +132,7 @@ export default function PlanningGrid({
                             updateDateDemand={updateDateDemand}
                             updateDateDemandBulk={updateDateDemandBulk}
                             readOnly={readOnly}
+                            todayStr={todayStr}
                         />
 
                         <PlanningRowActual
@@ -136,6 +140,7 @@ export default function PlanningGrid({
                             monthlyProductionActuals={monthlyProductionActuals}
                             updateDateActual={updateDateActual}
                             readOnly={readOnly}
+                            todayStr={todayStr}
                         />
 
                         <PlanningRowInbound
@@ -145,16 +150,17 @@ export default function PlanningGrid({
                             updateDateInbound={updateDateInbound}
                             openManager={openManager}
                             readOnly={readOnly}
+                            todayStr={todayStr}
                         />
 
-                        {/* Spacer Row */}
-                        <tr className="h-4 bg-gray-50 dark:bg-gray-800/50"><td colSpan={dates.length + 1}></td></tr>
+
 
                         <PlanningRowInventory
                             dates={dates}
                             ledgerMap={ledgerMap}
                             specs={specs}
                             safetyTarget={specs?.bottles_per_truck ? specs.bottles_per_truck * 2 : 0}
+                            todayStr={todayStr}
                         />
 
                         <PlanningRowCoverage
@@ -162,6 +168,7 @@ export default function PlanningGrid({
                             ledgerMap={ledgerMap}
                             monthlyDemand={monthlyDemand}
                             specs={specs}
+                            todayStr={todayStr}
                         />
                     </tbody>
                 </table>

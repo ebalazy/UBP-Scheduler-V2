@@ -10,7 +10,8 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon,
     TableCellsIcon,
-    ArrowPathIcon
+    ArrowPathIcon,
+    TruckIcon
 } from '@heroicons/react/24/outline';
 
 /**
@@ -81,7 +82,8 @@ export default function PlanningGridWorkbench({
                 {count > 0 ? (
                     <div className="flex flex-wrap gap-0.5">
                         {/* Count Badge */}
-                        <span className={`text-[10px] font-bold px-1 rounded-sm shadow-sm ${isConfirmed ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 border border-blue-200'}`}>
+                        <span className={`flex items-center gap-1 text-[10px] font-bold px-1 rounded-sm shadow-sm ${isConfirmed ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 border border-blue-200'}`}>
+                            <TruckIcon className="w-3 h-3" />
                             {count} {isConfirmed ? '✓' : ''}
                         </span>
 

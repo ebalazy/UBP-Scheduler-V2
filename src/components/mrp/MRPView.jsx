@@ -275,68 +275,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
     return (
         <div className="max-w-full mx-auto pb-12">
 
-            {/* NEW HEADER with Premium Action Bar */}
-            <div className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 sticky top-0 z-20 backdrop-filter backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <span>📦</span> Materials Planner
-                    </h1>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Command Center</p>
-                </div>
 
-                <div className="flex flex-wrap items-center mt-4 md:mt-0 gap-3">
-                    {!readOnly && (
-                        <button
-                            onClick={() => setIsReconcileOpen(true)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
-                            title="Morning Inventory Check"
-                        >
-                            <SunIcon className="w-4 h-4 text-orange-500" />
-                            Morning True-Up
-                        </button>
-                    )}
-
-                    {!readOnly && (
-                        <button
-                            onClick={() => setIsImportOpen(true)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
-                        >
-                            <ArrowDownTrayIcon className="w-4 h-4 text-emerald-500" />
-                            Import
-                        </button>
-                    )}
-
-                    {!readOnly && (
-                        <button
-                            onClick={() => setIsMasterListOpen(true)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
-                        >
-                            <ClipboardDocumentListIcon className="w-4 h-4 text-purple-500" />
-                            POs
-                        </button>
-                    )}
-
-                    <button
-                        onClick={() => setIsEmailOpen(true)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm"
-                    >
-                        <EnvelopeIcon className="w-4 h-4 text-gray-500" />
-                        Email
-                    </button>
-
-                    <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1 hidden md:block"></div>
-
-                    {!readOnly && (
-                        <button
-                            onClick={handleAutoBalance}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition-all"
-                        >
-                            <ArrowPathIcon className="w-4 h-4" />
-                            Auto-Balance
-                        </button>
-                    )}
-                </div>
-            </div>
 
             {/* KPI ROW */}
             {renderKPIs()}
@@ -345,7 +284,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
             <div className="flex flex-col space-y-6">
 
                 {/* MAIN PLANNING GRID (FULL WIDTH) with Unified Header */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden min-h-[600px]">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
 
                     {/* Unified Header with Date Nav */}
                     <div className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col lg:flex-row justify-between items-center bg-gray-50 dark:bg-gray-900/50 gap-4">
@@ -368,12 +307,52 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                             </span>
                         </div>
 
-                        {/* RIGHT: Controls */}
-                        <div className="flex items-center gap-6 w-full lg:w-auto justify-end">
+                        {/* RIGHT: Controls - Consolidated Action Toolbar */}
+                        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
 
-                            {/* Auto-Pilot */}
+                            {/* Essential Actions Group */}
+                            <div className="flex items-center gap-1 bg-white dark:bg-gray-700 p-1 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+                                {!readOnly && (
+                                    <>
+                                        <button onClick={() => setIsReconcileOpen(true)} className="p-1.5 text-gray-500 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md transition-colors" title="Morning True-Up">
+                                            <SunIcon className="w-5 h-5" />
+                                        </button>
+                                        <button onClick={() => setIsImportOpen(true)} className="p-1.5 text-gray-500 hover:text-emerald-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md transition-colors" title="Import Inbound">
+                                            <ArrowDownTrayIcon className="w-5 h-5" />
+                                        </button>
+                                        <button onClick={() => setIsMasterListOpen(true)} className="p-1.5 text-gray-500 hover:text-purple-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md transition-colors" title="Manage POs">
+                                            <ClipboardDocumentListIcon className="w-5 h-5" />
+                                        </button>
+                                    </>
+                                )}
+                                <button onClick={() => setIsEmailOpen(true)} className="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md transition-colors" title="Email Suppliers">
+                                    <EnvelopeIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {!readOnly && !state.isAutoReplenish && (
+                                <button
+                                    onClick={handleAutoBalance}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all"
+                                    title="Manually calculate replenishment (Not needed in Auto-Pilot)"
+                                >
+                                    <ArrowPathIcon className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Auto-Balance</span>
+                                </button>
+                            )}
+
+                            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 hidden md:block mx-1"></div>
+
+                            {/* View Switchers */}
+                            <div className="flex bg-white dark:bg-gray-700 p-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
+                                <button onClick={() => setViewMode('grid')} className={`px-2.5 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-blue-50 text-blue-700 dark:bg-slate-600 dark:text-blue-300 shadow-sm' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}>Grid</button>
+                                <button onClick={() => setViewMode('workbench')} className={`px-2.5 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'workbench' ? 'bg-blue-50 text-blue-700 dark:bg-slate-600 dark:text-blue-300 shadow-sm' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}>Work</button>
+                                <button onClick={() => setViewMode('calendar')} className={`px-2.5 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-blue-50 text-blue-700 dark:bg-slate-600 dark:text-blue-300 shadow-sm' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'}`}>Cal</button>
+                            </div>
+
+                            {/* Auto-Pilot Toggle (Compact) */}
                             {!readOnly && (
-                                <label className="flex items-center cursor-pointer group" title="Auto-Pilot">
+                                <label className="flex items-center cursor-pointer group" title="Auto-Pilot Mode">
                                     <div className="relative">
                                         <input
                                             type="checkbox"
@@ -381,28 +360,16 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                                             checked={state.isAutoReplenish || false}
                                             onChange={(e) => setters.setIsAutoReplenish(e.target.checked)}
                                         />
-                                        <div className={`block w-9 h-5 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                        <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-4' : ''}`}></div>
+                                        <div className={`block w-7 h-4 rounded-full transition-colors ${state.isAutoReplenish ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                                        <div className={`dot absolute left-1 top-1 bg-white w-2 h-2 rounded-full transition-transform ${state.isAutoReplenish ? 'transform translate-x-3' : ''}`}></div>
                                     </div>
-                                    <span className={`ml-2 text-xs font-bold uppercase tracking-wide ${state.isAutoReplenish ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500'}`}>
-                                        {state.isAutoReplenish ? 'Auto-Pilot' : 'Manual'}
-                                    </span>
                                 </label>
                             )}
-
-                            {!readOnly && <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 hidden md:block"></div>}
-
-                            {/* View Switchers */}
-                            <div className="flex bg-white dark:bg-gray-700 p-1 rounded-md shadow-sm border border-gray-200 dark:border-gray-600">
-                                <button onClick={() => setViewMode('grid')} className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-blue-50 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100'}`}>Standard</button>
-                                <button onClick={() => setViewMode('workbench')} className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${viewMode === 'workbench' ? 'bg-blue-50 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100'}`}>Workbench</button>
-                                <button onClick={() => setViewMode('calendar')} className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-blue-50 text-blue-700 dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100'}`}>Calendar</button>
-                            </div>
 
                             {/* Export Button */}
                             <button
                                 onClick={handleExportMonth}
-                                className={`ml-2 p-1.5 rounded-md border transition-all ${copied
+                                className={`p-1.5 rounded-lg border transition-all ${copied
                                     ? 'bg-green-50 border-green-200 text-green-600'
                                     : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 hover:text-gray-700'
                                     }`}
@@ -413,12 +380,13 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-hidden relative bg-white dark:bg-gray-800">
+                    <div className="flex-1 overflow-hidden relative bg-slate-200 dark:bg-slate-900 rounded-xl shadow-lg border border-slate-300 dark:border-slate-800">
                         {viewMode === 'calendar' ? (
                             <div className="h-full p-4 overflow-auto">
                                 <CalendarDemand
                                     monthlyDemand={state.monthlyDemand || {}}
                                     updateDateDemand={setters.updateDateDemand}
+                                    updateDateDemandBulk={setters.updateDateDemandBulk}
                                     monthlyInbound={state.monthlyInbound || {}}
                                     updateDateInbound={setters.updateDateInbound}
                                     monthlyProductionActuals={state.monthlyProductionActuals || {}}

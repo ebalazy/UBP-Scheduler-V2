@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import { useAuth } from '../../context/AuthContext';
 import { useProducts } from '../../context/ProductsContext'; // New Context
@@ -310,7 +310,7 @@ export function useMRPActions(state, calculationsResult) {
         setLocalProductionRate(bottleDefinitions[selectedSize]?.productionRate || 0);
     }, [selectedSize, bottleDefinitions]);
 
-    const setters = {
+    const setters = useMemo(() => ({
         setSelectedSize,
         updateDateDemand,
         updateDateDemandBulk,
@@ -373,7 +373,13 @@ export function useMRPActions(state, calculationsResult) {
             saveLocalState('inventoryAnchor', v, selectedSize, true);
             if (user) saveWithStatus(() => saveInventoryAnchor(user.id, selectedSize, v));
         }
-    };
+    }), [
+        setSelectedSize, updateDateDemand, updateDateDemandBulk, updateDateActual, updateDateInbound,
+        truckManifest, setTruckManifest, saveLocalState, selectedSize, user, saveWithStatus, savePlanningEntry,
+        setLocalProductionRate, updateBottleDefinition, saveProductionSetting, refreshProducts,
+        setDowntimeHours, setCurrentInventoryPallets, setIncomingTrucks, setYardInventory, setIsAutoReplenish,
+        setInventoryAnchor
+    ]);
 
     return {
         setters,

@@ -1,20 +1,29 @@
-export const getLocalISOString = () => {
-    const tzOffset = new Date().getTimezoneOffset() * 60000;
-    return new Date(Date.now() - tzOffset).toISOString().split('T')[0];
+export const getLocalISOString = (dateInput) => {
+    const d = dateInput ? new Date(dateInput) : new Date();
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tzOffset).toISOString().split('T')[0];
 };
 
-export const addDays = (dateStr, days) => {
-    if (!dateStr) return '';
+export const addDays = (dateInput, days) => {
+    if (!dateInput) return '';
     try {
-        const [y, m, d] = dateStr.split('-').map(Number);
-        const date = new Date(y, m - 1, d + days);
+        let date;
+        if (dateInput instanceof Date) {
+            date = new Date(dateInput); // Clone
+            date.setDate(date.getDate() + days);
+        } else {
+            // Assume String YYYY-MM-DD
+            const [y, m, d] = dateInput.split('-').map(Number);
+            date = new Date(y, m - 1, d + days);
+        }
+
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     } catch (e) {
         console.error("addDays Error", e);
-        return dateStr;
+        return String(dateInput);
     }
 };
 

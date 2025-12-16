@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { formatLocalDate } from '../../../utils/dateUtils';
 
-export default function PlanningRowActual({ dates, monthlyProductionActuals, updateDateActual, readOnly = false }) {
+const PlanningRowActual = memo(({ dates, monthlyProductionActuals, updateDateActual, readOnly = false, todayStr }) => {
     return (
         <tr className="bg-sky-50/20 dark:bg-sky-900/10">
-            <th className="sticky left-0 min-w-[140px] w-[140px] bg-sky-50 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 p-2 text-left text-xs font-bold text-sky-700 dark:text-sky-400 z-10 shadow-md">
-                Actual / Prod
+            <th className="sticky left-0 min-w-[140px] w-[140px] h-8 bg-sky-50 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-600 pl-2 pr-2 text-left text-xs font-bold text-sky-700 dark:text-sky-400 z-10 shadow-md">
+                <div className="w-full h-full flex items-center">
+                    Actual / Prod
+                </div>
             </th>
             {dates.map((date) => {
                 const dateStr = formatLocalDate(date);
@@ -18,14 +20,17 @@ export default function PlanningRowActual({ dates, monthlyProductionActuals, upd
                         initialValue={val}
                         updateDateActual={updateDateActual}
                         readOnly={readOnly}
+                        isToday={dateStr === todayStr}
                     />
                 );
             })}
         </tr>
     );
-}
+});
 
-const ActualCell = React.memo(({ dateStr, initialValue, updateDateActual, readOnly }) => {
+export default PlanningRowActual;
+
+const ActualCell = React.memo(({ dateStr, initialValue, updateDateActual, readOnly, isToday }) => {
     const [val, setVal] = React.useState(initialValue || '');
 
     React.useEffect(() => {
@@ -50,10 +55,13 @@ const ActualCell = React.memo(({ dateStr, initialValue, updateDateActual, readOn
     };
 
     return (
-        <td className={`p-0 border-r border-slate-200 dark:border-slate-700 bg-sky-50/10 dark:bg-sky-900/5 min-w-[60px] ${readOnly ? '' : 'hover:bg-sky-50/30'}`}>
+        <td className={`min-w-[100px] w-[100px] h-8 p-0 border-r border-slate-200 dark:border-slate-700 
+            ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/10 border-x-2 border-x-blue-300' : 'bg-sky-50/10 dark:bg-sky-900/5'}
+            ${readOnly ? '' : 'hover:bg-sky-50/30'}
+        `}>
             <input
                 type="text"
-                className={`w-full h-full text-center text-sm bg-transparent outline-none p-1 font-bold text-sky-700 dark:text-sky-300 rounded-sm ${readOnly ? 'cursor-default opacity-80' : 'focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-inset focus:ring-sky-400'}`}
+                className={`w-full h-full text-center text-sm bg-transparent outline-none font-bold text-sky-700 dark:text-sky-300 rounded-sm ${readOnly ? 'cursor-default opacity-80' : 'focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-inset focus:ring-sky-400'}`}
                 value={val}
                 onChange={(e) => setVal(e.target.value)}
                 onBlur={handleBlur}

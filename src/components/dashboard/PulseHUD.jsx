@@ -57,7 +57,7 @@ export default function PulseHUD({ mrp, scheduler, activeSku }) {
         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900';
 
     return (
-        <div className={`w-full mb-6 rounded-xl border p-4 shadow-sm transition-all ${borderColor}`}>
+        <div className={`w-full mb-6 rounded-xl border p-4 shadow-lg bg-slate-200 dark:bg-slate-800/50 transition-all ${borderColor}`}>
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
 
                 {/* 1. Context & Production Settings */}
@@ -156,9 +156,9 @@ export default function PulseHUD({ mrp, scheduler, activeSku }) {
 // Sub-component for Hover-to-Edit Inputs
 function EditableStat({ label, value, unit, onSave, colorClass = 'text-slate-700 dark:text-slate-200' }) {
     const [isEditing, setIsEditing] = useState(false);
-    const [tempVal, setTempVal] = useState(value);
+    const [tempVal, setTempVal] = useState(value === 0 ? '' : value);
 
-    useEffect(() => setTempVal(value), [value]);
+    useEffect(() => setTempVal(value === 0 ? '' : value), [value]);
 
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
@@ -209,8 +209,9 @@ function EditableInput({ label, value, onChange, width }) {
             <input
                 type="number"
                 className={`${width} bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800 border-b-2 border-transparent hover:border-slate-300 dark:hover:border-slate-600 rounded-t p-1 text-lg font-extrabold text-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-blue-500 focus:ring-0 outline-none transition-all`}
-                value={value}
+                value={value === 0 ? '' : value}
                 onChange={(e) => onChange(e.target.value)}
+                onFocus={(e) => e.target.select()}
             />
         </div>
     );
