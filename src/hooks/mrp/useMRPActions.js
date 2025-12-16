@@ -1,13 +1,15 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import { useAuth } from '../../context/AuthContext';
+import { useProducts } from '../../context/ProductsContext'; // New Context
 import { useSupabaseSync } from '../useSupabaseSync';
 import { addDays, getLocalISOString } from '../../utils/dateUtils';
 import { saveLocalState } from './useMRPState';
 
 
 export function useMRPActions(state, calculationsResult) {
-    const { bottleDefinitions, updateBottleDefinition, safetyStockLoads, leadTimeDays } = useSettings();
+    const { updateBottleDefinition, safetyStockLoads, leadTimeDays } = useSettings();
+    const { productMap: bottleDefinitions, refreshProducts } = useProducts(); // Use Master Data
     const { user, userRole } = useAuth();
     const { savePlanningEntry, saveProductionSetting, saveInventoryAnchor } = useSupabaseSync();
 
@@ -322,11 +324,17 @@ export function useMRPActions(state, calculationsResult) {
             saveLocalState('truckManifest', newManifest, selectedSize, true);
             if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'truck_manifest_json', JSON.stringify(trucks)));
         },
-        setProductionRate: (v) => {
+        setProductionRate: async (v) => {
             const val = Number(v);
             setLocalProductionRate(val); // Optimistic Update
+
+            // Legacy Backup (for now)
             updateBottleDefinition(selectedSize, 'productionRate', val);
-            if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'production_rate', val));
+
+            if (user) {
+                await saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'production_rate', val));
+                refreshProducts(); // Updating Master Data should reflect everywhere
+            }
         },
         setDowntimeHours: (v) => {
             const val = Number(v);

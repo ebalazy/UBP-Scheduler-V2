@@ -167,7 +167,7 @@ export function SettingsProvider({ children }) {
         }
         localStorage.setItem('theme', theme);
 
-        // Sync to Cloud (Requires 'theme' column in profiles table)
+        // Sync to Cloud
         if (user) saveUserProfile(user.id, { theme });
     }, [theme, user]);
 
