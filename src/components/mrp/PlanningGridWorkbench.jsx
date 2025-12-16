@@ -65,6 +65,23 @@ export default function PlanningGridWorkbench({
     // --- Helpers ---
     const getLedgerForDate = (dateStr) => dailyLedger.find(l => l.dateStr === dateStr) || {};
 
+    // SMART INPUT HELPER
+    const handleSmartCommit = (val, currentVal, updateFn, dateStr) => {
+        if (!val && val !== 0) return; // Ignore empty if handled elsewhere
+        let num = Number(val);
+
+        // Rule: "we dont product anything below 1k" -> Auto-scale
+        if (num > 0 && num < 1000) {
+            num *= 1000;
+        }
+
+        // Only update if different (prevent loops if sensitive)
+        // Note: currentVal might be string or number
+        if (Number(currentVal) !== num) {
+            updateFn(dateStr, num);
+        }
+    };
+
     // --- Renderers ---
     const renderInboundCell = (dateStr) => {
         const manifest = poManifest[dateStr];
@@ -120,8 +137,68 @@ export default function PlanningGridWorkbench({
         );
     };
 
+    // --- Summary Statistics (Visible Horizon) ---
+    const summaryStats = React.useMemo(() => {
+        if (!specs || !specs.bottles_per_truck || !specs.bottlesPerCase) return null;
+
+        let totalCases = 0;
+        let totalScheduled = 0;
+
+        const casesPerTruck = specs.bottles_per_truck / specs.bottlesPerCase;
+
+        dates.forEach(date => {
+            const dateStr = formatLocalDate(date);
+
+            // Demand (Cases)
+            const demandVal = monthlyDemand[dateStr];
+            if (demandVal) totalCases += Number(demandVal);
+
+            // Inbound (Trucks)
+            const manifest = poManifest[dateStr];
+            const count = manifest?.items?.length > 0
+                ? manifest.items.length
+                : (monthlyInbound[dateStr] || 0);
+            totalScheduled += Number(count);
+        });
+
+        const trucksRequired = Math.ceil(totalCases / casesPerTruck);
+        const gap = totalScheduled - trucksRequired;
+
+        return { totalCases, trucksRequired, totalScheduled, gap };
+    }, [dates, monthlyDemand, monthlyInbound, poManifest, specs]);
+
     return (
         <div className="flex flex-col h-full bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden font-sans">
+
+            {/* SUMMARY SCOREBOARD */}
+            {summaryStats && (
+                <div className="hidden md:flex flex-shrink-0 p-2 bg-slate-900 text-white items-center justify-between z-10 font-mono text-xs uppercase tracking-wider border-b border-slate-700">
+                    <div className="flex gap-4">
+                        <div className="flex flex-col">
+                            <span className="text-slate-400 text-[9px]">Total Plan</span>
+                            <span className="font-bold text-sm text-blue-200">{summaryStats.totalCases.toLocaleString()} <span className="text-[9px] text-slate-500">cs</span></span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-slate-400 text-[9px]">Est. Trucks</span>
+                            <span className="font-bold text-sm">{summaryStats.trucksRequired} <span className="text-[9px] text-slate-500">trks</span></span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="flex flex-col text-right">
+                            <span className="text-slate-400 text-[9px]">Scheduled</span>
+                            <span className="font-bold text-sm text-emerald-400">{summaryStats.totalScheduled}</span>
+                        </div>
+
+                        <div className={`flex flex-col items-center justify-center px-3 py-0.5 rounded border ${summaryStats.gap < 0 ? 'bg-red-500/20 border-red-500 text-red-200' : 'bg-emerald-500/20 border-emerald-500 text-emerald-200'}`}>
+                            <span className="text-[9px] opacity-75">Gap</span>
+                            <span className="font-black text-lg leading-none">
+                                {summaryStats.gap > 0 ? '+' : ''}{summaryStats.gap}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Toolbar */}
             <div className="flex justify-between items-center p-2 border-b bg-gray-50 dark:bg-gray-900">
@@ -195,10 +272,11 @@ export default function PlanningGridWorkbench({
                                 return (
                                     <td key={dateStr} className={cellClass}>
                                         <input
-                                            type="number"
+                                            type="text"
                                             className={`w-full h-full text-center border-none focus:ring-0 bg-transparent p-0 text-gray-900 dark:text-gray-100 ${act ? 'font-bold' : ''} ${isToday ? 'font-bold' : ''}`}
-                                            value={val}
-                                            onChange={(e) => updateDateDemand(dateStr, e.target.value)}
+                                            value={val ? Number(val).toLocaleString() : ''}
+                                            onChange={(e) => updateDateDemand(dateStr, e.target.value.replace(/,/g, ''))}
+                                            onBlur={(e) => handleSmartCommit(e.target.value.replace(/,/g, ''), val, updateDateDemand, dateStr)}
                                             placeholder="-"
                                         />
                                         {/* Optional: Show little indicator for actual */}
@@ -236,10 +314,11 @@ export default function PlanningGridWorkbench({
                                     <td key={dateStr} className={cellClass}>
                                         {!isLocked ? (
                                             <input
-                                                type="number"
+                                                type="text"
                                                 className="w-full h-full text-center border-none focus:ring-0 bg-transparent p-0 font-bold text-blue-700 dark:text-blue-300"
-                                                value={act}
-                                                onChange={(e) => updateDateActual(dateStr, e.target.value)}
+                                                value={act ? Number(act).toLocaleString() : ''}
+                                                onChange={(e) => updateDateActual(dateStr, e.target.value.replace(/,/g, ''))}
+                                                onBlur={(e) => handleSmartCommit(e.target.value.replace(/,/g, ''), act, updateDateActual, dateStr)}
                                                 placeholder="-"
                                             />
                                         ) : (

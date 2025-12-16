@@ -44,7 +44,7 @@ const DemandCell = memo(({ date, dateStr, initialValue, updateDateDemand, update
     // Sync from Global State
     useEffect(() => {
         if (inputRef.current && document.activeElement !== inputRef.current) {
-            inputRef.current.value = initialValue || '';
+            inputRef.current.value = initialValue ? Number(initialValue).toLocaleString() : '';
         }
     }, [initialValue]);
 
@@ -54,18 +54,35 @@ const DemandCell = memo(({ date, dateStr, initialValue, updateDateDemand, update
         let multiplier = 1;
         if (s.endsWith('k')) multiplier = 1000;
         else if (s.endsWith('m')) multiplier = 1000000;
-        const num = parseFloat(s.replace(/[km]/g, ''));
+
+        let num = parseFloat(s.replace(/[km]/g, ''));
         if (isNaN(num)) return raw;
-        return (num * multiplier).toString();
+
+        num *= multiplier;
+
+        // Smart Input: Auto-scale < 1000 if no explicit multiplier was used
+        // Logic: If user typed "60" (multiplier 1), scale it. If they typed "0.06k" (60), don't double scale? 
+        // Actually, if they typed "60k", multiplier is 1000, val is 60000. > 1000. Safe.
+        // If they typed "60", multiplier is 1, val is 60. Scale it.
+        // Rule: "we dont product anything below 1k"
+        if (multiplier === 1 && num > 0 && num < 1000) {
+            num *= 1000;
+        }
+
+        return num.toString();
     };
 
     const handleBlur = () => {
         if (readOnly) return;
         if (inputRef.current) {
             const finalVal = parseValue(inputRef.current.value);
-            // Only update if changed (optional optimization, but good safer bet)
+            // Only update if changed
             if (finalVal !== initialValue) {
                 updateDateDemand(dateStr, finalVal);
+            }
+            // Always format on blur
+            if (finalVal && !isNaN(finalVal)) {
+                inputRef.current.value = Number(finalVal).toLocaleString();
             }
         }
     };
@@ -77,6 +94,11 @@ const DemandCell = memo(({ date, dateStr, initialValue, updateDateDemand, update
             const rawVal = e.target.value.replace(/,/g, '');
             const finalVal = parseValue(rawVal);
             updateDateDemand(dateStr, finalVal);
+
+            // Format immediately
+            if (finalVal && !isNaN(finalVal)) {
+                e.target.value = Number(finalVal).toLocaleString();
+            }
 
             // Move focus to next cell
             const nextDateStr = addDays(dateStr, 1);

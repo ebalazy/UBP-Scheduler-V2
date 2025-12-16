@@ -31,10 +31,11 @@ const PlanningRowActual = memo(({ dates, monthlyProductionActuals, updateDateAct
 export default PlanningRowActual;
 
 const ActualCell = React.memo(({ dateStr, initialValue, updateDateActual, readOnly, isToday }) => {
-    const [val, setVal] = React.useState(initialValue || '');
+    // Format on init
+    const [val, setVal] = React.useState(initialValue ? Number(initialValue).toLocaleString() : '');
 
     React.useEffect(() => {
-        setVal(initialValue || '');
+        setVal(initialValue ? Number(initialValue).toLocaleString() : '');
     }, [initialValue]);
 
     const handleBlur = () => {
@@ -44,13 +45,23 @@ const ActualCell = React.memo(({ dateStr, initialValue, updateDateActual, readOn
         if (valStr.endsWith('k')) multiplier = 1000;
         else if (valStr.endsWith('m')) multiplier = 1000000;
 
-        const clean = parseFloat(valStr.replace(/[km]/g, ''));
+        let clean = parseFloat(valStr.replace(/[km]/g, ''));
+
+        // Smart Input: Auto-scale < 1000
+        if (multiplier === 1 && clean > 0 && clean < 1000) {
+            clean *= 1000;
+        }
+
         const num = isNaN(clean) ? null : clean * multiplier;
 
         // Only update if changed
         if (num !== initialValue) {
             updateDateActual(dateStr, num);
-            if (num !== null) setVal(num.toString()); // Clean up display
+            if (num !== null) setVal(num.toLocaleString()); // Clean up display using local string
+        } else {
+            // Re-format if they typed unformatted but value is same (e.g. "60000" vs "60,000")
+            // This ensures consistency
+            if (num !== null) setVal(num.toLocaleString());
         }
     };
 

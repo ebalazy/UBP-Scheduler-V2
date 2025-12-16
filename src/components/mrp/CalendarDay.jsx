@@ -18,17 +18,17 @@ const CalendarDay = memo(({
     readOnly
 }) => {
     // Local state for inputs to support "Edit-on-Blur"
-    const [localDemand, setLocalDemand] = useState(day?.val || 0);
-    const [localActual, setLocalActual] = useState(day?.actual || '');
+    const [localDemand, setLocalDemand] = useState(day?.val ? Number(day.val).toLocaleString() : 0);
+    const [localActual, setLocalActual] = useState(day?.actual ? Number(day.actual).toLocaleString() : '');
     const [localInbound, setLocalInbound] = useState(day?.trucks || 0);
 
     // Sync local state when props change (e.g. from bulk fill or socket update)
     useEffect(() => {
-        setLocalDemand(day?.val || 0);
+        setLocalDemand(day?.val ? Number(day.val).toLocaleString() : 0);
     }, [day?.val]);
 
     useEffect(() => {
-        setLocalActual(day?.actual || '');
+        setLocalActual(day?.actual ? Number(day.actual).toLocaleString() : '');
     }, [day?.actual]);
 
     useEffect(() => {
@@ -45,23 +45,44 @@ const CalendarDay = memo(({
     // --- Handlers ---
     const handleDemandCommit = () => {
         let cleanVal = String(localDemand).replace(/,/g, '').trim();
-        if (cleanVal === '') cleanVal = '0'; // treat empty as 0
+        if (cleanVal === '') cleanVal = '0';
 
-        if (!isNaN(cleanVal) && Number(cleanVal) !== Number(day.val)) {
-            updateDateDemand(day.dateStr, cleanVal);
+        if (!isNaN(cleanVal)) {
+            let numVal = Number(cleanVal);
+            // Smart Input: Auto-scale < 1000 to thousands
+            if (numVal > 0 && numVal < 1000) {
+                numVal *= 1000;
+            }
+
+            // Format for display (e.g. "60,000")
+            setLocalDemand(numVal.toLocaleString());
+
+            if (numVal !== Number(day.val)) {
+                updateDateDemand(day.dateStr, numVal);
+            }
         }
     };
 
     const handleActualCommit = () => {
         let cleanVal = String(localActual).replace(/,/g, '').trim();
 
-        // Ensure we can clear actuals if needed
         if (cleanVal === '') {
             if (day.actual !== null && day.actual !== '') {
-                updateDateActual(day.dateStr, null); // or '' depending on backend
+                updateDateActual(day.dateStr, null);
             }
-        } else if (!isNaN(cleanVal) && Number(cleanVal) !== Number(day.actual)) {
-            updateDateActual(day.dateStr, cleanVal);
+        } else if (!isNaN(cleanVal)) {
+            let numVal = Number(cleanVal);
+            // Smart Input: Auto-scale < 1000 to thousands
+            if (numVal > 0 && numVal < 1000) {
+                numVal *= 1000;
+            }
+
+            // Format for display
+            setLocalActual(numVal.toLocaleString());
+
+            if (numVal !== Number(day.actual)) {
+                updateDateActual(day.dateStr, numVal);
+            }
         }
     };
 
