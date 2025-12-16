@@ -1,69 +1,101 @@
 import React, { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
+} from 'recharts';
 import { useSettings } from '../../context/SettingsContext';
 
-function BurnDownChart({ currentInventoryBottles, weeklyDemandBottles, safetyStockBottles }) {
+function BurnDownChart({ dailyLedger = [], safetyTargetBottles = 0, specs = {} }) {
     const { theme } = useSettings();
     const isDark = theme === 'dark';
 
     const data = useMemo(() => {
-        if (!currentInventoryBottles) return [];
+        if (!dailyLedger.length || !specs.bottlesPerCase) return [];
 
-        const dailyBurnRate = weeklyDemandBottles / 7;
-        // If no demand, flat line
-        const burn = dailyBurnRate > 0 ? dailyBurnRate : 0;
+        const bottlesPerPallet = (specs.bottlesPerCase * (specs.casesPerPallet || 1));
+        const safetyPallets = Math.round(safetyTargetBottles / bottlesPerPallet);
 
-        const points = [];
-        let current = currentInventoryBottles;
+        return dailyLedger.map(day => {
+            const pallets = day.balance / bottlesPerPallet;
+            // SAFE PARSING: Avoid UTC 'previous day' shift
+            const [y, m, d] = day.dateStr.split('-').map(Number);
+            const localDate = new Date(y, m - 1, d);
 
-        // Project for 14 days
-        for (let i = 0; i <= 14; i++) {
-            points.push({
-                day: `Day ${i}`,
-                inventory: Math.max(0, Math.round(current)),
-                safetyStock: safetyStockBottles
-            });
-            current -= burn;
-        }
+            return {
+                date: day.dateStr,
+                displayDate: localDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
+                pallets: Math.round(pallets),
+                safety: safetyPallets
+            };
+        });
+    }, [dailyLedger, safetyTargetBottles, specs]);
 
-        return points;
-    }, [currentInventoryBottles, weeklyDemandBottles, safetyStockBottles]);
+    if (!data.length) {
+        return (
+            <div className="w-full h-80 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <span className="text-gray-400 font-medium">No projection data available</span>
+            </div>
+        );
+    }
 
-    if (!data.length) return <div className="h-64 flex items-center justify-center text-gray-400">No Data to Display</div>;
+    const safetyLevel = data[0]?.safety || 0;
+    const maxVal = Math.max(...data.map(d => d.pallets), safetyLevel * 1.5);
 
     // Theme Colors
-    const axisColor = isDark ? '#9CA3AF' : '#6B7280'; // gray-400 : gray-500
-    const gridColor = isDark ? '#374151' : '#E5E7EB'; // gray-700 : gray-200
-    const tooltipBg = isDark ? '#1F2937' : '#FFFFFF'; // gray-800 : white
-    const tooltipColor = isDark ? '#F3F4F6' : '#111827'; // gray-100 : gray-900
+    const axisColor = isDark ? '#9CA3AF' : '#6B7280';
+    const gridColor = isDark ? '#374151' : '#E5E7EB';
+    const tooltipBg = isDark ? '#1F2937' : '#FFFFFF';
+    const tooltipColor = isDark ? '#F3F4F6' : '#111827';
+
+    // Gradient logic based on lowest point?
+    // Simply Blue for inventory, with Red Line for Safety.
 
     return (
-        <div className="w-full h-80 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-colors flex flex-col">
-            <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Inventory Burn Down (14 Days)</h3>
-            <div className="flex-1 w-full min-h-[200px] min-w-[300px]">
+        <div className="w-full h-80 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col transition-all">
+            <div className="flex justify-between items-center mb-4 px-2">
+                <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    30-Day Inventory Projection
+                </h3>
+                <div className="flex items-center space-x-4 text-xs font-medium">
+                    <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span>
+                        <span className="text-gray-600 dark:text-gray-300">Projected Balance</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-red-500 mr-1.5 opacity-50"></span>
+                        <span className="text-gray-600 dark:text-gray-300">Safety Target ({safetyLevel} plts)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex-1 w-full min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
+                    <AreaChart
                         data={data}
-                        margin={{
-                            top: 5,
-                            right: 30,
-                            left: 20,
-                            bottom: 5,
-                        }}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                     >
+                        <defs>
+                            <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.05} />
+                            </linearGradient>
+                            <linearGradient id="colorSafety" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#EF4444" stopOpacity={0.1} />
+                                <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                         <XAxis
-                            dataKey="day"
-                            tick={{ fontSize: 12, fill: axisColor }}
+                            dataKey="displayDate"
+                            tick={{ fontSize: 11, fill: axisColor }}
                             axisLine={false}
                             tickLine={false}
-                            interval={2}
+                            interval={6} // Show roughly weekly labels
                         />
                         <YAxis
-                            tick={{ fontSize: 12, fill: axisColor }}
+                            tick={{ fontSize: 11, fill: axisColor }}
                             axisLine={false}
                             tickLine={false}
-                            tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                            domain={[0, 'auto']} // Start at 0 to show true crash risk
                         />
                         <Tooltip
                             contentStyle={{
@@ -71,35 +103,31 @@ function BurnDownChart({ currentInventoryBottles, weeklyDemandBottles, safetySto
                                 borderRadius: '8px',
                                 border: isDark ? '1px solid #374151' : 'none',
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                color: tooltipColor
+                                color: tooltipColor,
+                                padding: '8px 12px'
                             }}
-                            itemStyle={{ color: tooltipColor }}
-                            labelStyle={{ color: axisColor }}
-                            formatter={(value) => value.toLocaleString()}
+                            itemStyle={{ fontSize: '12px', fontWeight: 600 }}
+                            labelStyle={{ color: axisColor, fontSize: '11px', marginBottom: '4px' }}
+                            formatter={(value, name) => [
+                                `${value} Pallets`,
+                                name === 'pallets' ? 'Balance' : 'Safety'
+                            ]}
                         />
-                        <Legend wrapperStyle={{ color: axisColor }} />
-                        <Line
+                        <ReferenceLine y={safetyLevel} stroke="#EF4444" strokeDasharray="3 3" strokeOpacity={0.6} />
+                        <Area
                             type="monotone"
-                            dataKey="inventory"
-                            name="Projected Inventory"
+                            dataKey="pallets"
                             stroke="#3B82F6"
-                            strokeWidth={3}
-                            dot={false}
-                            activeDot={{ r: 6 }}
-                        />
-                        <Line
-                            type="step"
-                            dataKey="safetyStock"
-                            name="Safety Stock"
-                            stroke="#EF4444"
                             strokeWidth={2}
-                            strokeDasharray="5 5"
-                            dot={false}
+                            fillOpacity={1}
+                            fill="url(#colorPv)"
+                            animationDuration={1000}
                         />
-                    </LineChart>
+                    </AreaChart>
                 </ResponsiveContainer>
             </div>
         </div>
     );
 }
+
 export default React.memo(BurnDownChart);

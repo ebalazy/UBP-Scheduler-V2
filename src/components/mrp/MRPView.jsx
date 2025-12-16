@@ -450,9 +450,9 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                 {/* CHARTS SECTION (Full Width) */}
                 <div className="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <BurnDownChart
-                        currentInventoryBottles={results.netInventory + weeklyDemandBottles}
-                        weeklyDemandBottles={weeklyDemandBottles}
-                        safetyStockBottles={safetyTarget}
+                        dailyLedger={results.dailyLedger}
+                        safetyTargetBottles={results.safetyTarget}
+                        specs={results.specs}
                     />
                 </div>
             </div>
