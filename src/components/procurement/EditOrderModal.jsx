@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon, CalendarIcon, TruckIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
+import { useProducts } from '../../context/ProductsContext'; // Added
 
 export default function EditOrderModal({ isOpen, onClose, order, date }) {
     // If order is provided, we are Editing. If null, we are Creating.
     // If Creating, 'date' might be a default, or today.
 
     const { addOrdersBulk, updateOrder, moveOrder } = useProcurement();
-    const { bottleSizes } = useSettings();
+    const { productMap } = useProducts();
+    const bottleSizes = Object.keys(productMap); // Derived
 
     // Form State
     const [formData, setFormData] = useState({

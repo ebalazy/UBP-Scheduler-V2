@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
+import { useProducts } from '../../context/ProductsContext'; // Added
 import {
     ClipboardDocumentCheckIcon,
     TruckIcon,
@@ -16,7 +17,7 @@ export default function MorningReconciliationModal({
     state, // mrp.formState
     setters // mrp.setters
 }) {
-    const { bottleDefinitions } = useSettings();
+    const { productMap: bottleDefinitions } = useProducts();
     const sizes = Object.keys(bottleDefinitions);
     const specs = bottleDefinitions[state.selectedSize];
     const bottlesPerTruck = specs?.bottlesPerTruck || 20000;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getLocalISOString, formatLocalDate, addDays } from '../../utils/dateUtils';
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
 import { useProcurement } from '../../context/ProcurementContext';
 import ScheduleManagerModal from '../procurement/ScheduleManagerModal';
 
@@ -35,7 +35,7 @@ export default function PlanningGridWorkbench({
     userProfile
 }) {
     const { saveProcurementEntry, deleteProcurementEntry } = useProcurement();
-    const { bottleSizes } = useSettings();
+    // const { bottleSizes } = useSettings(); // Unused
     // Start view 3 days in the past to show recent actuals for reconciliation
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();

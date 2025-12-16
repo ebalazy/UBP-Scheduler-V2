@@ -1,15 +1,15 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
+import { useProducts } from '../context/ProductsContext';
 
 export function useScheduler() {
     const {
-        bottleDefinitions,
         safetyStockLoads,
         schedulerSettings,
-        updateSchedulerSetting,
-        updateBottleDefinition // Add this
+        updateSchedulerSetting
     } = useSettings();
+
+    const { productMap: bottleDefinitions, updateProductSettings } = useProducts();
 
     // UI View State (Local Preferred)
     const [selectedSize, setSelectedSize] = useState(() => localStorage.getItem('sched_selectedSize') || '20oz');
@@ -141,7 +141,7 @@ export function useScheduler() {
                 const val = Number(v);
                 const safeVal = !isNaN(val) && val >= 0 ? val : 0;
                 // Update MASTER Rate (Cases/Hr) from Daily Target
-                updateBottleDefinition(selectedSize, 'productionRate', safeVal / 24);
+                updateProductSettings(selectedSize, { production_rate: safeVal / 24 });
                 // remove local updateSchedulerSetting('targetDailyProduction')
             },
             setShiftStartTime: (v) => updateSchedulerSetting('shiftStartTime', v),

@@ -1,8 +1,10 @@
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
+import { useProducts } from '../../context/ProductsContext'; // Added
 import VisualScheduler from './VisualScheduler';
 
 export default function SchedulerView({ state, setters, results, readOnly = false }) {
-    const { bottleSizes } = useSettings();
+    const { productMap } = useProducts();
+    const bottleSizes = Object.keys(productMap);
 
     if (!results) return <div>Loading...</div>;
 

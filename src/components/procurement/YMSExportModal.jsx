@@ -2,11 +2,11 @@ import { useState, useMemo } from 'react';
 import { Dialog, Switch } from '@headlessui/react';
 import { XMarkIcon, TableCellsIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
 
 export default function YMSExportModal({ isOpen, onClose }) {
     const { poManifest } = useProcurement();
-    const { bottleSizes } = useSettings(); // maybe needed for weight/dims later?
+    // const { bottleSizes } = useSettings(); // Unused
 
     // Flatten Orders
     const allOrders = useMemo(() => {

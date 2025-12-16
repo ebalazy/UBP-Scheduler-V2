@@ -11,13 +11,14 @@ import {
     ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
+import { useProducts } from '../../context/ProductsContext'; // Added
 import { formatTime12h } from '../../utils/dateUtils';
 import EditOrderModal from './EditOrderModal';
 
 export default function ProcurementMasterList({ isOpen, onClose }) {
     const { poManifest, deleteOrdersBulk, bulkUpdateOrders } = useProcurement();
-    const { bottleDefinitions } = useSettings();
+    const { productMap: bottleDefinitions } = useProducts(); // New Source
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedIds, setSelectedIds] = useState(new Set());
 
@@ -46,7 +47,16 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
             }
         });
         // Sort by Date Descending
-        return list.sort((a, b) => new Date(b.date) - new Date(a.date));
+        return list.sort((a, b) => {
+            // 1. Date Descending
+            const dateDiff = new Date(b.date) - new Date(a.date);
+            if (dateDiff !== 0) return dateDiff;
+
+            // 2. Time Ascending (Earliest first for same day)
+            const timeA = a.time || '23:59'; // Put undefined times last? Or '00:00'?
+            const timeB = b.time || '23:59';
+            return timeA.localeCompare(timeB);
+        });
     }, [poManifest]);
 
     // Filter
@@ -199,8 +209,14 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                                 <div className="p-2">
                                                     <div className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Set Status</div>
                                                     <button
+                                                        onClick={() => handleBulkSetStatus('received')}
+                                                        className="w-full text-left px-2 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded text-sm text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-2"
+                                                    >
+                                                        <span>✅</span> Mark as Received
+                                                    </button>
+                                                    <button
                                                         onClick={() => handleBulkSetStatus('confirmed')}
-                                                        className="w-full text-left px-2 py-2 hover:bg-green-50 dark:hover:bg-green-900/30 rounded text-sm text-green-700 dark:text-green-400 font-bold"
+                                                        className="w-full text-left px-2 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-sm text-blue-700 dark:text-blue-400 font-bold"
                                                     >
                                                         Mark as Confirmed
                                                     </button>
@@ -306,7 +322,16 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                                 {(order.time && order.time !== '00:00') ? formatTime12h(order.time) : '-'}
                                             </td>
                                             <td className="p-4 text-sm font-mono text-gray-600 dark:text-gray-300">
-                                                {order.po}
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`font-mono ${order.status === 'received' ? 'line-through text-gray-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                        {order.po}
+                                                    </span>
+                                                    {order.status === 'received' && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wide">
+                                                            RCVD
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="p-4">
                                                 {order.sku ? (
@@ -329,6 +354,20 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                                 {order.carrier || '-'}
                                             </td>
                                             <td className="p-4">
+                                                {order.status !== 'received' && (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (confirm("Mark this order as Received?")) {
+                                                                // Use bulk update trick for single item
+                                                                bulkUpdateOrders([{ ...order, status: 'received' }]);
+                                                            }
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-emerald-600 transition-colors mr-1"
+                                                        title="Mark Received"
+                                                    >
+                                                        ✅
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => handleEdit(order)}
                                                     className="p-1 text-gray-400 hover:text-blue-600 transition-colors"

@@ -19,8 +19,8 @@ import { calculateDeliveryTime } from '../../utils/schedulerUtils';
 
 export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [], monthlyInbound, updateDateInbound }) {
     const { updateDailyManifest, addOrdersBulk, removeOrder, updateOrder } = useProcurement();
-    const { schedulerSettings, activeSku, bottleDefinitions } = useSettings();
-    const { getProductSpecs } = useProducts();
+    const { schedulerSettings, activeSku } = useSettings();
+    const { getProductSpecs, productMap: bottleDefinitions } = useProducts();
 
     // Edit State
     const [editingId, setEditingId] = useState(null);
@@ -28,17 +28,12 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
     const [moveTargetDate, setMoveTargetDate] = useState('');
     const [movingId, setMovingId] = useState(null);
 
-    // Sorted Orders (Time Ascending, TBD last)
+    // Sorted Orders (Time Ascending)
     const sortedOrders = [...orders].sort((a, b) => {
-        // Treat 00:00 as No Time for sorting purposes if desired, 
-        // or just strict string sort?
-        // User complained about "12am" appearing, implying it's a default/invalid time.
-        // Let's treat falsy OR "00:00" as TBD.
-        const getVal = (o) => {
-            if (!o.time || o.time === '00:00') return 'ZZZZ'; // End of list
-            return o.time;
-        };
-        return getVal(a).localeCompare(getVal(b));
+        // Treat missing time as "End of Day" or "TBD"
+        const timeA = (a.time && a.time !== '00:00') ? a.time : 'ZZZZ';
+        const timeB = (b.time && b.time !== '00:00') ? b.time : 'ZZZZ';
+        return timeA.localeCompare(timeB);
     });
 
     // Helpers
@@ -379,17 +374,26 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
+                                                                // Cycle logic: Ordered -> Confirmed -> Ordered (Received is separate special state, but clicking it can revert)
                                                                 const currentStatus = order.status || 'ordered';
-                                                                const newStatus = currentStatus === 'confirmed' ? 'ordered' : 'confirmed';
-                                                                updateOrder(date, { ...order, status: newStatus });
+                                                                if (currentStatus === 'received') {
+                                                                    if (confirm("Revert 'Received' status back to 'Ordered'?")) {
+                                                                        updateOrder(date, { ...order, status: 'ordered' });
+                                                                    }
+                                                                } else {
+                                                                    const newStatus = currentStatus === 'confirmed' ? 'ordered' : 'confirmed';
+                                                                    updateOrder(date, { ...order, status: newStatus });
+                                                                }
                                                             }}
-                                                            className={`ml-2 px-2 py-0.5 text-xs rounded-full font-bold border transition-colors ${(order.status === 'confirmed')
-                                                                ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'
-                                                                : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
+                                                            className={`ml-2 px-2 py-0.5 text-xs rounded-full font-bold border transition-colors ${order.status === 'received'
+                                                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
+                                                                : order.status === 'confirmed'
+                                                                    ? 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
+                                                                    : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
                                                                 }`}
-                                                            title="Click to Toggle Status (Ordered/Confirmed)"
+                                                            title="Toggle Status"
                                                         >
-                                                            {order.status === 'confirmed' ? 'Confirmed' : 'Ordered'}
+                                                            {order.status === 'received' ? 'Received' : (order.status === 'confirmed' ? 'Confirmed' : 'Ordered')}
                                                         </button>
                                                     </h3>
                                                     <div className="flex items-center gap-2 mt-1">
@@ -407,6 +411,20 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
 
                                             {/* Action Buttons */}
                                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {order.status !== 'received' && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (confirm("Mark this delivery as Received?")) {
+                                                                updateOrder(date, { ...order, status: 'received' });
+                                                            }
+                                                        }}
+                                                        className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg dark:hover:bg-emerald-900/30"
+                                                        title="Mark as Received"
+                                                    >
+                                                        <CheckCircleIcon className="w-5 h-5" />
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => {
                                                         startEdit(order);

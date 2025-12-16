@@ -8,12 +8,16 @@ import {
 } from '@heroicons/react/24/outline';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
 import { formatLocalDate, getLocalISOString } from '../../utils/dateUtils';
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
+import { useProducts } from '../../context/ProductsContext'; // Added
 
 export default function PulseHUD({ mrp, scheduler, activeSku }) {
     // Extract State & Setters
     const { formState: state, setters, results } = mrp;
-    const { bottleSizes } = useSettings();
+
+    // Use Products Context
+    const { productMap } = useProducts();
+    const bottleSizes = Object.keys(productMap);
 
     // Safety Checks
     if (!results) return null;

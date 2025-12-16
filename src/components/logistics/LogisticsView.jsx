@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getLocalISOString, addDays } from '../../utils/dateUtils';
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
+import { useProducts } from '../../context/ProductsContext'; // Added
 import {
     TruckIcon,
     ClipboardDocumentCheckIcon,
@@ -13,7 +14,8 @@ import { useProcurement } from '../../context/ProcurementContext';
 
 export default function LogisticsView({ state, setters, results, readOnly = false }) {
     const [isRecModalOpen, setIsRecModalOpen] = useState(false);
-    const { bottleSizes } = useSettings();
+    const { productMap } = useProducts();
+    const bottleSizes = Object.keys(productMap); // Derived from Products
     const [aggregatedSchedule, setAggregatedSchedule] = useState({ today: [], tomorrow: [] });
     const [filterSku, setFilterSku] = useState('ALL');
 

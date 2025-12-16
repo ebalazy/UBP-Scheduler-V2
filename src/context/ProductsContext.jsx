@@ -49,6 +49,33 @@ export function ProductsProvider({ children }) {
         }
     };
 
+    const updateProductSettings = async (productName, updates) => {
+        // Find product by name
+        const product = productsList.find(p => p.name === productName);
+        if (!product) return;
+
+        // Optimistic Update
+        const newList = productsList.map(p =>
+            p.name === productName ? { ...p, ...updates } : p
+        );
+        setProductsList(newList);
+
+        // API Call
+        try {
+            // updates keys: { lead_time_days: X, safety_stock_loads: Y }
+            const { error } = await supabase
+                .from('products')
+                .update(updates)
+                .eq('id', product.id);
+
+            if (error) throw error;
+
+        } catch (err) {
+            console.error("Failed to update product settings", err);
+            fetchProducts(); // Revert on error
+        }
+    };
+
     useEffect(() => {
         fetchProducts();
         // Optional: Realtime subscription could go here
@@ -75,6 +102,10 @@ export function ProductsProvider({ children }) {
                 productionRate: rate,
                 scrapPercentage: 0,
 
+                // New: Global Lead Time
+                leadTimeDays: p.lead_time_days, // Can be null/undefined
+                safetyStockLoads: p.safety_stock_loads, // Can be null/undefined
+
                 // Original Data
                 id: p.id
             };
@@ -89,6 +120,7 @@ export function ProductsProvider({ children }) {
         productMap, // The replacement for bottleDefinitions
         loading,
         refreshProducts: fetchProducts,
+        updateProductSettings, // Generalized Action
 
         // Helper to get specs safe
         getProductSpecs: (skuName) => {

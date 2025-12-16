@@ -21,12 +21,14 @@ import PulseHUD from './components/dashboard/PulseHUD';
 
 import { ProcurementProvider, useProcurement } from './context/ProcurementContext';
 
-import { ProductsProvider } from './context/ProductsContext';
+import { useProducts } from './context/ProductsContext'; // Import Hook
 
 export default function App() {
   const { user, loading, userRole } = useAuth();
   const { uploadLocalData } = useSupabaseSync();
-  const { bottleSizes } = useSettings();
+  // const { bottleSizes } = useSettings(); // REMOVED
+  const { productMap } = useProducts();
+  const bottleSizes = Object.keys(productMap);
 
   useEffect(() => {
     if (user) {
@@ -58,11 +60,9 @@ export default function App() {
   }
 
   return (
-    <ProductsProvider>
-      <ProcurementProvider>
-        <AuthenticatedApp user={user} />
-      </ProcurementProvider>
-    </ProductsProvider>
+    <ProcurementProvider>
+      <AuthenticatedApp user={user} />
+    </ProcurementProvider>
   );
 }
 
@@ -89,7 +89,9 @@ function AuthenticatedApp({ user }) {
   const { poManifest } = useProcurement();
   const mrp = useMRP(poManifest);
   const scheduler = useScheduler();
-  const { bottleSizes, activeSku } = useSettings();
+  const { activeSku } = useSettings();
+  const { productMap } = useProducts();
+  const bottleSizes = Object.keys(productMap);
   const masterSchedule = useMasterSchedule(bottleSizes, activeTab === 'master');
 
   return (

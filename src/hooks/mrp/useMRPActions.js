@@ -8,7 +8,7 @@ import { saveLocalState } from './useMRPState';
 
 
 export function useMRPActions(state, calculationsResult) {
-    const { updateBottleDefinition, safetyStockLoads, leadTimeDays } = useSettings();
+    const { safetyStockLoads, leadTimeDays } = useSettings();
     const { productMap: bottleDefinitions, refreshProducts } = useProducts(); // Use Master Data
     const { user, userRole } = useAuth();
     const { savePlanningEntry, saveProductionSetting, saveInventoryAnchor } = useSupabaseSync();
@@ -328,9 +328,6 @@ export function useMRPActions(state, calculationsResult) {
             const val = Number(v);
             setLocalProductionRate(val); // Optimistic Update
 
-            // Legacy Backup (for now)
-            updateBottleDefinition(selectedSize, 'productionRate', val);
-
             if (user) {
                 await saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'production_rate', val));
                 refreshProducts(); // Updating Master Data should reflect everywhere
@@ -376,7 +373,7 @@ export function useMRPActions(state, calculationsResult) {
     }), [
         setSelectedSize, updateDateDemand, updateDateDemandBulk, updateDateActual, updateDateInbound,
         truckManifest, setTruckManifest, saveLocalState, selectedSize, user, saveWithStatus, savePlanningEntry,
-        setLocalProductionRate, updateBottleDefinition, saveProductionSetting, refreshProducts,
+        setLocalProductionRate, saveProductionSetting, refreshProducts,
         setDowntimeHours, setCurrentInventoryPallets, setIncomingTrucks, setYardInventory, setIsAutoReplenish,
         setInventoryAnchor
     ]);

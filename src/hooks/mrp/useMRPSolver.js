@@ -9,7 +9,7 @@ import { getLocalISOString, addDays } from '../../utils/dateUtils';
 
 export function useMRPSolver() {
 
-    const solve = (currentResults, safetyStockLoads, bottleDefinitions, selectedSize, schedulerSettings, state) => {
+    const solve = (currentResults, safetyStockLoads, bottleDefinitions, selectedSize, schedulerSettings, state, effectiveLeadTime) => {
         // Validation
         if (!currentResults || !currentResults.dailyResults || !selectedSize || !bottleDefinitions[selectedSize]) {
             console.warn("Solver: Missing Data", { currentResults, selectedSize });
@@ -24,7 +24,8 @@ export function useMRPSolver() {
 
         // Lead Time Gate (Frozen Period)
         const todayStr = getLocalISOString();
-        const frozenDays = schedulerSettings?.leadTimeDays || 2;
+        // Use specific lead time if provided, else fallback to global setting
+        const frozenDays = effectiveLeadTime !== undefined ? effectiveLeadTime : (schedulerSettings?.leadTimeDays || 2);
         const frozenUntil = addDays(todayStr, frozenDays);
 
         let cumulativeAddedBottles = 0; // The "Rolling Wave" of added inventory
@@ -47,7 +48,6 @@ export function useMRPSolver() {
 
             // Lead Time Gate (Frozen Period)
             // Strict enforcement: We cannot plan orders inside the frozen window.
-            const frozenUntil = addDays(todayStr, schedulerSettings?.leadTimeDays || 2);
             if (dateStr <= frozenUntil) return;
 
             // Skip updates if Actuals represent a locked reality (Past)

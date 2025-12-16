@@ -27,14 +27,7 @@ export function SettingsProvider({ children }) {
     const { fetchUserProfile, saveUserProfile } = useSupabaseSync();
 
     // Initialize state from LocalStorage or Defaults
-    const [bottleDefinitions, setBottleDefinitions] = useState(() => {
-        try {
-            const saved = localStorage.getItem('bottleDefinitions');
-            return saved ? JSON.parse(saved) : DEFAULTS.bottleDefinitions;
-        } catch (e) {
-            return DEFAULTS.bottleDefinitions;
-        }
-    });
+
 
     const [safetyStockLoads, setSafetyStockLoads] = useState(() => {
         try {
@@ -131,9 +124,7 @@ export function SettingsProvider({ children }) {
     }, [user]);
 
     // Savers
-    useEffect(() => {
-        localStorage.setItem('bottleDefinitions', JSON.stringify(bottleDefinitions));
-    }, [bottleDefinitions]);
+
 
     useEffect(() => {
         localStorage.setItem('safetyStockLoads', JSON.stringify(safetyStockLoads));
@@ -148,6 +139,16 @@ export function SettingsProvider({ children }) {
     useEffect(() => {
         localStorage.setItem('csvMapping', JSON.stringify(csvMapping));
     }, [csvMapping]);
+
+
+
+    const [activeSku, setActiveSku] = useState(() => {
+        return localStorage.getItem('activeSku') || '20oz'; // Default
+    });
+
+    useEffect(() => {
+        localStorage.setItem('activeSku', activeSku);
+    }, [activeSku]);
 
     const [theme, setTheme] = useState(() => {
         try {
@@ -207,7 +208,7 @@ export function SettingsProvider({ children }) {
                     if (profile.lead_time_days !== null) setLeadTimeDays(profile.lead_time_days);
                     if (profile.safety_stock_loads !== null) setSafetyStockLoads(profile.safety_stock_loads);
 
-                    // Handle Dashboard Layout + Scheduler Stored inside it
+                    // Handle Dashboard Layout + Scheduler + Product Settings Stored inside it
                     if (profile.dashboard_layout) {
                         const dl = profile.dashboard_layout;
                         setDashboardLayout({
@@ -220,6 +221,11 @@ export function SettingsProvider({ children }) {
                         if (dl.scheduler) {
                             setSchedulerSettings(prev => ({ ...prev, ...dl.scheduler }));
                         }
+
+                        // Extract Product Lead Times
+                        if (dl.productLeadTimes) {
+                            setProductLeadTimes(dl.productLeadTimes);
+                        }
                     }
                 }
             });
@@ -227,9 +233,7 @@ export function SettingsProvider({ children }) {
     }, [user]);
 
     // Savers
-    useEffect(() => {
-        localStorage.setItem('bottleDefinitions', JSON.stringify(bottleDefinitions));
-    }, [bottleDefinitions]);
+
 
     useEffect(() => {
         localStorage.setItem('safetyStockLoads', JSON.stringify(safetyStockLoads));
@@ -245,17 +249,10 @@ export function SettingsProvider({ children }) {
         localStorage.setItem('csvMapping', JSON.stringify(csvMapping));
     }, [csvMapping]);
 
-    // Consolidated Dashboard & Scheduler Saver
+    // Consolidated Dashboard & Scheduler & Product Settings Saver
     // We save both into 'dashboard_layout' column to simulate a 'settings' jsonb column
     useEffect(() => {
         localStorage.setItem('dashboardLayout', JSON.stringify(dashboardLayout));
-
-        // Also persist scheduler settings locally for fallback? 
-        // We used to use separate keys. Let's keep separate local keys for safety if we revert?
-        // Or just trust this context.
-        // Let's keep local keys sync'd for now so if user reloads without net, 'useScheduler' legacy logic works?
-        // No, we are porting useScheduler to use THIS context. So local keys 'sched_*' are obsolete unless we write back to them for backup.
-        // Let's write to `settings_scheduler` local key.
         localStorage.setItem('settings_scheduler', JSON.stringify(schedulerSettings));
 
         if (user) {
@@ -271,19 +268,7 @@ export function SettingsProvider({ children }) {
     }, [dashboardLayout, schedulerSettings, user]);
 
 
-    const updateBottleDefinition = useCallback((size, field, value) => {
-        setBottleDefinitions(prev => {
-            const val = Number(value);
-            const safeVal = !isNaN(val) && val >= 0 ? val : 0;
-            return {
-                ...prev,
-                [size]: {
-                    ...prev[size],
-                    [field]: safeVal
-                }
-            };
-        });
-    }, []);
+
 
     const updateCsvMapping = useCallback((field, value) => {
         setCsvMapping(prev => ({
@@ -299,28 +284,12 @@ export function SettingsProvider({ children }) {
         }));
     }, []);
 
-    const addBottleDefinition = useCallback((name) => {
-        if (!name) return;
-        setBottleDefinitions(prev => {
-            if (prev[name]) return prev;
-            // Clone structure from 20oz default
-            return {
-                ...prev,
-                [name]: { ...DEFAULTS.bottleDefinitions['20oz'] }
-            };
-        });
-    }, []);
 
-    const deleteBottleDefinition = useCallback((name) => {
-        setBottleDefinitions(prev => {
-            const copy = { ...prev };
-            delete copy[name];
-            return copy;
-        });
-    }, []);
+
+
 
     const resetDefaults = useCallback(() => {
-        setBottleDefinitions(DEFAULTS.bottleDefinitions);
+
         setSafetyStockLoads(DEFAULTS.safetyStockLoads);
         setLeadTimeDays(DEFAULTS.leadTimeDays || 2);
         setCsvMapping(DEFAULTS.csvMapping);
@@ -328,11 +297,8 @@ export function SettingsProvider({ children }) {
         setSchedulerSettings({ targetDailyProduction: 0, shiftStartTime: '00:00', poAssignments: {}, cancelledLoads: [] });
     }, []);
 
-    // Stable Bottle Sizes (derived from definitions)
-    const uniqueBottleSizes = useMemo(() => Object.keys(bottleDefinitions), [bottleDefinitions]);
 
     const value = useMemo(() => ({
-        bottleDefinitions,
         safetyStockLoads,
         leadTimeDays,
         csvMapping,
@@ -349,22 +315,23 @@ export function SettingsProvider({ children }) {
             const val = Number(v);
             setLeadTimeDays(!isNaN(val) && val >= 0 ? val : 2);
         },
-        updateBottleDefinition,
         updateCsvMapping,
         updateSchedulerSetting, // Exported
         resetDefaults,
-        addBottleDefinition, // Exported
-        deleteBottleDefinition, // Exported
-        bottleSizes: uniqueBottleSizes // Dynamic & Stable
+        activeSku,
+        setActiveSku,
+        updateGlobalSetting: (key, value) => { // Adding missing export if needed? No, logic inside.
+            if (key === 'leadTimeDays') setLeadTimeDays(Number(value));
+            if (key === 'safetyStockLoads') setSafetyStockLoads(Number(value));
+        }
     }), [
-        bottleDefinitions,
         safetyStockLoads,
         leadTimeDays,
         csvMapping,
         dashboardLayout,
         schedulerSettings,
         theme,
-        uniqueBottleSizes
+        activeSku
     ]);
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

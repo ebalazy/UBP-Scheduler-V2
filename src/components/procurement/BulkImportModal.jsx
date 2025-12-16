@@ -3,11 +3,13 @@ import { Dialog } from '@headlessui/react';
 import { XMarkIcon, ArrowUpTrayIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useProducts } from '../../context/ProductsContext'; // Added
 import { calculateJITSchedule } from '../../utils/jitScheduler';
 
 export default function BulkImportModal({ isOpen, onClose }) {
     const { addOrdersBulk } = useProcurement();
-    const { bottleDefinitions, schedulerSettings } = useSettings();
+    const { schedulerSettings } = useSettings();
+    const { productMap: bottleDefinitions } = useProducts(); // New Source
     const [step, setStep] = useState(1); // 1: Paste, 2: Map, 3: Review
     const [rawText, setRawText] = useState('');
     const [parsedPreview, setParsedPreview] = useState([]);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
+import { useProducts } from '../../context/ProductsContext'; // Added
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseSync } from '../useSupabaseSync';
 import { getLocalISOString } from '../../utils/dateUtils';
@@ -32,7 +33,8 @@ export const saveLocalState = (key, value, selectedSize, parse = false) => {
 };
 
 export function useMRPState() {
-    const { updateBottleDefinition, bottleSizes } = useSettings();
+    const { productMap } = useProducts();
+    const bottleSizes = Object.keys(productMap);
     const { user } = useAuth();
     const { fetchMRPState, migrateLocalStorage } = useSupabaseSync();
 

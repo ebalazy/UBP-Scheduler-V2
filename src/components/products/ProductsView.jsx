@@ -91,6 +91,14 @@ export default function ProductsView({ readOnly = false }) {
                                     <span className="text-gray-500">Cases/Pallet</span>
                                     <span className="font-medium text-gray-700 dark:text-gray-200">{product.cases_per_pallet}</span>
                                 </div>
+                                <div className="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700/50">
+                                    <span className="text-gray-500">Lead Time</span>
+                                    <span className="font-medium text-indigo-700 dark:text-indigo-300">{product.lead_time_days || 2} Days</span>
+                                </div>
+                                <div className="flex justify-between py-1 border-b border-gray-100 dark:border-gray-700/50">
+                                    <span className="text-gray-500">Safety Stock</span>
+                                    <span className="font-medium text-indigo-700 dark:text-indigo-300">{product.safety_stock_loads || 6} Loads</span>
+                                </div>
 
                                 <div className="pt-2">
                                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block flex items-center gap-1">

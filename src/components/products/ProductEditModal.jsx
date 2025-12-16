@@ -12,6 +12,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
         bottles_per_case: 12,
         bottles_per_truck: 20000,
         cases_per_pallet: 100,
+        lead_time_days: 2,
+        safety_stock_loads: 6,
         lines: [] // Array of { line_name: 'Line 1', production_rate: 2500 }
     });
     const [isSaving, setIsSaving] = useState(false);
@@ -27,6 +29,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                     bottles_per_case: product.bottles_per_case || 24,
                     cases_per_pallet: product.cases_per_pallet || 100, // FG Pallet
                     bottles_per_truck: product.bottles_per_truck || 100000, // Raw Material Count
+                    lead_time_days: product.lead_time_days !== null && product.lead_time_days !== undefined ? product.lead_time_days : 2,
+                    safety_stock_loads: product.safety_stock_loads !== null && product.safety_stock_loads !== undefined ? product.safety_stock_loads : 6,
                     lines: product.production_settings?.length > 0
                         ? product.production_settings.map(s => ({ line_name: s.line_name, production_rate: s.production_rate }))
                         : [{ line_name: 'Line 1', production_rate: 2500 }]
@@ -39,6 +43,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                     bottles_per_case: 24,
                     cases_per_pallet: 100,
                     bottles_per_truck: 100000,
+                    lead_time_days: 2,
+                    safety_stock_loads: 6,
                     lines: [{ line_name: 'Line 1', production_rate: 2500 }]
                 });
             }
@@ -46,6 +52,7 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
         }
     }, [isOpen, product]);
 
+    // ... existing handlers ...
     const handleAddLine = () => {
         setFormData(prev => ({
             ...prev,
@@ -66,8 +73,6 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
         setFormData({ ...formData, lines: newLines });
     };
 
-
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!user || readOnly) return;
@@ -83,6 +88,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                 bottles_per_case: Number(formData.bottles_per_case),
                 bottles_per_truck: Number(formData.bottles_per_truck),
                 cases_per_pallet: Number(formData.cases_per_pallet),
+                lead_time_days: Number(formData.lead_time_days),
+                safety_stock_loads: Number(formData.safety_stock_loads),
                 user_id: user.id
             };
 
@@ -215,6 +222,45 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                                         />
                                         <span className="text-xs text-emerald-600 dark:text-emerald-400">cases/plt</span>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Planning Settings (New Section) */}
+                        <div className="bg-indigo-50 dark:bg-indigo-900/10 p-4 rounded-xl space-y-4">
+                            <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider">⏱️ Planning Settings</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Lead Time</label>
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="number"
+                                            required
+                                            min="0"
+                                            value={formData.lead_time_days}
+                                            onChange={e => setFormData({ ...formData, lead_time_days: e.target.value })}
+                                            disabled={readOnly}
+                                            className="w-full px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-900 dark:text-indigo-100 text-sm font-bold disabled:opacity-50"
+                                        />
+                                        <span className="text-xs text-indigo-600 dark:text-indigo-400">days</span>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1">Frozen zone for auto-balance logic.</p>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Safety Stock</label>
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="number"
+                                            required
+                                            min="0"
+                                            value={formData.safety_stock_loads}
+                                            onChange={e => setFormData({ ...formData, safety_stock_loads: e.target.value })}
+                                            disabled={readOnly}
+                                            className="w-full px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-900 dark:text-indigo-100 text-sm font-bold disabled:opacity-50"
+                                        />
+                                        <span className="text-xs text-indigo-600 dark:text-indigo-400">loads</span>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1">Target floor inventory (multiplier).</p>
                                 </div>
                             </div>
                         </div>

@@ -17,6 +17,8 @@ const PlanningRowInbound = memo(({ dates, poManifest, monthlyInbound, updateDate
                 const hasManifest = manifestItems.length > 0;
                 const val = hasManifest ? manifestItems.length : (monthlyInbound[dateStr] || 0);
                 const isToday = dateStr === todayStr;
+                const isReceived = manifestItems.length > 0 && manifestItems.every(i => i.status === 'received');
+                const receivedCount = manifestItems.filter(i => i.status === 'received').length;
 
                 return (
                     <td key={dateStr} className={`min-w-[100px] w-[100px] h-8 p-0 border-r border-slate-200 dark:border-slate-700 relative group transition-colors 
@@ -28,12 +30,25 @@ const PlanningRowInbound = memo(({ dates, poManifest, monthlyInbound, updateDate
                             <button
                                 className={`w-full h-full p-1 flex items-center justify-center ${readOnly ? 'cursor-default' : ''}`}
                                 onClick={() => !readOnly && openManager(dateStr)}
-                                title={`${manifestItems.length} Confirmed POs${readOnly ? ' (Read Only)' : ''}`}
+                                title={`${manifestItems.length} POs (${receivedCount} Received)${readOnly ? ' (Read Only)' : ''}`}
                                 disabled={readOnly}
                             >
-                                <span className={`flex items-center gap-1 rounded px-2 py-0.5 text-sm font-bold shadow-sm whitespace-nowrap transition-colors ${readOnly ? 'bg-emerald-600/70 text-white/90' : 'bg-emerald-600 text-white dark:bg-emerald-500 hover:bg-emerald-700'}`}>
-                                    <TruckIcon className="w-3 h-3" />
-                                    {val} PO
+                                <span className={`flex items-center gap-1 rounded px-2 py-0.5 text-sm font-bold shadow-sm whitespace-nowrap transition-colors 
+                                    ${isReceived
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-700'
+                                        : (readOnly ? 'bg-indigo-600/70 text-white/90' : 'bg-indigo-600 text-white dark:bg-indigo-500 hover:bg-indigo-700')}
+                                `}>
+                                    {isReceived ? (
+                                        <>
+                                            <span className="text-emerald-600 dark:text-emerald-400">✅</span>
+                                            {val} OK
+                                        </>
+                                    ) : (
+                                        <>
+                                            <TruckIcon className="w-3 h-3" />
+                                            {val} PO
+                                        </>
+                                    )}
                                 </span>
                             </button>
                         ) : (

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { getLocalISOString, addDays } from '../../utils/dateUtils';
-import { useSettings } from '../../context/SettingsContext';
+// import { useSettings } from '../../context/SettingsContext'; // Removed
 import { useProcurement } from '../../context/ProcurementContext';
 import ScheduleManagerModal from '../procurement/ScheduleManagerModal';
 

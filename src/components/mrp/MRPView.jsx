@@ -11,6 +11,7 @@ import ProcurementMasterList from '../procurement/ProcurementMasterList';
 import { useSettings } from '../../context/SettingsContext';
 import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
+
 import {
     PencilSquareIcon,
     XMarkIcon,
@@ -32,8 +33,10 @@ import { useProducts } from '../../context/ProductsContext';
 import PlanningGridWorkbench from './PlanningGridWorkbench';
 
 export default function MRPView({ state, setters, results, readOnly = false }) {
-    const { bottleSizes, leadTimeDays, schedulerSettings } = useSettings();
+    const { leadTimeDays, safetyStockLoads, schedulerSettings } = useSettings();
     const { productMap: bottleDefinitions } = useProducts();
+    const bottleSizes = Object.keys(bottleDefinitions);
+
     const { user } = useAuth();
     const { solve } = useMRPSolver();
     const { poManifest } = useProcurement();
@@ -102,16 +105,28 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
         });
     };
 
+    // Determine Effective Lead Time
+    // Global Migration: Check DB (via bottleDefinitions) first, then fallback to Global Setting
+    const productSpec = state.selectedSize ? bottleDefinitions[state.selectedSize] : null;
+    const effectiveLeadTime = productSpec?.leadTimeDays !== undefined && productSpec?.leadTimeDays !== null
+        ? productSpec.leadTimeDays
+        : (leadTimeDays || 2);
+
+    const effectiveSafetyStockLoads = productSpec?.safetyStockLoads !== undefined && productSpec?.safetyStockLoads !== null
+        ? Number(productSpec.safetyStockLoads)
+        : (safetyStockLoads || 6);
+
     const handleAutoBalance = () => {
-        if (!confirm("Auto-Balance will populate Planned Loads to ensure safety stock is met. Proceed?")) return;
+        if (!confirm(`Auto-Balance will populate Planned Loads to ensure safety stock is met.\n\nSettings:\n - Lead Time: ${effectiveLeadTime} days\n - Safety Stock: ${effectiveSafetyStockLoads} loads\n\nProceed?`)) return;
 
         const { newInbound, updatesCount } = solve(
             results,
-            6, // Default Safety Stock Loads (fallback) or derived from settings
+            effectiveSafetyStockLoads, // Priority: Product > Global
             bottleDefinitions,
             state.selectedSize,
             schedulerSettings,
-            state
+            state,
+            effectiveLeadTime
         ) || {};
 
         if (updatesCount > 0) {
@@ -145,7 +160,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
         const palletsPerTruck = (specs.bottlesPerTruck / specs.bottlesPerCase) / (specs.casesPerPallet || 1);
         const totalOnHandPallets = Math.round(results.calculatedPallets + (results.yardInventory.effectiveCount * palletsPerTruck));
         const daysOfSupply = results.daysOfSupply !== undefined ? results.daysOfSupply : 0;
-        const criticalThreshold = leadTimeDays || 2;
+        const criticalThreshold = effectiveLeadTime !== undefined ? Number(effectiveLeadTime) : (leadTimeDays || 2);
         const warningThreshold = criticalThreshold + 2;
 
         let runwayStatus = 'Healthy';
