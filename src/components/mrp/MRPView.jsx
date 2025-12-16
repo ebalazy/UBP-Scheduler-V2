@@ -190,7 +190,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
 
         const displayTrucks = state.isAutoReplenish ? actionableTrucks : results.trucksToOrder;
 
-        return (
+
         return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
                 {/* KPI 1: MATERIALS HEALTH */}
