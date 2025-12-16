@@ -129,28 +129,28 @@ export default function PlanningGrid({
         <div className="relative">
             {/* SUMMARY TOOLBAR (Net Net) */}
             {summaryStats && (
-                <div className="hidden md:flex sticky left-0 right-0 mb-4 mx-1 p-3 bg-slate-900 text-white rounded-lg shadow-md items-center justify-between z-10 font-mono text-xs uppercase tracking-wider">
-                    <div className="flex gap-6">
+                <div className="hidden md:flex sticky left-0 right-0 mb-2 mx-1 p-1.5 bg-slate-900 text-white rounded-lg shadow-md items-center justify-between z-10 font-mono text-xs uppercase tracking-wider">
+                    <div className="flex gap-4">
                         <div className="flex flex-col">
-                            <span className="text-slate-400 text-[9px]">Total Plan</span>
-                            <span className="font-bold text-lg text-blue-200">{summaryStats.totalCases.toLocaleString()} <span className="text-xs text-slate-500">cs</span></span>
+                            <span className="text-slate-400 text-[8px]">Total Plan</span>
+                            <span className="font-bold text-sm text-blue-200">{summaryStats.totalCases.toLocaleString()} <span className="text-[8px] text-slate-500">cs</span></span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-slate-400 text-[9px]">Est. Trucks Needed</span>
-                            <span className="font-bold text-lg">{summaryStats.trucksRequired} <span className="text-xs text-slate-500">trks</span></span>
+                            <span className="text-slate-400 text-[8px]">Est. Trucks</span>
+                            <span className="font-bold text-sm">{summaryStats.trucksRequired} <span className="text-[8px] text-slate-500">trks</span></span>
                         </div>
                     </div>
 
                     {/* GAP INDICATOR */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                         <div className="flex flex-col text-right">
-                            <span className="text-slate-400 text-[9px]">Scheduled</span>
-                            <span className="font-bold text-lg text-emerald-400">{summaryStats.totalScheduled}</span>
+                            <span className="text-slate-400 text-[8px]">Scheduled</span>
+                            <span className="font-bold text-sm text-emerald-400">{summaryStats.totalScheduled}</span>
                         </div>
 
-                        <div className={`flex flex-col items-center justify-center px-4 py-1 rounded border ${summaryStats.gap < 0 ? 'bg-red-500/20 border-red-500 text-red-200' : 'bg-emerald-500/20 border-emerald-500 text-emerald-200'}`}>
-                            <span className="text-[9px] opacity-75">Gap</span>
-                            <span className="font-black text-xl leading-none">
+                        <div className={`flex flex-col items-center justify-center px-3 py-0.5 rounded border ${summaryStats.gap < 0 ? 'bg-red-500/20 border-red-500 text-red-200' : 'bg-emerald-500/20 border-emerald-500 text-emerald-200'}`}>
+                            <span className="text-[8px] opacity-75">Gap</span>
+                            <span className="font-black text-lg leading-none">
                                 {summaryStats.gap > 0 ? '+' : ''}{summaryStats.gap}
                             </span>
                         </div>

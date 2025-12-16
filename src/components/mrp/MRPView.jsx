@@ -191,19 +191,20 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
         const displayTrucks = state.isAutoReplenish ? actionableTrucks : results.trucksToOrder;
 
         return (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
                 {/* KPI 1: MATERIALS HEALTH */}
-                <div className={`p-5 rounded-xl border ${runwayColor} flex flex-col justify-between`}>
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-xs font-bold uppercase tracking-wider opacity-60 text-gray-500 dark:text-gray-400">Coverage Health</h3>
-                        {runwayStatus === 'CRITICAL' && <span className="text-xl">🚨</span>}
-                        {runwayStatus === 'Healthy' && <CheckCircleIcon className="w-6 h-6 text-emerald-500" />}
+                <div className={`p-3 rounded-lg border ${runwayColor} flex flex-col justify-between shadow-sm`}>
+                    <div className="flex justify-between items-center mb-1">
+                        <h3 className="text-[10px] font-bold uppercase tracking-wider opacity-70 text-gray-500 dark:text-gray-400">Coverage Health</h3>
+                        {runwayStatus === 'CRITICAL' && <span className="text-lg">🚨</span>}
+                        {runwayStatus === 'Healthy' && <CheckCircleIcon className="w-5 h-5 text-emerald-500" />}
                     </div>
                     <div>
-                        <div className={`text-3xl font-black tracking-tight ${statusTextColor}`}>{runwayStatus}</div>
-                        <div className="text-sm font-medium opacity-80 mt-1 dark:text-gray-300">
+                        <div className={`text-2xl font-black tracking-tight ${statusTextColor} leading-none`}>{runwayStatus}</div>
+                        <div className="text-xs font-medium opacity-80 mt-1 dark:text-gray-300">
                             {runwayStatus === 'CRITICAL'
-                                ? (stockoutLabel === 'NOW' ? 'Stockout Computed (Review Balances)' : `Empty by ${stockoutLabel}`)
+                                ? (stockoutLabel === 'NOW' ? 'Stockout Computed' : `Empty by ${stockoutLabel}`)
                                 : runwayStatus === 'Warning'
                                     ? 'Approaching Safety Stock Limit'
                                     : 'Inventory Levels Optimal'}
@@ -212,57 +213,57 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                 </div>
 
                 {/* KPI 2: RUNWAY */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-between">
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Runway</h3>
-                        <div className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-between">
+                    <div className="flex justify-between items-center mb-1">
+                        <h3 className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Runway</h3>
+                        <div className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
                             Target: {safetyTarget ? Math.round(safetyTarget / (specs.bottlesPerCase * (specs.casesPerPallet || 1))) : '-'} plts
                         </div>
                     </div>
-                    <div className="flex items-end space-x-3">
-                        <div className="text-4xl font-mono font-bold text-gray-800 dark:text-white leading-none">
+                    <div className="flex items-end space-x-2">
+                        <div className="text-3xl font-mono font-bold text-gray-800 dark:text-white leading-none">
                             {daysOfSupply >= 30 ? '30+' : daysOfSupply.toFixed(1)}
                         </div>
-                        <div className="text-sm font-medium text-gray-400 mb-1">Days</div>
+                        <div className="text-xs font-medium text-gray-400 mb-0.5">Days</div>
                     </div>
-                    <div className="mt-3 text-xs font-medium text-gray-500 flex justify-between items-center border-t pt-2 dark:border-gray-700">
+                    <div className="mt-2 text-[10px] font-medium text-gray-500 flex justify-between items-center border-t pt-1 dark:border-gray-700">
                         <span>Current On-Hand</span>
                         <span className="font-bold text-gray-700 dark:text-gray-300">{fmt(totalOnHandPallets)} Pallets</span>
                     </div>
                 </div>
 
                 {/* KPI 3: REPLENISHMENT */}
-                <div className={`p-5 rounded-xl border flex flex-col justify-between shadow-sm transition-all ${displayTrucks > 0
+                <div className={`p-3 rounded-lg border flex flex-col justify-between shadow-sm transition-all ${displayTrucks > 0
                     ? 'bg-blue-600 border-blue-700 text-white'
                     : results.trucksToCancel > 0
                         ? 'bg-orange-100 border-orange-200 text-orange-900 dark:bg-orange-900/40 dark:border-orange-800 dark:text-orange-200'
                         : (runwayStatus === 'CRITICAL' ? 'bg-red-50 border-red-200' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')
                     }`}>
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className={`text-xs font-bold uppercase tracking-wider ${displayTrucks > 0 ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <div className="flex justify-between items-center mb-1">
+                        <h3 className={`text-[10px] font-bold uppercase tracking-wider ${displayTrucks > 0 ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
                             Replenishment
                         </h3>
-                        {displayTrucks > 0 && <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>}
-                        {results.trucksToCancel > 0 && !displayTrucks && <span className="text-xl">📉</span>}
+                        {displayTrucks > 0 && <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>}
+                        {results.trucksToCancel > 0 && !displayTrucks && <span className="text-lg">📉</span>}
                     </div>
 
                     {displayTrucks > 0 ? (
                         <div>
                             <div className="flex items-baseline space-x-2">
-                                <span className="text-4xl font-black leading-none">{displayTrucks}</span>
-                                <span className="text-sm font-bold opacity-90">Trucks Needed</span>
+                                <span className="text-3xl font-black leading-none">{displayTrucks}</span>
+                                <span className="text-xs font-bold opacity-90">Trucks Needed</span>
                             </div>
-                            <p className="text-xs opacity-80 mt-2 font-medium">
+                            <p className="text-[10px] opacity-80 mt-1 font-medium leading-tight">
                                 {state.isAutoReplenish ? 'Planned orders due today.' : 'Deficit based on target.'}
                             </p>
                         </div>
                     ) : results.trucksToCancel > 0 ? (
                         <div>
                             <div className="flex items-baseline space-x-2">
-                                <span className="text-4xl font-black leading-none">{results.trucksToCancel}</span>
-                                <span className="text-sm font-bold opacity-90">Cancel Trucks</span>
+                                <span className="text-3xl font-black leading-none">{results.trucksToCancel}</span>
+                                <span className="text-xs font-bold opacity-90">Cancel Trucks</span>
                             </div>
-                            <p className="text-xs opacity-80 mt-2 font-medium">
+                            <p className="text-[10px] opacity-80 mt-1 font-medium leading-tight">
                                 Excess inventory confirmed.
                             </p>
                         </div>
@@ -272,12 +273,12 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                                 {runwayStatus === 'CRITICAL' ? (
                                     <span className="text-2xl font-bold leading-none text-red-600">Expedite!</span>
                                 ) : (
-                                    <span className="text-3xl font-bold leading-none text-gray-800 dark:text-white">Standby</span>
+                                    <span className="text-2xl font-bold leading-none text-gray-800 dark:text-white">Standby</span>
                                 )}
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">
+                            <p className="text-[10px] text-gray-500 mt-1 leading-tight">
                                 {runwayStatus === 'CRITICAL'
-                                    ? 'Stockout imminent. Review schedule.'
+                                    ? 'Stockout imminent. Review.'
                                     : 'No immediate orders due.'}
                             </p>
                         </div>

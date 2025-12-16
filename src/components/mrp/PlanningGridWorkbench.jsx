@@ -172,26 +172,26 @@ export default function PlanningGridWorkbench({
 
             {/* SUMMARY SCOREBOARD */}
             {summaryStats && (
-                <div className="hidden md:flex flex-shrink-0 p-2 bg-slate-900 text-white items-center justify-between z-10 font-mono text-xs uppercase tracking-wider border-b border-slate-700">
+                <div className="hidden md:flex flex-shrink-0 p-1.5 bg-slate-900 text-white items-center justify-between z-10 font-mono text-xs uppercase tracking-wider border-b border-slate-700">
                     <div className="flex gap-4">
                         <div className="flex flex-col">
-                            <span className="text-slate-400 text-[9px]">Total Plan</span>
-                            <span className="font-bold text-sm text-blue-200">{summaryStats.totalCases.toLocaleString()} <span className="text-[9px] text-slate-500">cs</span></span>
+                            <span className="text-slate-400 text-[8px]">Total Plan</span>
+                            <span className="font-bold text-xs text-blue-200">{summaryStats.totalCases.toLocaleString()} <span className="text-[8px] text-slate-500">cs</span></span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-slate-400 text-[9px]">Est. Trucks</span>
-                            <span className="font-bold text-sm">{summaryStats.trucksRequired} <span className="text-[9px] text-slate-500">trks</span></span>
+                            <span className="text-slate-400 text-[8px]">Est. Trucks</span>
+                            <span className="font-bold text-xs">{summaryStats.trucksRequired} <span className="text-[8px] text-slate-500">trks</span></span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <div className="flex flex-col text-right">
-                            <span className="text-slate-400 text-[9px]">Scheduled</span>
-                            <span className="font-bold text-sm text-emerald-400">{summaryStats.totalScheduled}</span>
+                            <span className="text-slate-400 text-[8px]">Scheduled</span>
+                            <span className="font-bold text-xs text-emerald-400">{summaryStats.totalScheduled}</span>
                         </div>
 
-                        <div className={`flex flex-col items-center justify-center px-3 py-0.5 rounded border ${summaryStats.gap < 0 ? 'bg-red-500/20 border-red-500 text-red-200' : 'bg-emerald-500/20 border-emerald-500 text-emerald-200'}`}>
-                            <span className="text-[9px] opacity-75">Gap</span>
+                        <div className={`flex flex-col items-center justify-center px-2 py-0.5 rounded border ${summaryStats.gap < 0 ? 'bg-red-500/20 border-red-500 text-red-200' : 'bg-emerald-500/20 border-emerald-500 text-emerald-200'}`}>
+                            <span className="text-[8px] opacity-75">Gap</span>
                             <span className="font-black text-lg leading-none">
                                 {summaryStats.gap > 0 ? '+' : ''}{summaryStats.gap}
                             </span>
