@@ -92,11 +92,15 @@ export function useMRPCalculations(state, poManifest = {}) {
         const csm = specs.casesPerPallet || 0;
 
         let derivedPallets = inventoryAnchor.count;
-        const anchorDate = new Date(inventoryAnchor.date);
-        anchorDate.setHours(0, 0, 0, 0);
 
-        const todayDate = new Date();
-        todayDate.setHours(0, 0, 0, 0);
+        // SAFE DATE PARSING (Avoid UTC Shift)
+        const parseLocal = (dateStr) => {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return new Date(y, m - 1, d, 0, 0, 0, 0);
+        };
+
+        const anchorDate = parseLocal(inventoryAnchor.date);
+        const todayDate = parseLocal(todayStr); // Use calculated todayStr from above
 
         const diffTime = todayDate - anchorDate;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
