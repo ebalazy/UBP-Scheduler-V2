@@ -163,10 +163,25 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
             statusTextColor = 'text-amber-700';
         }
 
-        const stockoutDateObj = results.firstStockoutDate ? new Date(results.firstStockoutDate) : null;
-        const stockoutLabel = stockoutDateObj
-            ? `${stockoutDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`
-            : 'Stable';
+        // Parse safely to avoid UTC shift (e.g. "2023-12-15" -> Dec 14 7PM EST)
+        const parseLocal = (dStr) => {
+            const [y, m, d] = dStr.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        };
+
+        const stockoutDateObj = results.firstStockoutDate ? parseLocal(results.firstStockoutDate) : null;
+
+        let stockoutLabel = 'Stable';
+        if (stockoutDateObj) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (stockoutDateObj <= today) {
+                stockoutLabel = 'NOW';
+            } else {
+                stockoutLabel = stockoutDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            }
+        }
 
         const todayVal = new Date().setHours(0, 0, 0, 0);
         const actionableTrucks = Object.entries(results.plannedOrders || {})
@@ -188,7 +203,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                         <div className={`text-3xl font-black tracking-tight ${statusTextColor}`}>{runwayStatus}</div>
                         <div className="text-sm font-medium opacity-80 mt-1 dark:text-gray-300">
                             {runwayStatus === 'CRITICAL'
-                                ? `Empty by ${stockoutLabel}`
+                                ? (stockoutLabel === 'NOW' ? 'Stockout Computed (Review Balances)' : `Empty by ${stockoutLabel}`)
                                 : runwayStatus === 'Warning'
                                     ? 'Approaching Safety Stock Limit'
                                     : 'Inventory Levels Optimal'}
