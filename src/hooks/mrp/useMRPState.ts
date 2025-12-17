@@ -227,6 +227,33 @@ export function useMRPState() {
         }
     });
 
+    useRealtimeSubscription({
+        table: 'inventory_snapshots',
+        filter: activeProduct ? `product_id=eq.${activeProduct.id}` : undefined,
+        enabled: !!activeProduct?.id,
+        onDataChange: (payload: any) => {
+            const { eventType, new: newRec } = payload;
+            if (eventType === 'DELETE') return;
+
+            const val = Number(newRec.quantity_pallets);
+            const date = newRec.date;
+
+            // TODO: In the future, snapshots are dated. 
+            // For now, the app seems to treat 'yardInventory' as a single "current" value or map.
+            // Based on logs, yardInventory is just a number in some places, but let's see how it's used.
+            // Actually, looking at the return types: `setYardInventory` updates a State which is likely a Map or single value.
+            // Let's assume it's a map like others:
+            if (newRec.location === 'yard') {
+                setYardInventory(prev => ({ ...prev, count: val, date: date || prev.date }));
+            } else if (newRec.location === 'floor') {
+                // Floor stock is usually 'currentInventoryPallets' used as an anchor.
+                setCurrentInventoryPallets(val);
+                // Also update the anchor object if needed
+                setInventoryAnchor(prev => ({ ...prev, count: val, date: date || prev.date }));
+            }
+        }
+    });
+
     return {
         selectedSize, setSelectedSize,
         monthlyDemand, setMonthlyDemand,

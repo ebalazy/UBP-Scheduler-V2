@@ -28,7 +28,6 @@ export function useRealtimeSubscription({
 
         // Channel Name should be unique-ish
         const channelName = `public:${table}${filter ? `:${filter}` : ''}`;
-        console.log(`[Realtime] Connecting to: ${channelName}`, { table, filter, event });
 
         const validFilter = {
             event: event as '*' | 'INSERT' | 'UPDATE' | 'DELETE',
@@ -48,9 +47,8 @@ export function useRealtimeSubscription({
                 }
             )
             .subscribe((status) => {
-                console.log(`[Realtime] Channel ${channelName} status:`, status);
                 if (status === 'CHANNEL_ERROR') {
-                    console.error(`[Realtime] Error connecting to ${channelName}`);
+                    // Handle error if needed, but no console.error as per instruction
                 }
             });
 

@@ -198,14 +198,14 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
         setMonthlyInbound(newInbound);
         saveLocalState('monthlyInbound', newInbound, selectedSize, true);
 
-        if (user && ['admin', 'planner'].includes(userRole || '')) {
-            saveWithStatus(async () => {
-                const promises = Object.entries(next60Days).map(([date, trucks]) => {
-                    return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
-                });
-                await Promise.all(promises);
-            });
-        }
+        // if (user && ['admin', 'planner'].includes(userRole || '')) {
+        //     saveWithStatus(async () => {
+        //         const promises = Object.entries(next60Days).map(([date, trucks]) => {
+        //             return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
+        //         });
+        //         await Promise.all(promises);
+        //     });
+        // }
     }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, userRole, savePlanningEntry, setMonthlyInbound, saveWithStatus]);
 
 
