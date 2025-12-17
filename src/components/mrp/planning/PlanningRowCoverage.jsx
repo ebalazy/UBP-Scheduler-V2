@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { formatLocalDate } from '../../../utils/dateUtils';
 
-const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, monthlyInbound, poManifest, specs, todayStr }) => {
+const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, monthlyInbound, poManifest, specs, todayStr, leadTimeDays = 2 }) => {
     // Helper to get daily inbound trucks
     const getDailyTrucks = (dateStr) => {
         if (poManifest && poManifest[dateStr]?.items?.length > 0) {
@@ -68,11 +68,19 @@ const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, monthlyInbo
                 const val = coverage.toFixed(1);
                 const numericVal = parseFloat(val);
 
+                // UPDATED: Lead time-aware color thresholds
+                const criticalThreshold = leadTimeDays; // Red if coverage <= lead time
+                const warningThreshold = leadTimeDays + 2; // Yellow if coverage <= lead time + 2
+
                 let colorClass = 'text-slate-400';
                 if (startingBalance + todayInboundBottles > 0) {
-                    if (numericVal < 2.0) colorClass = 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold';
-                    else if (numericVal < 4.0) colorClass = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 font-bold';
-                    else colorClass = 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold';
+                    if (numericVal <= criticalThreshold) {
+                        colorClass = 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold';
+                    } else if (numericVal <= warningThreshold) {
+                        colorClass = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 font-bold';
+                    } else {
+                        colorClass = 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold';
+                    }
                 }
 
                 // Override for Today Highlight (Overlay style)
@@ -81,7 +89,7 @@ const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, monthlyInbo
                 }
 
                 return (
-                    <td key={dateStr} className={`min-w-[100px] w-[100px] h-8 p-0 text-center text-xs border-r border-slate-300 dark:border-slate-600 ${colorClass}`}>
+                    <td key={dateStr} className={`min-w-[100px] w-[100px] h-8 p-0 text-center text-xs border-r border-slate-300 dark:border-slate-600 ${colorClass}`} title={`Coverage: ${val} days | Lead Time: ${leadTimeDays} days`}>
                         <div className="w-full h-full flex items-center justify-center">
                             {isInfinite ? '∞' : val}
                         </div>

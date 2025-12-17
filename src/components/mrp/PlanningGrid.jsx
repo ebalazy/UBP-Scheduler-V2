@@ -26,7 +26,8 @@ export default function PlanningGrid({
     userProfile,
     startDate,
     readOnly = false,
-    poManifest = {} // Accept Prop
+    poManifest = {}, // Accept Prop
+    leadTimeDays = 2 // Lead time for color coding
 }) {
     // 1. Context Hooks
     // Update: Destructure correct values from ProcurementContext
@@ -234,6 +235,7 @@ export default function PlanningGrid({
                             poManifest={poManifest}
                             specs={specs}
                             todayStr={todayStr}
+                            leadTimeDays={leadTimeDays}
                         />
                     </tbody>
                 </table>

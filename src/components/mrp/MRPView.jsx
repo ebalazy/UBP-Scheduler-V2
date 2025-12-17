@@ -482,6 +482,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                                 userProfile={user}
                                 startDate={gridStartDate}
                                 readOnly={readOnly}
+                                leadTimeDays={effectiveLeadTime}
                             />
                         )}
                     </div>
