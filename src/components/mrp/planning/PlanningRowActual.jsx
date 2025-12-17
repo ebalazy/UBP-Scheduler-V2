@@ -76,6 +76,7 @@ const ActualCell = React.memo(({ dateStr, initialValue, updateDateActual, readOn
                 value={val}
                 onChange={(e) => setVal(e.target.value)}
                 onBlur={handleBlur}
+                onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
                 placeholder={readOnly ? '' : '-'}
                 disabled={readOnly}
             />

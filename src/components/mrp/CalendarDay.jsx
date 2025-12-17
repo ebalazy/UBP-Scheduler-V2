@@ -100,8 +100,9 @@ const CalendarDay = memo(({
     };
 
     const handleKeyDown = (e, commitFn) => {
-        if (e.key === 'Enter') {
-            e.currentTarget.blur(); // Triggers onBlur which triggers commitFn
+        if (e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+            e.preventDefault();
+            e.target.blur(); // Triggers onBlur which triggers commitFn
         }
     };
 
