@@ -41,7 +41,7 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
     const { safetyStockLoads, leadTimeDays } = useSettings();
     const { productMap: bottleDefinitions, refreshProducts } = useProducts();
     const { user, userRole } = useAuth();
-    const { savePlanningEntry, saveProductionSetting, saveInventorySnapshot } = useSupabaseSync(); // Rename saveInventoryAnchor -> saveInventorySnapshot
+    const { savePlanningEntry, saveProductionSetting, saveInventorySnapshot } = useSupabaseSync();
 
     const {
         selectedSize, setSelectedSize,

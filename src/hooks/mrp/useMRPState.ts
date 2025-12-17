@@ -232,11 +232,13 @@ export function useMRPState() {
         filter: activeProduct ? `product_id=eq.${activeProduct.id}` : undefined,
         enabled: !!activeProduct?.id,
         onDataChange: (payload: any) => {
+            console.log('[InventorySync] Event Received:', payload);
             const { eventType, new: newRec } = payload;
             if (eventType === 'DELETE') return;
 
             const val = Number(newRec.quantity_pallets);
             const date = newRec.date;
+
 
             // TODO: In the future, snapshots are dated. 
             // For now, the app seems to treat 'yardInventory' as a single "current" value or map.

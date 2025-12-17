@@ -175,10 +175,10 @@ export const useSupabaseSync = () => {
         await PlanningService.saveProductionSetting(productId, field, value);
     }, []);
 
-    const saveInventoryAnchor = useCallback(async (userId: string, skuName: string, anchor: { date: string; count: number }, location = 'floor') => {
+    const saveInventorySnapshot = useCallback(async (userId: string, skuName: string, date: string, count: number, location = 'floor') => {
         const productId = await ProductService.ensureProduct(userId, skuName);
-        // console.log(`Saving Snapshot (${location}):`, anchor);
-        await PlanningService.saveInventorySnapshot(productId, userId, anchor.date, anchor.count, location as 'floor' | 'yard');
+        // console.log(`Saving Snapshot (${location}):`, count, date);
+        await PlanningService.saveInventorySnapshot(productId, userId, date, count, location as 'floor' | 'yard');
     }, []);
 
     const fetchUserProfile = useCallback(async (userId: string) => {
@@ -244,13 +244,14 @@ export const useSupabaseSync = () => {
     }, []);
 
     return {
-        migrateLocalStorage,
-        uploadLocalData,
+        supabase,
         fetchMRPState,
-        fetchUserProfile,
         savePlanningEntry,
         saveProductionSetting,
-        saveInventoryAnchor,
+        saveInventorySnapshot,
+        migrateLocalStorage,
+        uploadLocalData,
+        fetchUserProfile,
         saveUserProfile,
         saveProcurementEntry,
         deleteProcurementEntry,
