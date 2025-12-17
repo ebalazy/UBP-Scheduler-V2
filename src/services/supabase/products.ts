@@ -23,6 +23,7 @@ export const ensureProduct = async (userId: string, skuName: string, defaults: P
         .select('id')
         .eq('user_id', userId)
         .eq('name', skuName)
+        .order('created_at', { ascending: true }) // Deterministic: Oldest First
         .limit(1)
         .maybeSingle();
 
@@ -58,6 +59,7 @@ export const getProductByName = async (userId: string, skuName: string): Promise
         .select('*')
         .eq('user_id', userId)
         .eq('name', skuName)
+        .order('created_at', { ascending: true }) // Deterministic: Oldest First
         .limit(1)
         .maybeSingle();
 
