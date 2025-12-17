@@ -191,8 +191,14 @@ export const useSupabaseSync = () => {
 
     const uploadLocalData = useCallback(async (user: User | null, bottleSizes: BottleSize[], userRole = 'viewer') => {
         if (!user) return;
-        // PERMISSION CHECK: Only Admins and Planners can upload/migrate data
-        if (!['admin', 'planner'].includes(userRole)) return;
+
+        // UX CHECK: Only Admins and Planners should attempt this. 
+        // SECURITY NOTE: This check is for UI convenience only. 
+        // Real security MUST be enforced by Row Level Security (RLS) on the 'products' table in Supabase.
+        if (!['admin', 'planner'].includes(userRole)) {
+            console.warn("Upload skipped: insufficient role (client-side check). RLS would likely reject this.");
+            return;
+        }
 
         const { count, error } = await supabase
             .from('products')
@@ -237,7 +243,8 @@ export const useSupabaseSync = () => {
                 status: row.status,
                 date: row.date,
                 time: row.delivery_time || '',
-                carrier: row.carrier || ''
+                carrier: row.carrier || '',
+                palletStats: row.meta_data ? row.meta_data.palletStats : undefined // Added mapping for palletStats
             });
         });
         return manifest;

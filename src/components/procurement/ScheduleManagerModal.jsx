@@ -42,7 +42,8 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
 
     // Helpers
     // Business Rule: 1 PO = 1 Truck (Always)
-    const getTruckCount = (qty) => "1.0"; // Always 1 truck
+    // TODO: Implement LTL (Less Than Truckload) logic here if 'qty' < 20 pallets.
+    const getTruckCount = (qty) => "1.0"; // Always 1 truck for now
     const getTruckFloat = (qty) => 1.0;
 
     // --- ESTIMATION LOGIC (Shared with Import) ---
@@ -115,17 +116,7 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
     };
 
     // Actions
-    const handleDelete = (orderId) => {
-        // CONFIRMATION REMOVED TO UNBLOCK USER
-        // if (!window.confirm('Are you sure you want to cancel this order?')) return;
-
-        const orderToDelete = orders.find(o => o.id === orderId);
-        removeOrder(date, orderId, orderToDelete?.po);
-
-        // Recalculate remaining
-        const remaining = orders.filter(o => o.id !== orderId);
-        syncTruckCount(date, remaining);
-    };
+    // Old 'handleDelete' removed. Use 'handleDeleteClick' for UI confirmation flow.
 
     const startMove = (orderId) => {
         setMovingId(orderId);

@@ -78,31 +78,31 @@ export function ProcurementProvider({ children }: ProcurementProviderProps) {
             // console.log("Realtime PO Update:", eventType, newRec, oldRec);
 
             if (eventType === 'DELETE') {
-                if (!oldRec || !oldRec.po_number) return;
+                // Improved DELETE handling: Check both ID and PO Number
+                const deleteId = oldRec.id;
+                const deletePo = oldRec.po_number; // Might be null if not REPLICA IDENTITY FULL
 
-                // We need to find where this PO is in our manifest.
-                // Since our manifest is by Date, and DELETE payload might not have Date (if using old Rec),
-                // we have to scan or rely on 'oldRec' having the date if Supabase sends it (depends on REPLICA IDENTITY).
-                // Standard DELETE only sends ID. 'procurement_orders' uses 'po_number' as ID? Or UUID?
-                // The schema uses (po_number) as PK usually? Let's assume we scan for now or check if we get date.
-
-                const poToDelete = oldRec.po_number;
+                if (!deleteId && !deletePo) return;
 
                 setPoManifest(prev => {
                     const next = { ...prev };
                     let foundDate: string | null = null;
+                    let foundItem: ProcurementOrder | null = null;
 
-                    // Optimization: Check if we can find it quickly? No generic index?
-                    // Brute force scan is acceptable for modest datasets (< 1000 active orders).
+                    // Scan to find the item
                     for (const [date, data] of Object.entries(next)) {
-                        if (data.items.some((i: ProcurementOrder) => i.po === poToDelete)) {
+                        const item = data.items.find((i: ProcurementOrder) =>
+                            (deleteId && i.id === deleteId) || (deletePo && i.po === deletePo)
+                        );
+                        if (item) {
                             foundDate = date;
+                            foundItem = item;
                             break;
                         }
                     }
 
-                    if (foundDate) {
-                        next[foundDate].items = next[foundDate].items.filter((i: ProcurementOrder) => i.po !== poToDelete);
+                    if (foundDate && foundItem) {
+                        next[foundDate].items = next[foundDate].items.filter((i: ProcurementOrder) => i !== foundItem);
                         if (next[foundDate].items.length === 0) delete next[foundDate];
                     }
                     return next;
@@ -126,6 +126,7 @@ export function ProcurementProvider({ children }: ProcurementProviderProps) {
                 supplier: newRec.supplier,
                 sku: newRec.sku,
                 time: newRec.delivery_time,
+                carrier: newRec.carrier, // Added mapping for carrier
                 palletStats: newRec.meta_data ? newRec.meta_data.palletStats : undefined
             };
 
