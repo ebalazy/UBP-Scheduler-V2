@@ -118,10 +118,18 @@ export function useMRPState() {
                     if (data) {
                         // SMART SYNC: Only overwrite Local (Optimistic) if Cloud has data.
                         // This prevents "flashing" to empty if the cloud fetch races or returns partials.
-                        if (Object.keys(data.monthlyDemand || {}).length > 0) setMonthlyDemand(data.monthlyDemand);
-                        if (Object.keys(data.monthlyProductionActuals || {}).length > 0) setMonthlyProductionActuals(data.monthlyProductionActuals);
-                        if (Object.keys(data.monthlyInbound || {}).length > 0) setMonthlyInbound(data.monthlyInbound);
-                        if (Object.keys(data.truckManifest || {}).length > 0) setTruckManifest(data.truckManifest);
+                        if (Object.keys(data.monthlyDemand || {}).length > 0) {
+                            setMonthlyDemand(prev => ({ ...data.monthlyDemand, ...prev }));
+                        }
+                        if (Object.keys(data.monthlyProductionActuals || {}).length > 0) {
+                            setMonthlyProductionActuals(prev => ({ ...data.monthlyProductionActuals, ...prev }));
+                        }
+                        if (Object.keys(data.monthlyInbound || {}).length > 0) {
+                            setMonthlyInbound(prev => ({ ...data.monthlyInbound, ...prev }));
+                        }
+                        if (Object.keys(data.truckManifest || {}).length > 0) {
+                            setTruckManifest(prev => ({ ...data.truckManifest, ...prev }));
+                        }
 
                         // Update Settings Context
                         // FIX: Do not overwrite Master Data with stale Scenario Data
