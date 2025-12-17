@@ -1,7 +1,15 @@
 import React, { memo } from 'react';
 import { formatLocalDate } from '../../../utils/dateUtils';
 
-const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, specs, todayStr }) => {
+const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, monthlyInbound, poManifest, specs, todayStr }) => {
+    // Helper to get daily inbound trucks
+    const getDailyTrucks = (dateStr) => {
+        if (poManifest && poManifest[dateStr]?.items?.length > 0) {
+            return poManifest[dateStr].items.length;
+        }
+        return Number(monthlyInbound[dateStr]) || 0;
+    };
+
     return (
         <tr className="border-t border-slate-300 dark:border-slate-600 bg-slate-200 dark:bg-slate-800">
             <th className="sticky left-0 min-w-[140px] w-[140px] h-8 bg-slate-300 dark:bg-slate-800 border-r border-slate-400 dark:border-slate-600 pl-2 pr-2 text-left text-xs font-bold text-slate-500 uppercase z-10 shadow-md">
@@ -12,16 +20,29 @@ const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, specs, toda
             {dates.map((date) => {
                 const dateStr = formatLocalDate(date);
                 const ledgerItem = ledgerMap[dateStr];
-                const balance = ledgerItem ? ledgerItem.balance : 0;
                 const specsScrap = 1 + ((specs?.scrapPercentage || 0) / 100);
                 const isToday = dateStr === todayStr;
 
+                // FIXED: Use PREVIOUS day's ending balance as THIS day's starting balance
+                // Find previous date
+                const prevDate = new Date(date);
+                prevDate.setDate(prevDate.getDate() - 1);
+                const prevDateStr = formatLocalDate(prevDate);
+                const prevLedgerItem = ledgerMap[prevDateStr];
+
+                // Starting balance = previous day's ending balance (or current if first day)
+                const startingBalance = prevLedgerItem ? prevLedgerItem.balance : (ledgerItem?.balance || 0);
+
+                // Add today's inbound to starting balance
+                const todayInbound = getDailyTrucks(dateStr);
+                const todayInboundBottles = todayInbound * (specs?.bottlesPerTruck || 20000);
+
                 let coverage = 0;
-                let remaining = balance;
+                let remaining = startingBalance + todayInboundBottles;
                 let isInfinite = false;
 
-                // Look ahead up to 30 days
-                for (let i = 1; i <= 30; i++) {
+                // Look ahead up to 30 days (starting from THIS day)
+                for (let i = 0; i <= 30; i++) {
                     const nextDate = new Date(date);
                     nextDate.setDate(nextDate.getDate() + i);
                     const nextDateStr = formatLocalDate(nextDate);
@@ -48,7 +69,7 @@ const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, specs, toda
                 const numericVal = parseFloat(val);
 
                 let colorClass = 'text-slate-400';
-                if (balance > 0) {
+                if (startingBalance + todayInboundBottles > 0) {
                     if (numericVal < 2.0) colorClass = 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold';
                     else if (numericVal < 4.0) colorClass = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 font-bold';
                     else colorClass = 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold';

@@ -230,6 +230,8 @@ export default function PlanningGrid({
                             dates={dates}
                             ledgerMap={ledgerMap}
                             monthlyDemand={monthlyDemand}
+                            monthlyInbound={monthlyInbound}
+                            poManifest={poManifest}
                             specs={specs}
                             todayStr={todayStr}
                         />
