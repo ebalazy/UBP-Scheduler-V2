@@ -25,7 +25,6 @@ export default function PlanningGrid({
     specs,
     userProfile,
     startDate,
-    startDate,
     readOnly = false,
     poManifest = {} // Accept Prop
 }) {
