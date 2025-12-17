@@ -22,7 +22,8 @@ import {
     EnvelopeIcon,
     CheckCircleIcon,
     ChevronLeftIcon,
-    ChevronRightIcon
+    ChevronRightIcon,
+    InformationCircleIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../../services/supabase/client';
 import { useAuth } from '../../context/AuthContext';
@@ -211,7 +212,10 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                 {/* KPI 1: MATERIALS HEALTH */}
                 <div className={`p-3 rounded-lg border ${runwayColor} flex flex-col justify-between shadow-sm`}>
                     <div className="flex justify-between items-center mb-1">
-                        <h3 className="text-[10px] font-bold uppercase tracking-wider opacity-70 text-gray-500 dark:text-gray-400">Coverage Health</h3>
+                        <div className="flex items-center gap-1.5">
+                            <h3 className="text-[10px] font-bold uppercase tracking-wider opacity-70 text-gray-500 dark:text-gray-400">Coverage Health</h3>
+                            <InformationCircleIcon className="w-3.5 h-3.5 text-gray-400 cursor-help" title="Status of inventory relative to Lead Time. if (Days < Lead Time) => Critical." />
+                        </div>
                         {runwayStatus === 'CRITICAL' && <span className="text-lg">🚨</span>}
                         {runwayStatus === 'Healthy' && <CheckCircleIcon className="w-5 h-5 text-emerald-500" />}
                     </div>
@@ -227,11 +231,14 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                     </div>
                 </div>
 
-                {/* KPI 2: RUNWAY */}
+                {/* KPI 2: RUNWAY (DAYS OF SUPPLY) */}
                 <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-between">
                     <div className="flex justify-between items-center mb-1">
-                        <h3 className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Runway</h3>
-                        <div className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                        <div className="flex items-center gap-1.5">
+                            <h3 className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Days of Supply</h3>
+                            <InformationCircleIcon className="w-3.5 h-3.5 text-gray-400 cursor-help" title="Total Inventory (Floor + Yard) divided by Daily Production Rate." />
+                        </div>
+                        <div className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded" title="Target Pallets = Safety Stock Loads * Pallets/Truck">
                             Target: {safetyTarget ? Math.round(safetyTarget / (specs.bottlesPerCase * (specs.casesPerPallet || 1))) : '-'} plts
                         </div>
                     </div>
@@ -242,7 +249,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                         <div className="text-xs font-medium text-gray-400 mb-0.5">Days</div>
                     </div>
                     <div className="mt-2 text-[10px] font-medium text-gray-500 flex justify-between items-center border-t pt-1 dark:border-gray-700">
-                        <span>Current On-Hand</span>
+                        <span title="Physically present inventory">Current On-Hand</span>
                         <span className="font-bold text-gray-700 dark:text-gray-300">{fmt(totalOnHandPallets)} Pallets</span>
                     </div>
                 </div>
@@ -255,9 +262,12 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                         : (runwayStatus === 'CRITICAL' ? 'bg-red-50 border-red-200' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')
                     }`}>
                     <div className="flex justify-between items-center mb-1">
-                        <h3 className={`text-[10px] font-bold uppercase tracking-wider ${displayTrucks > 0 ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
-                            Replenishment
-                        </h3>
+                        <div className="flex items-center gap-1.5">
+                            <h3 className={`text-[10px] font-bold uppercase tracking-wider ${displayTrucks > 0 ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                                Replenishment
+                            </h3>
+                            <InformationCircleIcon className={`w-3.5 h-3.5 cursor-help ${displayTrucks > 0 ? 'text-blue-200' : 'text-gray-400'}`} title="Orders required TODAY to restore Safety Stock." />
+                        </div>
                         {displayTrucks > 0 && <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>}
                         {results.trucksToCancel > 0 && !displayTrucks && <span className="text-lg">📉</span>}
                     </div>
