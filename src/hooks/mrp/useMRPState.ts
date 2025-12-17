@@ -129,20 +129,12 @@ export function useMRPState() {
                     if (data) {
                         setActiveProduct(data.product); // Store for Realtime
 
-                        // SMART SYNC: Only overwrite Local (Optimistic) if Cloud has data.
-                        // This prevents "flashing" to empty if the cloud fetch races or returns partials.
-                        if (Object.keys(data.monthlyDemand || {}).length > 0) {
-                            setMonthlyDemand(prev => ({ ...prev, ...data.monthlyDemand }));
-                        }
-                        if (Object.keys(data.monthlyProductionActuals || {}).length > 0) {
-                            setMonthlyProductionActuals(prev => ({ ...prev, ...data.monthlyProductionActuals }));
-                        }
-                        if (Object.keys(data.monthlyInbound || {}).length > 0) {
-                            setMonthlyInbound(prev => ({ ...prev, ...data.monthlyInbound }));
-                        }
-                        if (Object.keys(data.truckManifest || {}).length > 0) {
-                            setTruckManifest(prev => ({ ...prev, ...data.truckManifest }));
-                        }
+                        // SMART SYNC: Strict Replacement (Cloud Wins)
+                        // addressing the issue where local "empty" state overwrites server data.
+                        if (data.monthlyDemand) setMonthlyDemand(data.monthlyDemand);
+                        if (data.monthlyProductionActuals) setMonthlyProductionActuals(data.monthlyProductionActuals);
+                        if (data.monthlyInbound) setMonthlyInbound(data.monthlyInbound);
+                        if (data.truckManifest) setTruckManifest(data.truckManifest);
 
                         // Update Settings Context
                         // FIX: Do not overwrite Master Data with stale Scenario Data
@@ -209,10 +201,35 @@ export function useMRPState() {
         enabled: !!activeProduct?.id,
         // enabled: true,
         onDataChange: (payload: any) => {
-            const { eventType, new: newRec } = payload;
+            const { eventType, new: newRec, old: oldRec } = payload;
 
-            // Handle DELETES: (Optional, skipping to avoid complex ID mapping for now)
-            if (eventType === 'DELETE') return;
+            // Handle DELETES
+            if (eventType === 'DELETE') {
+                // If we have date/type in 'oldRec' (Requires 'Replica Identity: Full' on Supabase to work perfectly)
+                // If ID only, we can't easily map it without scanning.
+                // But for now, let's assume valid payloads or re-fetch trigger.
+
+                // FALLBACK: Since we can't guarantee 'oldRec' has the date/type without Full Replica Identity,
+                // and 'planning_entries' is big...
+                // The safest "quick fix" for sync issues on Delete is just to remove it if we know the key,
+                // OR re-fetch the state for that product.
+                // Given the user complaints, a re-fetch on DELETE is safer than a silent failure.
+
+                console.log("Supabase DELETE detected. Triggering state refresh.");
+                if (user && activeProduct) {
+                    // Quickest way to sync deletion is re-fetching the state.
+                    // This is slightly heavier but guarantees accuracy vs zombie data.
+                    fetchMRPState(user.id, selectedSize).then(data => {
+                        if (data) {
+                            if (data.monthlyDemand) setMonthlyDemand(data.monthlyDemand);
+                            if (data.monthlyProductionActuals) setMonthlyProductionActuals(data.monthlyProductionActuals);
+                            if (data.monthlyInbound) setMonthlyInbound(data.monthlyInbound);
+                            if (data.truckManifest) setTruckManifest(data.truckManifest);
+                        }
+                    });
+                }
+                return;
+            }
 
             const date = newRec.date;
             const val = Number(newRec.value);
