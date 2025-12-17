@@ -79,3 +79,15 @@ export const getUserProducts = async (userId: string): Promise<Product[]> => {
     if (error) throw error;
     return (data as Product[]) || [];
 };
+
+/**
+ * Delete a product by ID
+ */
+export const deleteProduct = async (productId: string): Promise<void> => {
+    const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+    if (error) throw error;
+};
