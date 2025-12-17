@@ -2,19 +2,21 @@ import { useMemo } from 'react';
 import { useMRPState } from './mrp/useMRPState';
 import { useMRPCalculations } from './mrp/useMRPCalculations';
 import { useMRPActions } from './mrp/useMRPActions';
+import { CalculateMRPResult } from '../utils/mrpLogic';
 
-export function useMRP(poManifest = {}) {
+interface UseMRPProps {
+    poManifest?: any;
+}
+
+export function useMRP(poManifest: any = {}) {
     // 1. State & Persistence
-    const state = useMRPState(poManifest);
+    const state = useMRPState(); // poManifest is not passed to state, it seems. Original code didn't pass it to useMRPState either.
 
     // 2. Calculations (Pure Logic)
-    // Returns { totalScheduledCases, productionRate, calculations }
     const { calculations, totalScheduledCases, productionRate } = useMRPCalculations(state, poManifest);
 
     // 3. Actions (Handlers)
-    // 3. Actions (Handlers)
-    // Returns { setters, formState }
-    const actionDeps = useMemo(() => ({ calculations }), [calculations]);
+    const actionDeps = useMemo<{ calculations: CalculateMRPResult | null }>(() => ({ calculations }), [calculations]);
     const { setters, formState: actionFormState } = useMRPActions(state, actionDeps);
 
     // 4. Combine & Return (Maintaining Original API Surface)

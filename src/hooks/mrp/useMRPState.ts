@@ -155,10 +155,10 @@ export function useMRPState() {
                         if (data.inventoryAnchor) {
                             setInventoryAnchor(prev => {
                                 // If Local is Newer OR Same Day, Keep Local. (User is "Head" of current day)
-                                if (prev?.date && data.inventoryAnchor.date && new Date(prev.date) >= new Date(data.inventoryAnchor.date)) {
+                                if (prev?.date && data.inventoryAnchor?.date && new Date(prev.date) >= new Date(data.inventoryAnchor.date)) {
                                     return prev;
                                 }
-                                return data.inventoryAnchor;
+                                return data.inventoryAnchor || prev; // Fallback to prev (or null default) if cloud is unexpectedly null
                             });
                         }
                         if (data.yardInventory) {
@@ -202,21 +202,27 @@ export function useMRPState() {
     }, [selectedSize, user?.id]); // STRICT DEPENDENCIES PREVENT JITTER
 
     // --- REALTIME SYNC (The "No Shortcuts" Solution) ---
-    useRealtimeSubscription(activeProduct, (payload) => {
-        const { eventType, new: newRec } = payload;
+    // --- REALTIME SYNC (The "No Shortcuts" Solution) ---
+    useRealtimeSubscription({
+        table: 'planning_entries',
+        filter: activeProduct ? `product_id=eq.${activeProduct.id}` : undefined,
+        enabled: !!activeProduct?.id,
+        onDataChange: (payload: any) => {
+            const { eventType, new: newRec } = payload;
 
-        // Handle DELETES: (Optional, skipping to avoid complex ID mapping for now)
-        if (eventType === 'DELETE') return;
+            // Handle DELETES: (Optional, skipping to avoid complex ID mapping for now)
+            if (eventType === 'DELETE') return;
 
-        const date = newRec.date;
-        const val = Number(newRec.value);
+            const date = newRec.date;
+            const val = Number(newRec.value);
 
-        if (newRec.entry_type === 'demand_plan') {
-            setMonthlyDemand(prev => ({ ...prev, [date]: val }));
-        } else if (newRec.entry_type === 'production_actual') {
-            setMonthlyProductionActuals(prev => ({ ...prev, [date]: val }));
-        } else if (newRec.entry_type === 'inbound_trucks') {
-            setMonthlyInbound(prev => ({ ...prev, [date]: val }));
+            if (newRec.entry_type === 'demand_plan') {
+                setMonthlyDemand(prev => ({ ...prev, [date]: val }));
+            } else if (newRec.entry_type === 'production_actual') {
+                setMonthlyProductionActuals(prev => ({ ...prev, [date]: val }));
+            } else if (newRec.entry_type === 'inbound_trucks') {
+                setMonthlyInbound(prev => ({ ...prev, [date]: val }));
+            }
         }
     });
 

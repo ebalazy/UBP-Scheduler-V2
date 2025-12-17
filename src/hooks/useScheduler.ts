@@ -1,6 +1,19 @@
+
 import { useState, useMemo, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../context/ProductsContext';
+
+export interface SchedulerResults {
+    requiredDailyLoads: number;
+    weeklyLoads: number;
+    schedule: Array<{ name: string; loads: number }>;
+    truckSchedule: Array<{ id: number; time: string; rawDecimal: number; po: string }>;
+    burnRate: number;
+    hoursPerTruck: number;
+    isHighRisk: boolean;
+    safetyStockLoads: number;
+    specs: any; // Using mapped specs object
+}
 
 export function useScheduler() {
     const {
@@ -12,7 +25,7 @@ export function useScheduler() {
     const { productMap: bottleDefinitions, updateProductSettings } = useProducts();
 
     // UI View State (Local Preferred)
-    const [selectedSize, setSelectedSize] = useState(() => localStorage.getItem('sched_selectedSize') || '20oz');
+    const [selectedSize, setSelectedSize] = useState<string>(() => localStorage.getItem('sched_selectedSize') || '20oz');
 
     // Persist UI selection locally
     useEffect(() => localStorage.setItem('sched_selectedSize', selectedSize), [selectedSize]);
@@ -25,21 +38,31 @@ export function useScheduler() {
     } = schedulerSettings;
 
     // --- Calculations (Preserved Logic) ---
-    const calculations = useMemo(() => {
+    const calculations = useMemo<SchedulerResults | null>(() => {
         const specsDef = bottleDefinitions[selectedSize];
         if (!specsDef) return null;
 
         // Inject name for UI/Export usage
-        const computedPallets = specsDef.palletsPerTruck || Math.ceil(specsDef.casesPerTruck / specsDef.casesPerPallet);
-        const specs = { ...specsDef, name: selectedSize, palletsPerTruck: computedPallets };
+        // Note: palletsPerTruck might be missing on specsDef, handle safely
+        const computedPallets = specsDef.casesPerTruck
+            ? Math.ceil(specsDef.casesPerTruck / (specsDef.casesPerPallet || 1))
+            : 0; // Default or warn?
+
+        // Assuming specsDef matches MRPSpecs interface mostly
+        const specs = {
+            ...specsDef,
+            name: selectedSize,
+            palletsPerTruck: specsDef.palletsPerTruck || computedPallets
+        };
 
         // Required Daily Loads
-        // Derive Target & Rate from Master Settings
         const productionRate = specs.productionRate || 0;
         const targetDailyProduction = productionRate * 24; // Implicit 24h ops
 
         const safeTarget = !isNaN(targetDailyProduction) ? targetDailyProduction : 0;
-        const requiredDailyLoads = Math.ceil(safeTarget / specs.casesPerTruck);
+        const requiredDailyLoads = specs.casesPerTruck && specs.casesPerTruck > 0
+            ? Math.ceil(safeTarget / specs.casesPerTruck)
+            : 0;
 
         const weeklyLoads = requiredDailyLoads * 7;
 
@@ -55,8 +78,10 @@ export function useScheduler() {
         const burnRate = casesPerHour;
 
         // Truck Interval
-        const truckCapacityCases = specs.casesPerTruck;
-        const hoursPerTruck = casesPerHour > 0 ? truckCapacityCases / casesPerHour : 0;
+        const truckCapacityCases = (specs as any).casesPerTruck || 0; // Type assertion if needed
+        const hoursPerTruck = casesPerHour > 0 && truckCapacityCases > 0
+            ? truckCapacityCases / casesPerHour
+            : 0;
 
         // Generate Detailed Schedule
         let truckSchedule = [];
@@ -114,16 +139,16 @@ export function useScheduler() {
 
     // --- Setters (Proxy to SettingsContext) ---
 
-    const updatePO = (id, value) => {
+    const updatePO = (id: number | string, value: string) => {
         const newMap = { ...poAssignments, [String(id)]: value };
         updateSchedulerSetting('poAssignments', newMap);
     };
 
-    const toggleCancelled = (id) => {
+    const toggleCancelled = (id: number | string) => {
         const sid = String(id);
         const isCancelled = cancelledLoads.includes(sid);
         const newKey = isCancelled
-            ? cancelledLoads.filter(item => item !== sid)
+            ? cancelledLoads.filter((item: string) => item !== sid)
             : [...cancelledLoads, sid];
         updateSchedulerSetting('cancelledLoads', newKey);
     };
@@ -131,20 +156,19 @@ export function useScheduler() {
     return {
         formState: {
             selectedSize,
-            targetDailyProduction: calculations?.burnRate * 24 || 0, // Expose derived target
+            targetDailyProduction: (calculations?.burnRate || 0) * 24, // Expose derived target
             shiftStartTime,
             poAssignments
         },
         setters: {
             setSelectedSize,
-            setTargetDailyProduction: (v) => {
+            setTargetDailyProduction: (v: number | string) => {
                 const val = Number(v);
                 const safeVal = !isNaN(val) && val >= 0 ? val : 0;
                 // Update MASTER Rate (Cases/Hr) from Daily Target
                 updateProductSettings(selectedSize, { production_rate: safeVal / 24 });
-                // remove local updateSchedulerSetting('targetDailyProduction')
             },
-            setShiftStartTime: (v) => updateSchedulerSetting('shiftStartTime', v),
+            setShiftStartTime: (v: string) => updateSchedulerSetting('shiftStartTime', v),
             updatePO,
             toggleCancelled
         },

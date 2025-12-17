@@ -1,15 +1,22 @@
 
 import { supabase } from './client';
 
+export interface Product {
+    id: string;
+    user_id: string;
+    name: string;
+    bottles_per_case: number;
+    bottles_per_truck: number;
+    cases_per_pallet: number;
+    scrap_percentage?: number;
+    created_at?: string;
+}
+
 /**
  * Ensures a product (SKU) exists for the given user.
  * Returns the product ID.
- * @param {string} userId 
- * @param {string} skuName 
- * @param {object} defaults - Optional default values for new product
- * @returns {Promise<string>} Product ID
  */
-export const ensureProduct = async (userId, skuName, defaults = {}) => {
+export const ensureProduct = async (userId: string, skuName: string, defaults: Partial<Product> = {}): Promise<string> => {
     // Check if exists
     const { data: existing, error: fetchError } = await supabase
         .from('products')
@@ -28,9 +35,9 @@ export const ensureProduct = async (userId, skuName, defaults = {}) => {
         .insert({
             user_id: userId,
             name: skuName,
-            bottles_per_case: defaults.bottlesPerCase || 12,
-            bottles_per_truck: defaults.bottlesPerTruck || 20000,
-            cases_per_pallet: defaults.casesPerPallet || 100
+            bottles_per_case: defaults.bottles_per_case || 12, // Fixed camelCase mixing in original
+            bottles_per_truck: defaults.bottles_per_truck || 20000,
+            cases_per_pallet: defaults.cases_per_pallet || 100
         })
         .select('id')
         .single();
@@ -45,7 +52,7 @@ export const ensureProduct = async (userId, skuName, defaults = {}) => {
 /**
  * Fetch a single product by name
  */
-export const getProductByName = async (userId, skuName) => {
+export const getProductByName = async (userId: string, skuName: string): Promise<Product | null> => {
     const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -55,18 +62,18 @@ export const getProductByName = async (userId, skuName) => {
         .maybeSingle();
 
     if (error) throw error;
-    return data;
+    return data as Product | null;
 };
 
 /**
  * Fetch all products for a user
  */
-export const getUserProducts = async (userId) => {
+export const getUserProducts = async (userId: string): Promise<Product[]> => {
     const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('user_id', userId);
 
     if (error) throw error;
-    return data || [];
+    return (data as Product[]) || [];
 };

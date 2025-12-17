@@ -4,6 +4,7 @@ import { supabase } from '../services/supabase/client';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
+    // Forced re-compile
     // Optimistic User: Load from cache to prevent "Login Flash"
     const [user, setUser] = useState(() => {
         try {

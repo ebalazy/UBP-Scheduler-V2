@@ -11,7 +11,7 @@ export const ProductSchema = z.object({
 export const PlanningEntrySchema = z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
     type: z.enum(['demand_plan', 'inbound_trucks', 'production_actual', 'truck_manifest_json']),
-    value: z.number(), // Can be negative? usually not for these types but allow for adjustments
+    value: z.number(),
     metaJson: z.any().optional()
 });
 

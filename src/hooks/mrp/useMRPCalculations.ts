@@ -2,9 +2,13 @@ import { useMemo } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import { useProducts } from '../../context/ProductsContext';
 import { getLocalISOString } from '../../utils/dateUtils';
-import { calculateMRP } from '../../utils/mrpLogic';
+import { calculateMRP, MRPSpecs } from '../../utils/mrpLogic';
 
-export function useMRPCalculations(state, poManifest = {}) {
+export function useMRPCalculations(state: any, poManifest: any = {}) {
+    // state is 'any' for now because useMRPState is complex, but we can infer parts. 
+    // Ideally we define an interface for MRPState, but that's in useMRPState.ts 
+    // and might not be exported yet.
+
     const { safetyStockLoads } = useSettings();
     const { productMap: bottleDefinitions } = useProducts();
     const {
@@ -19,10 +23,10 @@ export function useMRPCalculations(state, poManifest = {}) {
     } = state;
 
     // Derived productionRate for calculations
-    const productionRate = bottleDefinitions[selectedSize]?.productionRate || 0;
+    const specs: MRPSpecs | undefined = bottleDefinitions[selectedSize];
+    const productionRate = specs?.productionRate || 0;
 
     const results = useMemo(() => {
-        const specs = bottleDefinitions[selectedSize];
         if (!specs) return null;
 
         const params = {
@@ -47,7 +51,7 @@ export function useMRPCalculations(state, poManifest = {}) {
         selectedSize, productionRate, downtimeHours, incomingTrucks,
         bottleDefinitions, safetyStockLoads, yardInventory,
         monthlyDemand, monthlyInbound, inventoryAnchor, poManifest,
-        monthlyProductionActuals
+        monthlyProductionActuals, specs
     ]);
 
     // Backward compatibility wrapper for old components expecting direct returns
@@ -55,5 +59,5 @@ export function useMRPCalculations(state, poManifest = {}) {
         totalScheduledCases: results?.effectiveScheduledCases || 0, // Fallback mapping 
         productionRate,
         calculations: results
-    }), [results, productionRate, results?.effectiveScheduledCases]);
+    }), [results, productionRate]);
 }

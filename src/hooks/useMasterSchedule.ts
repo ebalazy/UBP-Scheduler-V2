@@ -2,13 +2,29 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseSync } from './useSupabaseSync';
 
-export function useMasterSchedule(bottleSizes, enabled = true) {
+export interface SKUActivity {
+    sku: string;
+    demand: number;
+    actual: number | null;
+    trucks: number;
+}
+
+export interface MasterLedger {
+    [date: string]: SKUActivity[];
+}
+
+interface SKUStateData {
+    demand: Record<string, number>;
+    actuals: Record<string, number>;
+    inbound: Record<string, number>;
+}
+
+export function useMasterSchedule(bottleSizes: string[], enabled: boolean = true) {
     const { user } = useAuth();
     const { fetchMRPState } = useSupabaseSync();
 
     // State: Map of SKU -> MRP State
-    // { "20oz": { monthlyDemand: {}, ... }, "12oz": ... }
-    const [skuStates, setSkuStates] = useState({});
+    const [skuStates, setSkuStates] = useState<Record<string, SKUStateData>>({});
     const [loading, setLoading] = useState(false);
 
     // 1. Fetch All SKUs
@@ -17,17 +33,17 @@ export function useMasterSchedule(bottleSizes, enabled = true) {
 
         const loadAll = async () => {
             setLoading(true);
-            const newState = {};
+            const newState: Record<string, SKUStateData> = {};
 
             // Helper to get local state
-            const getLocalState = (key, sku) => {
+            const getLocalState = (key: string, sku: string): Record<string, number> => {
                 const legacyKey = `mrp_${key}`;
                 const fullKey = `mrp_${sku}_${key}`;
                 // Fallback logic
                 let saved = localStorage.getItem(fullKey);
                 if (saved === null && sku === '20oz') saved = localStorage.getItem(legacyKey); // Legacy fallback only for 20oz
 
-                try { return JSON.parse(saved) || {}; }
+                try { return JSON.parse(saved || '{}'); }
                 catch { return {}; }
             };
 
@@ -63,7 +79,7 @@ export function useMasterSchedule(bottleSizes, enabled = true) {
 
             const results = await Promise.all(promises);
             results.forEach(({ sku, data }) => {
-                newState[sku] = data;
+                newState[sku] = data as SKUStateData; // Type assertion needed due to complex inference
             });
 
             setSkuStates(newState);
@@ -72,20 +88,13 @@ export function useMasterSchedule(bottleSizes, enabled = true) {
 
         if (bottleSizes.length > 0) loadAll();
 
-    }, [bottleSizes, user, fetchMRPState, enabled]); // Re-run if enabled toggles
+    }, [bottleSizes, user, fetchMRPState, enabled]);
 
     // 2. Aggregate into Master Ledger
     const masterLedger = useMemo(() => {
-        // Date -> Array of SKU Activity
-        // { "2023-10-14": [ { sku: "20oz", run: 5000, trucks: 0 }, ... ] }
-        const ledger = {};
-        const today = new Date();
+        const ledger: MasterLedger = {};
 
-        // Look ahead 60 days + Look back 7 days? 
-        // Or just iterate all keys found?
-        // Let's do a wide range to catch everything.
-
-        const allDates = new Set();
+        const allDates = new Set<string>();
         Object.values(skuStates).forEach(state => {
             Object.keys(state.demand).forEach(d => allDates.add(d));
             Object.keys(state.actuals).forEach(d => allDates.add(d));
@@ -96,7 +105,7 @@ export function useMasterSchedule(bottleSizes, enabled = true) {
         const sortedDates = Array.from(allDates).sort();
 
         sortedDates.forEach(dateStr => {
-            const dayActivity = [];
+            const dayActivity: SKUActivity[] = [];
 
             bottleSizes.forEach(sku => {
                 const state = skuStates[sku];

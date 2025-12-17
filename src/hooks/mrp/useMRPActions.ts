@@ -1,17 +1,47 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import { useAuth } from '../../context/AuthContext';
-import { useProducts } from '../../context/ProductsContext'; // New Context
+import { useProducts } from '../../context/ProductsContext';
 import { useSupabaseSync } from '../useSupabaseSync';
 import { addDays, getLocalISOString } from '../../utils/dateUtils';
 import { saveLocalState } from './useMRPState';
+import { CalculateMRPResult } from '../../utils/mrpLogic';
 
+// Define interface for expected State input (mirroring useMRPState output)
+interface MRPStateActionsInput {
+    // We should probably define this shared interface in types/mrp.ts but for now inline or 'any' if complex
+    // List what we depend on:
+    selectedSize: string;
+    setSelectedSize: (size: string) => void;
+    monthlyDemand: Record<string, number>;
+    setMonthlyDemand: (v: Record<string, number>) => void;
+    monthlyProductionActuals: Record<string, number>;
+    setMonthlyProductionActuals: (v: Record<string, number>) => void;
+    monthlyInbound: Record<string, number>;
+    setMonthlyInbound: (v: Record<string, number>) => void;
+    truckManifest: Record<string, any>;
+    setTruckManifest: (v: Record<string, any>) => void;
+    setDowntimeHours: (v: number) => void;
+    setCurrentInventoryPallets: (v: number) => void;
+    setIncomingTrucks: (v: number) => void;
+    setYardInventory: (v: any) => void;
+    setManualYardOverride: (v: boolean) => void;
+    isAutoReplenish: boolean;
+    setIsAutoReplenish: (v: boolean) => void;
+    setInventoryAnchor: (v: any) => void;
+    inventoryAnchor: any;
+    [key: string]: any;
+}
 
-export function useMRPActions(state, calculationsResult) {
+interface CalculationsResult {
+    calculations: CalculateMRPResult | null;
+}
+
+export function useMRPActions(state: MRPStateActionsInput, calculationsResult: CalculationsResult) {
     const { safetyStockLoads, leadTimeDays } = useSettings();
-    const { productMap: bottleDefinitions, refreshProducts } = useProducts(); // Use Master Data
+    const { productMap: bottleDefinitions, refreshProducts } = useProducts();
     const { user, userRole } = useAuth();
-    const { savePlanningEntry, saveProductionSetting, saveInventoryAnchor } = useSupabaseSync();
+    const { savePlanningEntry, saveProductionSetting, saveInventorySnapshot } = useSupabaseSync(); // Rename saveInventoryAnchor -> saveInventorySnapshot
 
     const {
         selectedSize, setSelectedSize,
@@ -23,7 +53,7 @@ export function useMRPActions(state, calculationsResult) {
         setCurrentInventoryPallets,
         setIncomingTrucks,
         setYardInventory,
-        setManualYardOverride,
+        // setManualYardOverride,
         isAutoReplenish, setIsAutoReplenish,
         setInventoryAnchor, inventoryAnchor
     } = state;
@@ -31,7 +61,6 @@ export function useMRPActions(state, calculationsResult) {
     const { calculations } = calculationsResult;
 
     // --- Refs for Stable Actions (Prevent Re-renders) ---
-    // Use useLayoutEffect to ensure refs are updated synchronously before any effects/callbacks run
     const lastManualRun = useRef(0);
     const demandRef = useRef(monthlyDemand);
     const actualRef = useRef(monthlyProductionActuals);
@@ -43,26 +72,23 @@ export function useMRPActions(state, calculationsResult) {
 
     // --- Actions ---
     const [isSaving, setIsSaving] = useState(false);
-    const [saveError, setSaveError] = useState(null);
-    const saveTimers = useRef({}); // Store active debounce timers
-    const localSaveTimers = useRef({}); // LocalStorage save timers
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const saveTimers = useRef<Record<string, any>>({});
+    const localSaveTimers = useRef<Record<string, any>>({});
 
-    // Wrapper for Save
-    const saveWithStatus = useCallback(async (fn) => {
-        // PERMISSION CHECK: Only Admins and Planners can save to cloud
-        const canEdit = ['admin', 'planner'].includes(userRole);
+    const saveWithStatus = useCallback(async (fn: () => Promise<void>) => {
+        const canEdit = ['admin', 'planner'].includes(userRole || '');
         if (!canEdit) return;
 
         setSaveError(null);
         try { await fn(); }
-        catch (e) {
+        catch (e: any) {
             console.error("Save Error", e);
             setSaveError(e.message || "Save Failed");
         }
     }, [userRole]);
 
-    // Debounce Helper (Network)
-    const scheduleSave = useCallback((key, fn, delay = 1000) => {
+    const scheduleSave = useCallback((key: string, fn: () => Promise<void>, delay = 1000) => {
         if (saveTimers.current[key]) {
             clearTimeout(saveTimers.current[key]);
         }
@@ -72,8 +98,7 @@ export function useMRPActions(state, calculationsResult) {
         }, delay);
     }, [saveWithStatus]);
 
-    // Debounce Helper (Local Storage)
-    const scheduleLocalSave = useCallback((key, fn, delay = 300) => {
+    const scheduleLocalSave = useCallback((key: string, fn: () => void, delay = 300) => {
         if (localSaveTimers.current[key]) {
             clearTimeout(localSaveTimers.current[key]);
         }
@@ -83,7 +108,6 @@ export function useMRPActions(state, calculationsResult) {
         }, delay);
     }, []);
 
-    // Cleanup timers on unmount
     useEffect(() => {
         return () => {
             Object.values(saveTimers.current).forEach(clearTimeout);
@@ -91,7 +115,7 @@ export function useMRPActions(state, calculationsResult) {
         };
     }, []);
 
-    const runAutoReplenishment = useCallback(() => { // Removed arguments, use Refs
+    const runAutoReplenishment = useCallback(() => {
         if (!calculations || !isAutoReplenish) return;
 
         const demandMap = demandRef.current;
@@ -99,11 +123,13 @@ export function useMRPActions(state, calculationsResult) {
         const inboundMap = inboundRef.current;
 
         const specs = bottleDefinitions[selectedSize];
+        if (!specs) return;
+
         const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
-        const localSafetyTarget = safetyStockLoads * specs.bottlesPerTruck;
-        let runningBalance = calculations.initialInventory;
+        const localSafetyTarget = (safetyStockLoads || 0) * specs.bottlesPerTruck;
+        let runningBalance = calculations.initialInventory || 0;
         const startOffset = leadTimeDays || 2;
-        const next60Days = {};
+        const next60Days: Record<string, number> = {};
 
         const todayStr = getLocalISOString();
 
@@ -113,12 +139,11 @@ export function useMRPActions(state, calculationsResult) {
             const act = actualMap[ds];
             const plan = demandMap[ds];
 
-            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
             const isFuture = ds > todayStr;
             const useActual = (act !== undefined && act !== null) && (!isFuture || Number(act) !== 0);
             const caseCount = useActual ? Number(act) : Number(plan || 0);
 
-            const dDem = caseCount * specs.bottlesPerCase * scrapFactor;
+            const dDem = caseCount * (specs.bottlesPerCase || 1) * scrapFactor;
             const existingTrucks = inboundMap[ds] || 0;
             runningBalance = runningBalance + (existingTrucks * specs.bottlesPerTruck) - dDem;
         }
@@ -129,12 +154,11 @@ export function useMRPActions(state, calculationsResult) {
             const act = actualMap[ds];
             const plan = demandMap[ds];
 
-            // Logic: Actuals override Plan, UNLESS it's a future date and Actual is 0 (likely placeholder)
             const isFuture = ds > todayStr;
             const useActual = (act !== undefined && act !== null) && (!isFuture || Number(act) !== 0);
             const caseCount = useActual ? Number(act) : Number(plan || 0);
 
-            const dDem = caseCount * specs.bottlesPerCase * scrapFactor;
+            const dDem = caseCount * (specs.bottlesPerCase || 1) * scrapFactor;
 
             let dTrucks = 0;
             let bal = runningBalance - dDem;
@@ -163,20 +187,18 @@ export function useMRPActions(state, calculationsResult) {
         // 4. Construct New Map
         const newInbound = { ...inboundMap, ...next60Days };
 
-        // Remove 0s 
         Object.keys(newInbound).forEach(k => {
             if (newInbound[k] === 0) delete newInbound[k];
         });
 
         // Final Safety Check
-        const sortObj = o => Object.keys(o).sort().reduce((acc, k) => ({ ...acc, [k]: o[k] }), {});
+        const sortObj = (o: any) => Object.keys(o).sort().reduce((acc: any, k) => ({ ...acc, [k]: o[k] }), {});
         if (JSON.stringify(sortObj(newInbound)) === JSON.stringify(sortObj(inboundMap))) return;
 
-        // Apply
         setMonthlyInbound(newInbound);
         saveLocalState('monthlyInbound', newInbound, selectedSize, true);
 
-        if (user && ['admin', 'planner'].includes(userRole)) {
+        if (user && ['admin', 'planner'].includes(userRole || '')) {
             saveWithStatus(async () => {
                 const promises = Object.entries(next60Days).map(([date, trucks]) => {
                     return savePlanningEntry(user.id, selectedSize, date, 'inbound_trucks', trucks);
@@ -184,20 +206,14 @@ export function useMRPActions(state, calculationsResult) {
                 await Promise.all(promises);
             });
         }
-    }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, userRole, savePlanningEntry, setMonthlyInbound, saveLocalState, saveWithStatus]);
-    // ^ Removed maps from deps, using Refs inside.
+    }, [calculations, isAutoReplenish, bottleDefinitions, selectedSize, safetyStockLoads, leadTimeDays, user, userRole, savePlanningEntry, setMonthlyInbound, saveWithStatus]);
 
-    // ...
 
-    const updateDateDemand = useCallback((date, value) => {
-        // Allow raw value flow for decimals/empty string. 
-        // Only convert to Number for DB/Calculations if needed (Calculations handle strings)
+    const updateDateDemand = useCallback((date: string, value: any) => {
         const val = value;
         const newDemand = { ...demandRef.current, [date]: val };
 
         setMonthlyDemand(newDemand);
-        // We defer auto-replenishment to the useEffect to keep the input responsive.
-
         scheduleLocalSave('monthlyDemand', () => {
             saveLocalState('monthlyDemand', newDemand, selectedSize, true);
         }, 500);
@@ -205,21 +221,19 @@ export function useMRPActions(state, calculationsResult) {
         if (user) {
             scheduleSave(
                 `demand-${date}`,
-                () => savePlanningEntry(user.id, selectedSize, date, 'demand_plan', Number(val)),
+                async () => savePlanningEntry(user.id, selectedSize, date, 'demand_plan', Number(val)),
                 1000
             );
         }
     }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyDemand, savePlanningEntry]);
 
-    const updateDateActual = useCallback((date, value) => {
-        // Allow raw value flow
+    const updateDateActual = useCallback((date: string, value: any) => {
         const val = (value === '' || value === null) ? undefined : value;
         const newActuals = { ...actualRef.current };
         if (val === undefined) delete newActuals[date];
         else newActuals[date] = val;
 
         setMonthlyProductionActuals(newActuals);
-        // We defer auto-replenishment to the useEffect to keep the input responsive.
 
         scheduleLocalSave('monthlyProductionActuals', () => {
             saveLocalState('monthlyProductionActuals', newActuals, selectedSize, true);
@@ -228,17 +242,16 @@ export function useMRPActions(state, calculationsResult) {
         if (user) {
             scheduleSave(
                 `actual-${date}`,
-                () => savePlanningEntry(user.id, selectedSize, date, 'production_actual', val === undefined ? null : Number(val)),
+                async () => savePlanningEntry(user.id, selectedSize, date, 'production_actual', val === undefined ? null : Number(val)),
                 1000
             );
         }
     }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyProductionActuals, savePlanningEntry]);
 
-    const updateDateInbound = useCallback((date, value) => {
-        const val = value; // Allow raw string
+    const updateDateInbound = useCallback((date: string, value: any) => {
+        const val = value;
         const newInbound = { ...inboundRef.current };
 
-        // If empty or 0, delete from local state and db
         if (val === '' || val === '0' || Number(val) === 0) {
             delete newInbound[date];
         } else {
@@ -253,7 +266,7 @@ export function useMRPActions(state, calculationsResult) {
         if (user) {
             scheduleSave(
                 `inbound-${date}`,
-                () => savePlanningEntry(
+                async () => savePlanningEntry(
                     user.id,
                     selectedSize,
                     date,
@@ -265,36 +278,27 @@ export function useMRPActions(state, calculationsResult) {
         }
     }, [selectedSize, user, scheduleSave, scheduleLocalSave, setMonthlyInbound, savePlanningEntry]);
 
-    // Reactive Trigger for Auto-Replenishment
     useEffect(() => {
         if (!isAutoReplenish || !calculations) return;
-
-        // TIMESTAMP GUARD...
-        if (Date.now() - lastManualRun.current < 250) {
-            return;
-        }
+        if (Date.now() - lastManualRun.current < 250) return;
 
         const timer = setTimeout(() => {
-            runAutoReplenishment(); // No args
+            runAutoReplenishment();
         }, 50);
-
         return () => clearTimeout(timer);
     }, [
-        inventoryAnchor, // Stable Input (breaks feedback loop)
+        inventoryAnchor, // Stable Input
         safetyStockLoads,
         leadTimeDays,
         isAutoReplenish,
-        monthlyDemand,            // Still trigger on INPUT change
-        leadTimeDays,
-        isAutoReplenish,
-        monthlyDemand,            // Still trigger on INPUT change
-        monthlyProductionActuals, // Still trigger on INPUT change
-        calculations,             // Fix: Trigger when calculated inventory state changes (e.g. Yard Stock update)
+        monthlyDemand,
+        monthlyProductionActuals, // Triggers
+        calculations,
         runAutoReplenishment
     ]);
 
 
-    const updateDateDemandBulk = useCallback((updates) => {
+    const updateDateDemandBulk = useCallback((updates: Record<string, number>) => {
         const newDemand = { ...demandRef.current, ...updates };
         setMonthlyDemand(newDemand);
         scheduleLocalSave('monthlyDemand', () => {
@@ -328,66 +332,66 @@ export function useMRPActions(state, calculationsResult) {
         updateDateDemandBulk,
         updateDateActual,
         updateDateInbound,
-        updateTruckManifest: (date, trucks) => {
+        updateTruckManifest: (date: string, trucks: any[]) => {
             const newManifest = { ...truckManifest, [date]: trucks };
             if (!trucks || trucks.length === 0) delete newManifest[date];
 
             setTruckManifest(newManifest);
             saveLocalState('truckManifest', newManifest, selectedSize, true);
-            if (user) saveWithStatus(() => savePlanningEntry(user.id, selectedSize, date, 'truck_manifest_json', JSON.stringify(trucks)));
+            if (user) saveWithStatus(async () => savePlanningEntry(user.id, selectedSize, date, 'truck_manifest_json', JSON.stringify(trucks)));
         },
-        setProductionRate: async (v) => {
+        setProductionRate: async (v: string | number) => {
             const val = Number(v);
-            setLocalProductionRate(val); // Optimistic Update
+            setLocalProductionRate(val);
 
             if (user) {
-                await saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'production_rate', val));
-                refreshProducts(); // Updating Master Data should reflect everywhere
+                await saveWithStatus(async () => saveProductionSetting(user.id, selectedSize, 'production_rate', val));
+                refreshProducts();
             }
         },
-        setDowntimeHours: (v) => {
+        setDowntimeHours: (v: string | number) => {
             const val = Number(v);
             setDowntimeHours(val);
             saveLocalState('downtimeHours', val, selectedSize);
-            if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'downtime_hours', val));
+            if (user) saveWithStatus(async () => saveProductionSetting(user.id, selectedSize, 'downtime_hours', val));
         },
-        setCurrentInventoryPallets: (v) => {
+        setCurrentInventoryPallets: (v: string | number) => {
             const val = Number(v);
             setCurrentInventoryPallets(val);
             saveLocalState('currentInventoryPallets', val, selectedSize);
         },
-        setIncomingTrucks: (v) => {
+        setIncomingTrucks: (v: string | number) => {
             const val = Number(v);
             setIncomingTrucks(val);
             saveLocalState('incomingTrucks', val, selectedSize);
         },
-        setYardInventory: (v) => {
+        setYardInventory: (v: any) => {
             setYardInventory(v);
             saveLocalState('yardInventory', v, selectedSize, true);
         },
-        updateYardInventory: (v) => {
+        updateYardInventory: (v: string | number) => {
             const val = Number(v);
             const now = getLocalISOString();
             setYardInventory({ date: now, count: val });
             saveLocalState('yardInventory', { date: now, count: val }, selectedSize, true);
-            if (user) saveWithStatus(() => saveInventoryAnchor(user.id, selectedSize, { date: now, count: val }, 'yard'));
+            if (user) saveWithStatus(async () => saveInventorySnapshot(user.id, selectedSize, now, val, 'yard'));
         },
-        setIsAutoReplenish: (v) => {
+        setIsAutoReplenish: (v: boolean) => {
             setIsAutoReplenish(v);
             saveLocalState('isAutoReplenish', v, selectedSize, true);
-            if (user) saveWithStatus(() => saveProductionSetting(user.id, selectedSize, 'is_auto_replenish', v));
+            if (user) saveWithStatus(async () => saveProductionSetting(user.id, selectedSize, 'is_auto_replenish', v));
         },
-        setInventoryAnchor: (v) => {
+        setInventoryAnchor: (v: any) => {
             setInventoryAnchor(v);
             saveLocalState('inventoryAnchor', v, selectedSize, true);
-            if (user) saveWithStatus(() => saveInventoryAnchor(user.id, selectedSize, v));
+            if (user) saveWithStatus(() => saveInventorySnapshot(user.id, selectedSize, v.date, v.count, 'floor')); // Using saveInventorySnapshot (mapped from saveInventoryAnchor logic)
         }
     }), [
         setSelectedSize, updateDateDemand, updateDateDemandBulk, updateDateActual, updateDateInbound,
-        truckManifest, setTruckManifest, saveLocalState, selectedSize, user, saveWithStatus, savePlanningEntry,
+        truckManifest, setTruckManifest, selectedSize, user, saveWithStatus, savePlanningEntry,
         setLocalProductionRate, saveProductionSetting, refreshProducts,
         setDowntimeHours, setCurrentInventoryPallets, setIncomingTrucks, setYardInventory, setIsAutoReplenish,
-        setInventoryAnchor
+        setInventoryAnchor, saveInventorySnapshot
     ]);
 
     return {

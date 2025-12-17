@@ -1,11 +1,46 @@
-
 import { supabase } from './client';
-import { PlanningEntrySchema, ProductionSettingsSchema, InventorySnapshotSchema } from '../../types/schemas';
+import { PlanningEntrySchema, InventorySnapshotSchema } from '../../types/schemas';
+
+// --- Types ---
+export interface PlanningEntry {
+    date: string;
+    entry_type: 'demand_plan' | 'inbound_trucks' | 'production_actual' | 'truck_manifest_json';
+    value: number;
+    meta_json?: any;
+    product_id?: string;
+    user_id?: string;
+    id?: string;
+}
+
+export interface ProductionSettings {
+    id?: string;
+    product_id: string;
+    production_rate?: number;
+    downtime_hours?: number;
+    is_auto_replenish?: boolean;
+    [key: string]: any;
+}
+
+export interface InventorySnapshot {
+    id?: string;
+    product_id: string;
+    date: string;
+    location: 'floor' | 'yard';
+    quantity_pallets: number;
+    user_id?: string;
+}
+
+interface FetchPlanningDetailsResult {
+    entries: PlanningEntry[];
+    settings: ProductionSettings | null;
+    snapshotFloor: InventorySnapshot | null;
+    snapshotYard: InventorySnapshot | null;
+}
 
 /**
  * Loads all planning entries and settings for a product
  */
-export const fetchPlanningDetails = async (productId) => {
+export const fetchPlanningDetails = async (productId: string): Promise<FetchPlanningDetailsResult> => {
     const [entries, settings, snapshotsFloor, snapshotsYard] = await Promise.all([
         supabase
             .from('planning_entries')
@@ -35,17 +70,17 @@ export const fetchPlanningDetails = async (productId) => {
     ]);
 
     return {
-        entries: entries.data || [],
-        settings: settings.data,
-        snapshotFloor: snapshotsFloor.data,
-        snapshotYard: snapshotsYard.data
+        entries: (entries.data as PlanningEntry[]) || [],
+        settings: (settings.data as ProductionSettings | null),
+        snapshotFloor: (snapshotsFloor.data as InventorySnapshot | null),
+        snapshotYard: (snapshotsYard.data as InventorySnapshot | null)
     };
 };
 
 /**
  * Save or Delete a planning entry
  */
-export const upsertPlanningEntry = async (productId, userId, date, type, value, metaJson = null) => {
+export const upsertPlanningEntry = async (productId: string, userId: string, date: string, type: string, value: number | null | undefined, metaJson: any = null): Promise<void> => {
     // Check for deletion (null or undefined value)
     if (value === null || value === undefined) {
         const { error } = await supabase
@@ -62,7 +97,7 @@ export const upsertPlanningEntry = async (productId, userId, date, type, value, 
     // VALIDATION
     try {
         PlanningEntrySchema.parse({ date, type, value, metaJson });
-    } catch (validationError) {
+    } catch (validationError: any) {
         console.error("Validation Failed:", validationError);
         throw new Error(`Invalid Planning Entry: ${validationError.errors[0].message}`);
     }
@@ -105,12 +140,10 @@ export const upsertPlanningEntry = async (productId, userId, date, type, value, 
 /**
  * Save Production Settings
  */
-export const saveProductionSetting = async (productId, field, value) => {
+export const saveProductionSetting = async (productId: string, field: string, value: any): Promise<void> => {
     // Partial Validation - tricky with single field updates
-    // Ideally we fetch, merge, and validate, but that's expensive for a single field toggle.
-    // We'll trust the caller for now or manual check.
-    if (field === 'production_rate' && value < 0) throw new Error("Production Rate cannot be negative");
-    if (field === 'downtime_hours' && value < 0) throw new Error("Downtime cannot be negative");
+    if (field === 'production_rate' && (typeof value === 'number' && value < 0)) throw new Error("Production Rate cannot be negative");
+    if (field === 'downtime_hours' && (typeof value === 'number' && value < 0)) throw new Error("Downtime cannot be negative");
 
     const { data } = await supabase
         .from('production_settings')
@@ -119,7 +152,7 @@ export const saveProductionSetting = async (productId, field, value) => {
         .limit(1);
 
     const existingId = data && data.length > 0 ? data[0].id : null;
-    const update = { product_id: productId, [field]: value };
+    const update: any = { product_id: productId, [field]: value };
     if (existingId) update.id = existingId;
 
     const { error } = await supabase.from('production_settings').upsert(update);
@@ -132,7 +165,7 @@ export const saveProductionSetting = async (productId, field, value) => {
 /**
  * Batch insert planning entries (used for migration)
  */
-export const batchUpsertPlanningEntries = async (entries) => {
+export const batchUpsertPlanningEntries = async (entries: PlanningEntry[]): Promise<void> => {
     if (!entries.length) return;
     const { error } = await supabase
         .from('planning_entries')
@@ -140,7 +173,7 @@ export const batchUpsertPlanningEntries = async (entries) => {
     if (error) throw error;
 };
 
-export const batchUpsertSettings = async (settings) => {
+export const batchUpsertSettings = async (settings: ProductionSettings[]): Promise<void> => {
     const { error } = await supabase
         .from('production_settings')
         .upsert(settings);
@@ -150,22 +183,13 @@ export const batchUpsertSettings = async (settings) => {
 /**
  * Save Inventory Snapshot
  */
-export const saveInventorySnapshot = async (productId, userId, date, count, location = 'floor') => {
+export const saveInventorySnapshot = async (productId: string, userId: string, date: string, count: number, location: 'floor' | 'yard' = 'floor'): Promise<void> => {
     // VALIDATION
     try {
         InventorySnapshotSchema.parse({ date, count, location });
-    } catch (e) {
+    } catch (e: any) {
         throw new Error(`Invalid Snapshot: ${e.errors[0].message}`);
     }
-
-    /* 
-    // Legacy: We used to manage an 'is_latest' flag, but the DB schema doesn't support it.
-    // Relying on Date sorting instead.
-    await supabase.from('inventory_snapshots')
-        .update({ is_latest: false })
-        .eq('product_id', productId)
-        .eq('location', location);
-    */
 
     const { error } = await supabase.from('inventory_snapshots').upsert({
         product_id: productId,

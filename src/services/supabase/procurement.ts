@@ -1,7 +1,23 @@
 
 import { supabase } from './client';
 
-export const fetchProcurementOrders = async () => {
+export interface ProcurementOrderModel {
+    id?: string;
+    po_number: string;
+    date: string; // YYYY-MM-DD
+    sku: string;
+    quantity: number;
+    supplier?: string;
+    carrier?: string;
+    status: string;
+    delivery_time?: string;
+    user_id?: string;
+    created_at?: string;
+}
+
+export const fetchProcurementOrders = async (): Promise<any[]> => {
+    // Note: The UI expects a map, but this returns raw rows. The context handles mapping.
+    // We return 'any[]' because the specific shape depends on DB, but aligned with ProcurementOrderModel roughly.
     const { data, error } = await supabase
         .from('procurement_orders')
         .select('*')
@@ -11,9 +27,11 @@ export const fetchProcurementOrders = async () => {
     return data || [];
 };
 
-export const upsertProcurementOrder = async (order, userId) => {
+export const upsertProcurementOrder = async (order: any, userId: string): Promise<void> => {
+    // Order object comes from App Context (camelCase)
+    // Payload maps to DB (snake_case)
     const payload = {
-        po_number: order.po,
+        po_number: order.po, // Maps 'po' -> 'po_number'
         quantity: order.qty,
         sku: order.sku,
         supplier: order.supplier,
@@ -24,6 +42,7 @@ export const upsertProcurementOrder = async (order, userId) => {
         user_id: userId
     };
 
+    // Check by PO Number (Business Key)
     const { data: existing } = await supabase
         .from('procurement_orders')
         .select('id')
@@ -37,7 +56,7 @@ export const upsertProcurementOrder = async (order, userId) => {
     }
 };
 
-export const deleteProcurementOrder = async (poNumber) => {
+export const deleteProcurementOrder = async (poNumber: string): Promise<void> => {
     const { error } = await supabase
         .from('procurement_orders')
         .delete()

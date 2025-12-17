@@ -35,6 +35,7 @@ interface MRPStateData {
  * Handles migration from localStorage and real-time persistence.
  */
 export const useSupabaseSync = () => {
+    // Forced re-compile
 
     /**
      * MIGRATION: Reads all localStorage keys and uploads them.

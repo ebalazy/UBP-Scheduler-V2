@@ -1,15 +1,28 @@
-/**
- * useMRPSolver.js
- * 
- * "The Engine"
- * A pure calculation module that drafts a proposed schedule to solve inventory gaps.
- * It does NOT mutate state directly. It returns a proposal object.
- */
+
 import { getLocalISOString, addDays } from '../../utils/dateUtils';
+import { MRPSpecs, CalculateMRPResult, DailyLedgerItem } from '../../utils/mrpLogic';
+
+interface SolveParams {
+    currentResults: CalculateMRPResult | null;
+    safetyStockLoads: number;
+    bottleDefinitions: Record<string, MRPSpecs>;
+    selectedSize: string;
+    schedulerSettings: any; // Ideally typed
+    state: any; // Ideally typed
+    effectiveLeadTime?: number;
+}
 
 export function useMRPSolver() {
 
-    const solve = (currentResults, safetyStockLoads, bottleDefinitions, selectedSize, schedulerSettings, state, effectiveLeadTime) => {
+    const solve = (
+        currentResults: CalculateMRPResult | null,
+        safetyStockLoads: number,
+        bottleDefinitions: Record<string, MRPSpecs>,
+        selectedSize: string,
+        schedulerSettings: any,
+        state: any,
+        effectiveLeadTime?: number
+    ) => {
         // Validation
         if (!currentResults || !currentResults.dailyResults || !selectedSize || !bottleDefinitions[selectedSize]) {
             console.warn("Solver: Missing Data", { currentResults, selectedSize });
@@ -19,7 +32,7 @@ export function useMRPSolver() {
         const specs = bottleDefinitions[selectedSize];
 
         // 1. Inputs
-        const plannedInbound = { ...(state.monthlyInbound || {}) }; // Mutable copy
+        const plannedInbound: Record<string, number> = { ...(state.monthlyInbound || {}) }; // Mutable copy
         const dailyResults = currentResults.dailyResults; // Sorted Array Day 1 -> N
 
         // Lead Time Gate (Frozen Period)
@@ -27,21 +40,15 @@ export function useMRPSolver() {
         // Use specific lead time if provided, else fallback to global setting
         const frozenDays = effectiveLeadTime !== undefined ? effectiveLeadTime : (schedulerSettings?.leadTimeDays || 2);
         // Fix: Subtract 1 day. 
-        // If Lead Time = 1 Day (Order Tue -> Arrive Wed), we want Wed to be Open.
-        // Old Logic: frozenUntil = Tue + 1 = Wed. Wed <= Wed is blocked.
-        // New Logic: frozenUntil = Tue + (1-1) = Tue. Wed <= Tue is False (Allowed).
         const frozenUntil = addDays(todayStr, Math.max(0, frozenDays - 1));
 
         let cumulativeAddedBottles = 0; // The "Rolling Wave" of added inventory
-        const proposedUpdates = {};
+        const proposedUpdates: Record<string, number> = {};
 
         // 2. Iterate Logic
-        // We TRUST 'dailyResults' for the base projection.
-        // We only add our OWN adjustments on top.
-
         let operationsCount = 0;
 
-        dailyResults.forEach((day, index) => {
+        dailyResults.forEach((day: DailyLedgerItem, index: number) => {
             const dateStr = day.dateStr;
 
             // Base Inventory (from Grid Calculation)
@@ -51,16 +58,12 @@ export function useMRPSolver() {
             const adjustedInventory = baseInventory + cumulativeAddedBottles;
 
             // Lead Time Gate (Frozen Period)
-            // Strict enforcement: We cannot plan orders inside the frozen window.
             if (dateStr <= frozenUntil) return;
 
             // Skip updates if Actuals represent a locked reality (Past)
             if (state.monthlyProductionActuals && state.monthlyProductionActuals[dateStr]) return;
 
-            // Target Calc (Use Day's own target if calculated, else fallback)
-            // Target Calc: Align with `mrpLogic.js` (Loads * Capacity)
-            // Was: ((specs.productionRate * 24) * (safetyStockLoads || 2)) -> This treated loads as "Days"
-            // New: (safetyStockLoads || 2) * specs.bottlesPerTruck
+            // Target Calc
             const safetyTarget = day.safetyStockTarget || ((safetyStockLoads || 0) * specs.bottlesPerTruck);
 
             // Deficit?
@@ -83,17 +86,11 @@ export function useMRPSolver() {
             }
             // Excess? (Reduce Trucks)
             else if (adjustedInventory > (safetyTarget + specs.bottlesPerTruck)) {
-                // If we have AT LEAST 1 full truck of excess above Buffer...
-                // And there is a truck planned for this day...
-                // We can remove it.
-
                 let currentPlan = Number(plannedInbound[dateStr] || 0);
 
                 if (currentPlan > 0) {
                     const surplus = adjustedInventory - safetyTarget;
-                    // How many can we remove without going under?
                     const maxRemovable = Math.floor(surplus / specs.bottlesPerTruck);
-                    // Limit by what is actually there
                     const toRemove = Math.min(maxRemovable, currentPlan);
 
                     if (toRemove > 0) {
@@ -101,9 +98,6 @@ export function useMRPSolver() {
                         plannedInbound[dateStr] = newPlan;
                         proposedUpdates[dateStr] = newPlan;
 
-                        // We removed supply, so we SUBTRACT from the cumulative wave (making it negative/less positive)
-                        // Wait, 'cumulativeAdded' is added to base.
-                        // Removing 1 truck = -Loads.
                         cumulativeAddedBottles -= (toRemove * specs.bottlesPerTruck);
                         operationsCount++;
                     }

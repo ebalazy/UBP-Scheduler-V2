@@ -2,9 +2,17 @@
 import { supabase, supabaseUrl, supabaseAnonKey } from './client';
 import { createClient } from '@supabase/supabase-js';
 
+// --- Types ---
+export interface UserRole {
+    id: string; // or email if PK?
+    email: string;
+    role: string;
+    created_at?: string;
+}
+
 // --- User Roles Management ---
 
-export const fetchAllUserRoles = async () => {
+export const fetchAllUserRoles = async (): Promise<UserRole[]> => {
     const { data, error } = await supabase
         .from('user_roles')
         .select('*')
@@ -15,10 +23,10 @@ export const fetchAllUserRoles = async () => {
         if (error.code === '42P01') throw error; // Let UI handle "Table Missing" state
         throw error;
     }
-    return data || [];
+    return (data as UserRole[]) || [];
 };
 
-export const updateUserRole = async (email, newRole) => {
+export const updateUserRole = async (email: string, newRole: string): Promise<void> => {
     const { error } = await supabase
         .from('user_roles')
         .update({ role: newRole })
@@ -26,7 +34,7 @@ export const updateUserRole = async (email, newRole) => {
     if (error) throw error;
 };
 
-export const deleteUserRole = async (email) => {
+export const deleteUserRole = async (email: string): Promise<void> => {
     const { error } = await supabase
         .from('user_roles')
         .delete()
@@ -34,7 +42,7 @@ export const deleteUserRole = async (email) => {
     if (error) throw error;
 };
 
-export const upsertUserRole = async (email, role) => {
+export const upsertUserRole = async (email: string, role: string): Promise<void> => {
     const { error } = await supabase
         .from('user_roles')
         .upsert({
@@ -50,7 +58,7 @@ export const upsertUserRole = async (email, role) => {
  * Creates a user by instantiating a temporary Supabase client.
  * This is widely considered a hack but required if not using Edge Functions for admin.
  */
-export const provisionUserClientSide = async (email, password) => {
+export const provisionUserClientSide = async (email: string, password: string): Promise<any> => {
     // Create a temporary client to sign up WITHOUT logging out admin
     const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
         auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
@@ -68,7 +76,7 @@ export const provisionUserClientSide = async (email, password) => {
 
 // --- Enterprise Provisioning ---
 
-export const inviteUserEnterprise = async (email, role) => {
+export const inviteUserEnterprise = async (email: string, role: string): Promise<any> => {
     const { data, error: funcError } = await supabase.functions.invoke('invite-user', {
         body: {
             email: email,
