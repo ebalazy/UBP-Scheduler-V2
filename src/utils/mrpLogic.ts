@@ -205,12 +205,15 @@ export const calculateMRP = ({
     if (availableInventory < totalMaterialNeed) {
         // Order to cover: (demand within lead time + safety stock) - available inventory
         trucksToOrder = Math.ceil((totalMaterialNeed - availableInventory) / bottlesPerTruck);
-    } else if (netInventory > safetyTarget + bottlesPerTruck) {
-        // Only suggest cancellations based on TOTAL projected inventory (original logic)
-        const surplus = netInventory - safetyTarget;
-        if (surplus > bottlesPerTruck) {
-            const mathematicalCancel = Math.floor(surplus / bottlesPerTruck);
-            trucksToCancel = Math.min(mathematicalCancel, totalIncomingTrucks);
+    } else if (availableInventory > safetyTarget + demandWithinLeadTime + bottlesPerTruck) {
+        // Only suggest cancellations if we have excess AVAILABLE inventory (not just distant future supply)
+        // Must exceed: safety stock + demand within lead time + 1 extra truck buffer
+        const immediateExcess = availableInventory - (safetyTarget + demandWithinLeadTime);
+        if (immediateExcess > bottlesPerTruck) {
+            trucksToCancel = Math.min(
+                Math.floor(immediateExcess / bottlesPerTruck),
+                totalIncomingTrucks
+            );
         }
     }
 
