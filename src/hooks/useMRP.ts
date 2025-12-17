@@ -4,10 +4,6 @@ import { useMRPCalculations } from './mrp/useMRPCalculations';
 import { useMRPActions } from './mrp/useMRPActions';
 import { CalculateMRPResult } from '../utils/mrpLogic';
 
-interface UseMRPProps {
-    poManifest?: any;
-}
-
 export function useMRP(poManifest: any = {}) {
     // 1. State & Persistence
     const state = useMRPState(); // poManifest is not passed to state, it seems. Original code didn't pass it to useMRPState either.
@@ -58,9 +54,9 @@ export function useMRP(poManifest: any = {}) {
             saveError: actionFormState.saveError,
         },
         setters,
-        results: {
+        results: calculations ? {
             ...calculations,
             poManifest: filteredManifest // Pass filtered manifest to UI
-        }
+        } : null
     };
 }
