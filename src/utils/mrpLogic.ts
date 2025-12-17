@@ -244,3 +244,5 @@ export const calculateMRP = ({
         plannedOrders
     };
 };
+
+export type CalculateMRPResult = ReturnType<typeof calculateMRP>;

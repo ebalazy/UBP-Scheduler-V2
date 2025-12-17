@@ -169,26 +169,37 @@ export function useMRPState() {
                             setYardInventory({ count: 0, date: null });
                         }
                     } else {
-                        // No Cloud Data found. Attempting Migration...
+                        // No Cloud Data found (Product doesn't exist or error). 
+                        // Attempt Migration...
                         const result = await migrateLocalStorage(user, bottleSizes);
                         if (result.success) {
                             const retry = await fetchMRPState(user.id, selectedSize);
                             if (retry) {
-                                if (Object.keys(retry.monthlyInbound || {}).length > 0) {
-                                    setMonthlyInbound(prev => ({ ...retry.monthlyInbound, ...prev }));
-                                }
-                                if (Object.keys(retry.truckManifest || {}).length > 0) {
-                                    setTruckManifest(prev => ({ ...retry.truckManifest, ...prev }));
-                                }
+                                // Migration Success: Merge/Set
+                                setMonthlyDemand(retry.monthlyDemand || {});
+                                setMonthlyProductionActuals(retry.monthlyProductionActuals || {});
+                                setMonthlyInbound(retry.monthlyInbound || {});
+                                setTruckManifest(retry.truckManifest || {});
 
-                                // FIX: Do not overwrite Master Data with stale Scenario Data
-                                // if (retry.productionRate) updateBottleDefinition(selectedSize, 'productionRate', retry.productionRate);
                                 setDowntimeHours(retry.downtimeHours);
                                 setIsAutoReplenish(retry.isAutoReplenish);
                                 if (retry.inventoryAnchor) setInventoryAnchor(retry.inventoryAnchor);
                                 if (retry.yardInventory) setYardInventory(retry.yardInventory);
+                                return; // Done
                             }
                         }
+
+                        // FALLBACK: If Migration failed or no data found, RESET EVERYTHING.
+                        // This prevents the previous SKU's data from persisting.
+                        setMonthlyDemand({});
+                        setMonthlyProductionActuals({});
+                        setMonthlyInbound({});
+                        setTruckManifest({});
+                        setDowntimeHours(0);
+                        setIncomingTrucks(0);
+                        // Do not reset anchor totally blindly, but safe to default
+                        setInventoryAnchor({ date: getLocalISOString(), count: 0 });
+                        setYardInventory({ count: 0, date: null });
                     }
                 } catch (e) {
                     console.error("Failed to load cloud state", e);

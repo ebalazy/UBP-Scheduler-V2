@@ -25,7 +25,7 @@ interface MRPStateActionsInput {
     setCurrentInventoryPallets: (v: number) => void;
     setIncomingTrucks: (v: number) => void;
     setYardInventory: (v: any) => void;
-    setManualYardOverride: (v: boolean) => void;
+    // setManualYardOverride removed - not in useMRPState
     isAutoReplenish: boolean;
     setIsAutoReplenish: (v: boolean) => void;
     setInventoryAnchor: (v: any) => void;
