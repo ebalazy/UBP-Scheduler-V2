@@ -5,6 +5,31 @@ import * as PlanningService from '../services/supabase/planning';
 import * as ProcurementService from '../services/supabase/procurement';
 import * as ProfileService from '../services/supabase/profiles';
 
+// Type Definitions
+type User = { id: string };
+type BottleSize = string;
+
+interface PlanningEntryInsert {
+    product_id: string;
+    user_id: string;
+    date: string;
+    entry_type: string;
+    value: number;
+}
+
+interface MRPStateData {
+    product: any;
+    monthlyDemand: Record<string, number>;
+    monthlyInbound: Record<string, number>;
+    monthlyProductionActuals: Record<string, number>;
+    productionRate: number;
+    downtimeHours: number;
+    isAutoReplenish: boolean;
+    inventoryAnchor: { date: string | null; count: number } | null;
+    yardInventory: { date: string | null; count: number };
+    truckManifest: Record<string, any[]>;
+}
+
 /**
  * Hook to manage data synchronization between LocalStorage and Supabase.
  * Handles migration from localStorage and real-time persistence.
@@ -14,8 +39,8 @@ export const useSupabaseSync = () => {
     /**
      * MIGRATION: Reads all localStorage keys and uploads them.
      */
-    const migrateLocalStorage = useCallback(async (user, bottleSizes) => {
-        if (!user) return;
+    const migrateLocalStorage = useCallback(async (user: User | null, bottleSizes: BottleSize[]) => {
+        if (!user) return { success: false, error: 'No user' };
 
         try {
             for (const sku of bottleSizes) {
@@ -37,7 +62,7 @@ export const useSupabaseSync = () => {
                     { key: 'monthlyProductionActuals', type: 'production_actual' }
                 ];
 
-                const entriesToInsert = [];
+                const entriesToInsert: PlanningEntryInsert[] = [];
 
                 for (const { key, type } of types) {
                     const saved = localStorage.getItem(`mrp_${sku}_${key}`);
@@ -79,18 +104,18 @@ export const useSupabaseSync = () => {
     /**
      * Loads all MRP state for a specific SKU.
      */
-    const fetchMRPState = useCallback(async (userId, skuName) => {
+    const fetchMRPState = useCallback(async (userId: string, skuName: string): Promise<MRPStateData | null> => {
         const product = await ProductService.getProductByName(userId, skuName);
         if (!product) return null;
 
         const { entries, settings, snapshotFloor, snapshotYard } = await PlanningService.fetchPlanningDetails(product.id);
 
-        const monthlyDemand = {};
-        const monthlyInbound = {};
-        const monthlyProductionActuals = {};
-        const truckManifest = {};
+        const monthlyDemand: Record<string, number> = {};
+        const monthlyInbound: Record<string, number> = {};
+        const monthlyProductionActuals: Record<string, number> = {};
+        const truckManifest: Record<string, any[]> = {};
 
-        entries?.forEach(row => {
+        entries?.forEach((row: any) => {
             const val = Number(row.value);
             if (row.entry_type === 'demand_plan') monthlyDemand[row.date] = val;
             if (row.entry_type === 'inbound_trucks') monthlyInbound[row.date] = val;
@@ -124,10 +149,10 @@ export const useSupabaseSync = () => {
         };
     }, []);
 
-    const savePlanningEntry = useCallback(async (userId, skuName, date, type, value) => {
+    const savePlanningEntry = useCallback(async (userId: string, skuName: string, date: string, type: string, value: number | any[]) => {
         const productId = await ProductService.ensureProduct(userId, skuName);
 
-        let numericValue = value;
+        let numericValue: number | null = typeof value === 'number' ? value : null;
         let metaJson = null;
 
         if (type === 'truck_manifest_json') {
@@ -135,33 +160,35 @@ export const useSupabaseSync = () => {
                 numericValue = value.length;
                 metaJson = value;
             } else {
-                numericValue = value;
+                numericValue = Number(value);
             }
+        } else {
+            numericValue = Number(value);
         }
 
         await PlanningService.upsertPlanningEntry(productId, userId, date, type, numericValue, metaJson);
     }, []);
 
-    const saveProductionSetting = useCallback(async (userId, skuName, field, value) => {
+    const saveProductionSetting = useCallback(async (userId: string, skuName: string, field: string, value: any) => {
         const productId = await ProductService.ensureProduct(userId, skuName);
         await PlanningService.saveProductionSetting(productId, field, value);
     }, []);
 
-    const saveInventoryAnchor = useCallback(async (userId, skuName, anchor, location = 'floor') => {
+    const saveInventoryAnchor = useCallback(async (userId: string, skuName: string, anchor: { date: string; count: number }, location = 'floor') => {
         const productId = await ProductService.ensureProduct(userId, skuName);
         // console.log(`Saving Snapshot (${location}):`, anchor);
         await PlanningService.saveInventorySnapshot(productId, userId, anchor.date, anchor.count, location);
     }, []);
 
-    const fetchUserProfile = useCallback(async (userId) => {
+    const fetchUserProfile = useCallback(async (userId: string) => {
         return await ProfileService.getUserProfile(userId);
     }, []);
 
-    const saveUserProfile = useCallback(async (userId, updates) => {
+    const saveUserProfile = useCallback(async (userId: string, updates: any) => {
         await ProfileService.upsertUserProfile(userId, updates);
     }, []);
 
-    const uploadLocalData = useCallback(async (user, bottleSizes, userRole = 'viewer') => {
+    const uploadLocalData = useCallback(async (user: User | null, bottleSizes: BottleSize[], userRole = 'viewer') => {
         if (!user) return;
         // PERMISSION CHECK: Only Admins and Planners can upload/migrate data
         if (!['admin', 'planner'].includes(userRole)) return;
@@ -182,7 +209,7 @@ export const useSupabaseSync = () => {
     }, [migrateLocalStorage]);
 
 
-    const saveProcurementEntry = useCallback(async (order) => {
+    const saveProcurementEntry = useCallback(async (order: any) => {
         if (!order.po) return;
         const user = (await supabase.auth.getUser()).data.user;
         if (!user) return;
@@ -190,15 +217,15 @@ export const useSupabaseSync = () => {
         await ProcurementService.upsertProcurementOrder(order, user.id);
     }, []);
 
-    const deleteProcurementEntry = useCallback(async (poNumber) => {
+    const deleteProcurementEntry = useCallback(async (poNumber: string) => {
         await ProcurementService.deleteProcurementOrder(poNumber);
     }, []);
 
     const fetchProcurementData = useCallback(async () => {
         const data = await ProcurementService.fetchProcurementOrders();
 
-        const manifest = {};
-        data.forEach(row => {
+        const manifest: Record<string, { items: any[] }> = {};
+        data.forEach((row: any) => {
             if (!manifest[row.date]) manifest[row.date] = { items: [] };
             manifest[row.date].items.push({
                 id: row.id,

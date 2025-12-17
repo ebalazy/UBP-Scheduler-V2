@@ -3,13 +3,19 @@ import { useState, useEffect } from 'react';
 import { useProducts } from '../../context/ProductsContext'; // Added
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseSync } from '../useSupabaseSync';
+import { useRealtimeSubscription } from '../useRealtimeSubscription'; // Added
 import { getLocalISOString } from '../../utils/dateUtils';
 
+// Types
+type DateValueMap = Record<string, number>;
+type ManifestMap = Record<string, any[]>;
+type InventorySnapshot = { date: string | null; count: number; fileName?: string | null };
+
 // Helper: Dynamic Key Generation (Legacy LocalStorage)
-const getStorageKey = (key, sku) => `mrp_${sku}_${key}`;
+const getStorageKey = (key: string, sku: string) => `mrp_${sku}_${key}`;
 
 // Helper: Smart Load (Migrates Legacy Data if New Key missing)
-const loadLocalState = (key, defaultVal, selectedSize, parse = false) => {
+const loadLocalState = <T>(key: string, defaultVal: T, selectedSize: string, parse = false): T => {
     const fullKey = getStorageKey(key, selectedSize);
     const legacyKey = `mrp_${key}`;
     let saved = localStorage.getItem(fullKey);
@@ -19,14 +25,14 @@ const loadLocalState = (key, defaultVal, selectedSize, parse = false) => {
     }
     if (saved === null) return defaultVal;
     if (parse) {
-        try { return JSON.parse(saved) || defaultVal; }
+        try { return (JSON.parse(saved) as T) || defaultVal; }
         catch { return defaultVal; }
     }
-    return saved;
+    return saved as T;
 };
 
 // Helper: Save State (Local)
-export const saveLocalState = (key, value, selectedSize, parse = false) => {
+export const saveLocalState = (key: string, value: any, selectedSize: string, parse = false) => {
     const fullKey = getStorageKey(key, selectedSize);
     const val = parse ? JSON.stringify(value) : value;
     localStorage.setItem(fullKey, val);
@@ -39,33 +45,37 @@ export function useMRPState() {
     const { fetchMRPState, migrateLocalStorage } = useSupabaseSync();
 
     // 1. Load Selected Size first (Local persist for UI preference is fine)
-    const [selectedSize, setSelectedSize] = useState(() => localStorage.getItem('mrp_selectedSize') || '20oz');
+    const [selectedSize, setSelectedSize] = useState<string>(() => localStorage.getItem('mrp_selectedSize') || '20oz');
 
     // --- State Definitions ---
     // For logged-in users, we start with EMPTY/Loading state to avoid "flashing" local stale data.
     // For anon users, we initialize directly from LocalStorage.
 
-    const [monthlyDemand, setMonthlyDemand] = useState(() => loadLocalState('monthlyDemand', {}, selectedSize, true));
-    const [monthlyProductionActuals, setMonthlyProductionActuals] = useState(() => loadLocalState('monthlyProductionActuals', {}, selectedSize, true));
-    const [monthlyInbound, setMonthlyInbound] = useState(() => loadLocalState('monthlyInbound', {}, selectedSize, true));
-    const [truckManifest, setTruckManifest] = useState(() => loadLocalState('truckManifest', {}, selectedSize, true));
+    const [monthlyDemand, setMonthlyDemand] = useState<DateValueMap>(() => loadLocalState<DateValueMap>('monthlyDemand', {}, selectedSize, true));
+    const [monthlyProductionActuals, setMonthlyProductionActuals] = useState<DateValueMap>(() => loadLocalState<DateValueMap>('monthlyProductionActuals', {}, selectedSize, true));
+    const [monthlyInbound, setMonthlyInbound] = useState<DateValueMap>(() => loadLocalState<DateValueMap>('monthlyInbound', {}, selectedSize, true));
+    const [truckManifest, setTruckManifest] = useState<ManifestMap>(() => loadLocalState<ManifestMap>('truckManifest', {}, selectedSize, true));
 
     // Derived states (some initialized from LocalStorage)
-    // Derived states (some initialized from LocalStorage)
-    const [downtimeHours, setDowntimeHours] = useState(() => Number(loadLocalState('downtimeHours', 0, selectedSize)));
-    const [currentInventoryPallets, setCurrentInventoryPallets] = useState(() => Number(loadLocalState('currentInventoryPallets', 0, selectedSize)));
-    const [inventoryAnchor, setInventoryAnchor] = useState(() =>
-        loadLocalState('inventoryAnchor', { date: getLocalISOString(), count: 0 }, selectedSize, true)
+    const [downtimeHours, setDowntimeHours] = useState<number>(() => Number(loadLocalState('downtimeHours', 0, selectedSize)));
+    const [currentInventoryPallets, setCurrentInventoryPallets] = useState<number>(() => Number(loadLocalState('currentInventoryPallets', 0, selectedSize)));
+    const [inventoryAnchor, setInventoryAnchor] = useState<InventorySnapshot>(() =>
+        loadLocalState<InventorySnapshot>('inventoryAnchor', { date: getLocalISOString(), count: 0 }, selectedSize, true)
     );
-    const [incomingTrucks, setIncomingTrucks] = useState(() => Number(loadLocalState('incomingTrucks', 0, selectedSize)));
-    const [yardInventory, setYardInventory] = useState(() =>
-        loadLocalState('yardInventory', { count: 0, date: null, fileName: null }, selectedSize, true)
+    const [incomingTrucks, setIncomingTrucks] = useState<number>(() => Number(loadLocalState('incomingTrucks', 0, selectedSize)));
+    const [yardInventory, setYardInventory] = useState<InventorySnapshot>(() =>
+        loadLocalState<InventorySnapshot>('yardInventory', { count: 0, date: null, fileName: null }, selectedSize, true)
     );
 
-    const [isAutoReplenish, setIsAutoReplenish] = useState(() => user ? true : loadLocalState('isAutoReplenish', true, selectedSize, true));
+    const [isAutoReplenish, setIsAutoReplenish] = useState<boolean>(() => user ? true : loadLocalState<boolean>('isAutoReplenish', true, selectedSize, true));
+
+    // --- Active Product for Realtime ---
+    const [activeProduct, setActiveProduct] = useState<any>(null);
+
+
 
     // --- Auto-Refresh on Focus ---
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
     useEffect(() => {
         /* 
@@ -115,7 +125,10 @@ export function useMRPState() {
                 try {
                     const data = await fetchMRPState(user.id, selectedSize);
 
+
                     if (data) {
+                        setActiveProduct(data.product); // Store for Realtime
+
                         // SMART SYNC: Only overwrite Local (Optimistic) if Cloud has data.
                         // This prevents "flashing" to empty if the cloud fetch races or returns partials.
                         if (Object.keys(data.monthlyDemand || {}).length > 0) {
@@ -187,6 +200,25 @@ export function useMRPState() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedSize, user?.id]); // STRICT DEPENDENCIES PREVENT JITTER
+
+    // --- REALTIME SYNC (The "No Shortcuts" Solution) ---
+    useRealtimeSubscription(activeProduct, (payload) => {
+        const { eventType, new: newRec } = payload;
+
+        // Handle DELETES: (Optional, skipping to avoid complex ID mapping for now)
+        if (eventType === 'DELETE') return;
+
+        const date = newRec.date;
+        const val = Number(newRec.value);
+
+        if (newRec.entry_type === 'demand_plan') {
+            setMonthlyDemand(prev => ({ ...prev, [date]: val }));
+        } else if (newRec.entry_type === 'production_actual') {
+            setMonthlyProductionActuals(prev => ({ ...prev, [date]: val }));
+        } else if (newRec.entry_type === 'inbound_trucks') {
+            setMonthlyInbound(prev => ({ ...prev, [date]: val }));
+        }
+    });
 
     return {
         selectedSize, setSelectedSize,
