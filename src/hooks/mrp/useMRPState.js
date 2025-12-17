@@ -116,18 +116,38 @@ export function useMRPState() {
                     const data = await fetchMRPState(user.id, selectedSize);
 
                     if (data) {
-                        setMonthlyDemand(data.monthlyDemand || {});
-                        setMonthlyProductionActuals(data.monthlyProductionActuals || {});
-                        setMonthlyInbound(data.monthlyInbound || {});
-                        setTruckManifest(data.truckManifest || {});
+                        // SMART SYNC: Only overwrite Local (Optimistic) if Cloud has data.
+                        // This prevents "flashing" to empty if the cloud fetch races or returns partials.
+                        if (Object.keys(data.monthlyDemand || {}).length > 0) setMonthlyDemand(data.monthlyDemand);
+                        if (Object.keys(data.monthlyProductionActuals || {}).length > 0) setMonthlyProductionActuals(data.monthlyProductionActuals);
+                        if (Object.keys(data.monthlyInbound || {}).length > 0) setMonthlyInbound(data.monthlyInbound);
+                        if (Object.keys(data.truckManifest || {}).length > 0) setTruckManifest(data.truckManifest);
+
                         // Update Settings Context
                         // FIX: Do not overwrite Master Data with stale Scenario Data
                         // if (data.productionRate) updateBottleDefinition(selectedSize, 'productionRate', data.productionRate);
                         setDowntimeHours(data.downtimeHours);
                         setIsAutoReplenish(data.isAutoReplenish);
-                        setIsAutoReplenish(data.isAutoReplenish);
-                        if (data.inventoryAnchor) setInventoryAnchor(data.inventoryAnchor);
-                        if (data.yardInventory) setYardInventory(data.yardInventory);
+
+
+                        // TIMESTAMP CHECK: Only accept Cloud Snapshot if it's NEWER or SAME as Local.
+                        if (data.inventoryAnchor) {
+                            setInventoryAnchor(prev => {
+                                // If Local is Newer OR Same Day, Keep Local. (User is "Head" of current day)
+                                if (prev?.date && data.inventoryAnchor.date && new Date(prev.date) >= new Date(data.inventoryAnchor.date)) {
+                                    return prev;
+                                }
+                                return data.inventoryAnchor;
+                            });
+                        }
+                        if (data.yardInventory) {
+                            setYardInventory(prev => {
+                                if (prev?.date && data.yardInventory.date && new Date(prev.date) >= new Date(data.yardInventory.date)) {
+                                    return prev;
+                                }
+                                return data.yardInventory;
+                            });
+                        }
                     } else {
                         // No Cloud Data found. Attempting Migration...
                         const result = await migrateLocalStorage(user, bottleSizes);

@@ -30,10 +30,14 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
 
     // Sorted Orders (Time Ascending)
     const sortedOrders = [...orders].sort((a, b) => {
-        // Treat missing time as "End of Day" or "TBD"
-        const timeA = (a.time && a.time !== '00:00') ? a.time : 'ZZZZ';
-        const timeB = (b.time && b.time !== '00:00') ? b.time : 'ZZZZ';
-        return timeA.localeCompare(timeB);
+        // Robust Sort: Convert "HH:MM" to minutes for comparison.
+        // Determines order: 9:00 (540m) < 10:00 (600m).
+        const getMinutes = (t) => {
+            if (!t || t === '00:00') return 99999; // No time = End of Day
+            const [h, m] = t.split(':').map(Number);
+            return (h * 60) + (m || 0);
+        };
+        return getMinutes(a.time) - getMinutes(b.time);
     });
 
     // Helpers
@@ -65,7 +69,8 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
             schedulerSettings.shiftStartTime || '06:00',
             capacity,
             rate,
-            Number(specs.bottlesPerCase) || 1
+            Number(specs.bottlesPerCase) || 1,
+            Math.max(sortedOrders.length, Math.round(Number(monthlyInbound[date] || 0))) // Total Trucks for Compression
         );
 
         return time24 ? formatTime12h(time24) : 'TBD';

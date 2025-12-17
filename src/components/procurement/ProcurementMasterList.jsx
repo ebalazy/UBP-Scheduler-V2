@@ -8,7 +8,8 @@ import {
     PencilSquareIcon,
     PlusIcon,
     TagIcon,
-    ChevronDownIcon
+    ChevronDownIcon,
+    CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
 // import { useSettings } from '../../context/SettingsContext'; // Removed
@@ -53,9 +54,13 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
             if (dateDiff !== 0) return dateDiff;
 
             // 2. Time Ascending (Earliest first for same day)
-            const timeA = a.time || '23:59'; // Put undefined times last? Or '00:00'?
-            const timeB = b.time || '23:59';
-            return timeA.localeCompare(timeB);
+            // Fix: Use numeric comparison to handle "9:00" vs "10:00" correctly.
+            const getMinutes = (t) => {
+                if (!t || t === '00:00') return 99999;
+                const [h, m] = t.split(':').map(Number);
+                return (h * 60) + (m || 0);
+            };
+            return getMinutes(a.time) - getMinutes(b.time);
         });
     }, [poManifest]);
 
@@ -88,13 +93,22 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
         }
     };
 
+    const [confirmAction, setConfirmAction] = useState(null);
+
     const handleDeleteSelected = () => {
         if (selectedIds.size === 0) return;
-        if (!confirm(`Are you sure you want to PERMANENTLY delete ${selectedIds.size} orders ? `)) return;
 
-        const ordersToDelete = allOrders.filter(o => selectedIds.has(o.id));
-        deleteOrdersBulk(ordersToDelete);
-        setSelectedIds(new Set());
+        setConfirmAction({
+            title: `Delete ${selectedIds.size} Orders?`,
+            message: `Are you sure you want to PERMANENTLY delete ${selectedIds.size} selected orders? This action cannot be undone.`,
+            type: 'danger',
+            onConfirm: () => {
+                const ordersToDelete = allOrders.filter(o => selectedIds.has(o.id));
+                deleteOrdersBulk(ordersToDelete);
+                setSelectedIds(new Set());
+                setConfirmAction(null);
+            }
+        });
     };
 
     const handleBulkSetSku = (sku) => {
@@ -133,6 +147,8 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
     };
 
     const handleBulkSetStatus = (status) => {
+        // Optional: Can also protect these with custom dialog later if desired, keeping simple for now or converting if user asked for "Delete" specifically.
+        // For consistency, let's keep native confirm for these unless user complained about all of them. User specifically said "delete button".
         if (!confirm(`Update status to "${status.toUpperCase()}" for ${selectedIds.size} orders?`)) return;
 
         const ordersToUpdate = allOrders
@@ -161,6 +177,36 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                 </Dialog.Title>
                                 <p className="text-sm text-gray-500">Manage all Inbound Orders across all dates.</p>
                             </div>
+
+                            {/* CONFIRMATION OVERLAY (Reused from ScheduleManagerModal) */}
+                            {confirmAction && (
+                                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 animate-fadeIn">
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 w-full max-w-sm flex flex-col items-center text-center transform transition-all scale-100">
+                                        <div className={`p-4 rounded-full mb-4 ${confirmAction.type === 'danger' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                            {confirmAction.type === 'danger' ? <TrashIcon className="w-8 h-8" /> : <CheckCircleIcon className="w-8 h-8" />}
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{confirmAction.title}</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">{confirmAction.message}</p>
+                                        <div className="flex gap-3 w-full">
+                                            <button
+                                                onClick={() => setConfirmAction(null)}
+                                                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => confirmAction.onConfirm()}
+                                                className={`flex-1 px-4 py-2 rounded-lg text-white font-bold shadow-lg transition-transform hover:scale-105 ${confirmAction.type === 'danger'
+                                                    ? 'bg-red-600 hover:bg-red-700 shadow-red-500/30'
+                                                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/30'
+                                                    }`}
+                                            >
+                                                Confirm
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
                             <button

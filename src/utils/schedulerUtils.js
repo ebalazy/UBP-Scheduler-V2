@@ -8,39 +8,46 @@
  * @param {number} bottlesPerCase - Scaling factor if rate is in cases (optional, defaults to 1 if rate is bottles).
  * @returns {string} - The calculated time in "HH:MM" (24-hour) format.
  */
-export const calculateDeliveryTime = (index, shiftStartTime = '00:00', bottlesPerTruck, productionRate, bottlesPerCase = 1) => {
-    if (!productionRate || productionRate <= 0) return ''; // Cannot calculate without rate
+/**
+ * Calculates the estimated delivery time.
+ * Supports "Compression" to fit all trucks within 24h (ignoring run rate) if demand is high.
+ */
+export const calculateDeliveryTime = (index, shiftStartTime = '00:00', bottlesPerTruck, productionRate, bottlesPerCase = 1, totalTrucksForDay = 0) => {
+    if (!productionRate || productionRate <= 0) return '';
 
-    // Normalize inputs
-    // If rate is very small (< 5000), assume it is Cases Per Hour.
-    // If bottlesPerTruck is large (> 20000), we know we need to convert.
-    // However, usually SettingsContext provides standardized units. 
-    // Let's assume input 'productionRate' matches 'bottlesPerTruck' unit OR we use bottlesPerCase.
-
-    // Logic from ScheduleManagerModal:
-    // const capacity = specs.casesPerTruck || (specs.bottlesPerTruck / specs.bottlesPerCase);
-    // const rate = specs.productionRate; // Cases per Hour
-
-    // We'll calculate in Hours.
-    // Capacity (Units) / Rate (Units/Hr) = Hours per Truck.
-
-    // Safeguard:
     let effectiveRate = productionRate;
     let effectiveCapacity = bottlesPerTruck;
 
-    // Heuristic: If rate is CPH and Capacity is Bottles, convert Capacity to Cases.
+    // Heuristic: Auto-detect Case/Bottle mismatch
     if (bottlesPerCase > 1 && productionRate < 10000 && bottlesPerTruck > 20000) {
         effectiveCapacity = bottlesPerTruck / bottlesPerCase;
     }
 
-    const hoursPerTruck = effectiveCapacity / effectiveRate;
+    // Standard Spacing (Hours based on Run Rate)
+    const standardHoursPerTruck = effectiveCapacity / effectiveRate;
+
+    // Compressed Spacing (If needed to fit all trucks in 24h)
+    // If we have 30 trucks, we can't space them 2 hours apart. We must space them 0.8 hours apart.
+    let actualHoursPerTruck = standardHoursPerTruck;
+
+    if (totalTrucksForDay > 0) {
+        // Available window: 24 hours (minus a little buffer? say 23h to be safe)
+        const availableHours = 23.5;
+        const neededHours = totalTrucksForDay * standardHoursPerTruck;
+
+        if (neededHours > availableHours) {
+            // COMPRESS: Ignore run rate, squeeze them in.
+            // New Interval = Available / Count
+            actualHoursPerTruck = availableHours / totalTrucksForDay;
+        }
+    }
 
     // Parse Start Time
     const [startH, startM] = shiftStartTime.split(':').map(Number);
     const startDecimal = (startH || 0) + ((startM || 0) / 60);
 
-    // Calculate Arrival: Start + (Index * Interval)
-    const arrivalDecimal = startDecimal + (index * hoursPerTruck);
+    // Calculate Arrival
+    const arrivalDecimal = startDecimal + (index * actualHoursPerTruck);
 
     // Normalize to 24h
     let normalized = arrivalDecimal % 24;
@@ -49,13 +56,8 @@ export const calculateDeliveryTime = (index, shiftStartTime = '00:00', bottlesPe
     const h = Math.floor(normalized);
     const m = Math.round((normalized - h) * 60);
 
-    // Handle minute rollover
     const finalH = (h + Math.floor(m / 60)) % 24;
     const finalM = m % 60;
 
-    // Format HH:MM
-    const hStr = String(finalH).padStart(2, '0');
-    const mStr = String(finalM).padStart(2, '0');
-
-    return `${hStr}:${mStr}`;
+    return `${String(finalH).padStart(2, '0')}:${String(finalM).padStart(2, '0')}`;
 };
