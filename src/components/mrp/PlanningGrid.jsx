@@ -25,11 +25,13 @@ export default function PlanningGrid({
     specs,
     userProfile,
     startDate,
-    readOnly = false
+    startDate,
+    readOnly = false,
+    poManifest = {} // Accept Prop
 }) {
     // 1. Context Hooks
     // Update: Destructure correct values from ProcurementContext
-    const { poManifest, updateDailyManifest, removeOrder } = useProcurement();
+    const { updateDailyManifest, removeOrder } = useProcurement(); // Remove poManifest destructuring
 
     // 2. Local State
     const [managerState, setManagerState] = useState({ isOpen: false, date: null });

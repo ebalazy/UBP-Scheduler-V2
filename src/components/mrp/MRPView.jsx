@@ -41,7 +41,8 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
 
     const { user } = useAuth();
     const { solve } = useMRPSolver();
-    const { poManifest } = useProcurement();
+    // const { poManifest } = useProcurement(); // Don't use Global. Use Filtered from Results.
+    const poManifest = results?.poManifest || {};
 
     // -- Grid Navigation State --
     const [gridStartDate, setGridStartDate] = useState(() => {

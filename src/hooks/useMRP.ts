@@ -12,8 +12,21 @@ export function useMRP(poManifest: any = {}) {
     // 1. State & Persistence
     const state = useMRPState(); // poManifest is not passed to state, it seems. Original code didn't pass it to useMRPState either.
 
+    // 1.5 Filter Manifest by SKU (Prevent Cross-Talk)
+    const filteredManifest = useMemo(() => {
+        if (!state.selectedSize || !poManifest) return {};
+        const filtered: any = {};
+        Object.entries(poManifest).forEach(([date, day]: [string, any]) => {
+            const items = day.items?.filter((item: any) => item.sku === state.selectedSize) || [];
+            if (items.length > 0) {
+                filtered[date] = { items };
+            }
+        });
+        return filtered;
+    }, [poManifest, state.selectedSize]);
+
     // 2. Calculations (Pure Logic)
-    const { calculations, totalScheduledCases, productionRate } = useMRPCalculations(state, poManifest);
+    const { calculations, totalScheduledCases, productionRate } = useMRPCalculations(state, filteredManifest);
 
     // 3. Actions (Handlers)
     const actionDeps = useMemo<{ calculations: CalculateMRPResult | null }>(() => ({ calculations }), [calculations]);
@@ -45,6 +58,9 @@ export function useMRP(poManifest: any = {}) {
             saveError: actionFormState.saveError,
         },
         setters,
-        results: calculations
+        results: {
+            ...calculations,
+            poManifest: filteredManifest // Pass filtered manifest to UI
+        }
     };
 }

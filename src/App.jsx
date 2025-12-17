@@ -13,7 +13,6 @@ import { useSettings } from './context/SettingsContext';
 import { useAuth } from './context/AuthContext';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import LandingPage from './components/LandingPage';
-import CockpitView from './components/cockpit/CockpitView';
 import LogisticsView from './components/logistics/LogisticsView';
 import ProductsView from './components/products/ProductsView';
 import { Boxes, CalendarClock, Crown, Gauge, Truck, Package } from 'lucide-react';
@@ -150,12 +149,7 @@ function AuthenticatedApp({ user }) {
           <ProductsView readOnly={!canEditLogistics} />
         </div>
 
-        <div className={activeTab === 'cockpit' ? 'block' : 'hidden'}>
-          {/* Negative margins to expand cockpit to container edges */}
-          <div className="-mx-4 md:-mx-6 -my-4 md:-my-6">
-            <CockpitView mrpData={mrp} schedulerData={scheduler} readOnly={!canEditLogistics} />
-          </div>
-        </div>
+
       </main>
 
       {/* Settings Modal */}
