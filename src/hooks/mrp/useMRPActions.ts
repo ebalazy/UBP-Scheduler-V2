@@ -71,7 +71,7 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
     useLayoutEffect(() => { inboundRef.current = monthlyInbound; }, [monthlyInbound]);
 
     // --- Actions ---
-    const [isSaving, setIsSaving] = useState(false);
+    const [isSaving] = useState(false); // setIsSaving unused
     const [saveError, setSaveError] = useState<string | null>(null);
     const saveTimers = useRef<Record<string, any>>({});
     const localSaveTimers = useRef<Record<string, any>>({});

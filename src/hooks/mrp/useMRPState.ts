@@ -101,9 +101,11 @@ export function useMRPState() {
 
     // --- Cloud Sync Effect ---
     useEffect(() => {
+        console.log("Flux: SKU Changed to:", selectedSize);
         localStorage.setItem('mrp_selectedSize', selectedSize);
 
         if (!user) {
+            console.log("Flux: Local Mode Init");
             // Local Mode: Reload local state when SKU changes
             setMonthlyDemand(loadLocalState('monthlyDemand', {}, selectedSize, true));
             setMonthlyProductionActuals(loadLocalState('monthlyProductionActuals', {}, selectedSize, true));
@@ -122,8 +124,10 @@ export function useMRPState() {
         } else {
             // Cloud Mode: Fetch from Supabase
             const loadCloud = async () => {
+                console.log("Flux: Fetching Cloud Data for", selectedSize);
                 try {
                     const data = await fetchMRPState(user.id, selectedSize);
+                    console.log("Flux: Cloud Data Result:", data ? "Found" : "Null", data);
 
 
                     if (data) {

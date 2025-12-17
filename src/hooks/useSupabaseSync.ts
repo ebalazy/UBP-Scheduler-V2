@@ -106,10 +106,17 @@ export const useSupabaseSync = () => {
      * Loads all MRP state for a specific SKU.
      */
     const fetchMRPState = useCallback(async (userId: string, skuName: string): Promise<MRPStateData | null> => {
+        console.log(`[SupabaseSync] Fetching MRP State for User: ${userId}, SKU: ${skuName}`);
         const product = await ProductService.getProductByName(userId, skuName);
-        if (!product) return null;
+        if (!product) {
+            console.warn(`[SupabaseSync] Product not found: ${skuName}`);
+            return null;
+        }
 
+        console.log(`[SupabaseSync] Product Found: ${product.id}. Fetching Details...`);
         const { entries, settings, snapshotFloor, snapshotYard } = await PlanningService.fetchPlanningDetails(product.id);
+
+        console.log(`[SupabaseSync] Entries fetched: ${entries?.length || 0}`);
 
         const monthlyDemand: Record<string, number> = {};
         const monthlyInbound: Record<string, number> = {};
