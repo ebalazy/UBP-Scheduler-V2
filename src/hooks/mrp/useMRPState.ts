@@ -207,6 +207,7 @@ export function useMRPState() {
         table: 'planning_entries',
         filter: activeProduct ? `product_id=eq.${activeProduct.id}` : undefined,
         enabled: !!activeProduct?.id,
+        // enabled: true,
         onDataChange: (payload: any) => {
             const { eventType, new: newRec } = payload;
 

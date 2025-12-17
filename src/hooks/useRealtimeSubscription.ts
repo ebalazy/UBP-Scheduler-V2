@@ -28,23 +28,30 @@ export function useRealtimeSubscription({
 
         // Channel Name should be unique-ish
         const channelName = `public:${table}${filter ? `:${filter}` : ''}`;
+        console.log(`[Realtime] Connecting to: ${channelName}`, { table, filter, event });
+
+        const validFilter = {
+            event: event as '*' | 'INSERT' | 'UPDATE' | 'DELETE',
+            schema,
+            table,
+            filter: filter || undefined // ensuring it's valid if string is empty
+        };
 
         const channel = supabase
             .channel(channelName)
             .on(
                 'postgres_changes',
-                {
-                    event,
-                    schema,
-                    table,
-                    filter
-                },
-                (payload) => {
+                validFilter,
+                (payload: RealtimePayload) => {
+                    // console.log(`[Realtime] Received ${payload.eventType} on ${table}`, payload);
                     onDataChange(payload);
                 }
             )
             .subscribe((status) => {
-                // optional: handle status (SUBSCRIBED, CLOSED, CHANNEL_ERROR)
+                console.log(`[Realtime] Channel ${channelName} status:`, status);
+                if (status === 'CHANNEL_ERROR') {
+                    console.error(`[Realtime] Error connecting to ${channelName}`);
+                }
             });
 
         return () => {
