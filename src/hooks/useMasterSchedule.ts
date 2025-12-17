@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseSync } from './useSupabaseSync';
+import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 export interface SKUActivity {
     sku: string;
@@ -27,11 +28,19 @@ export function useMasterSchedule(bottleSizes: string[], enabled: boolean = true
     const [skuStates, setSkuStates] = useState<Record<string, SKUStateData>>({});
     const [loading, setLoading] = useState(false);
 
+    // Trigger for re-fetching
+    const [resyncCounter, setResyncCounter] = useState(0);
+
+    // Debounce Ref
+    const resyncTimeoutRef = useRef<any>(null);
+
     // 1. Fetch All SKUs
     useEffect(() => {
         if (!enabled) return; // Lazy load
 
         const loadAll = async () => {
+            // If disabled, don't load
+            if (!enabled) return;
             setLoading(true);
             const newState: Record<string, SKUStateData> = {};
 
@@ -88,7 +97,24 @@ export function useMasterSchedule(bottleSizes: string[], enabled: boolean = true
 
         if (bottleSizes.length > 0) loadAll();
 
-    }, [bottleSizes, user, fetchMRPState, enabled]);
+        // Fix: bottleSizes might be a new reference every render. Use a string key for stability.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bottleSizes.join(','), user?.id, enabled, resyncCounter]);
+
+    // --- REALTIME SYNC ---
+    // Listen for ANY changes to planning_entries and reload all.
+    useRealtimeSubscription({
+        table: 'planning_entries',
+        enabled: enabled && !!user,
+        onDataChange: () => {
+            // Debounce updates to prevent swamping the UI (wait 1s after last event)
+            if (resyncTimeoutRef.current) clearTimeout(resyncTimeoutRef.current);
+
+            resyncTimeoutRef.current = setTimeout(() => {
+                setResyncCounter(c => c + 1);
+            }, 1000);
+        }
+    });
 
     // 2. Aggregate into Master Ledger
     const masterLedger = useMemo(() => {

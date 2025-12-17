@@ -131,17 +131,17 @@ export function useMRPState() {
 
                         // SMART SYNC: Strict Replacement (Cloud Wins)
                         // addressing the issue where local "empty" state overwrites server data.
-                        if (data.monthlyDemand) setMonthlyDemand(data.monthlyDemand);
-                        if (data.monthlyProductionActuals) setMonthlyProductionActuals(data.monthlyProductionActuals);
-                        if (data.monthlyInbound) setMonthlyInbound(data.monthlyInbound);
-                        if (data.truckManifest) setTruckManifest(data.truckManifest);
+
+                        // FIX: Unconditionally set state. If data is missing (undefined/null), reset to empty/default.
+                        // This prevents "leaking" state from the previously selected SKU.
+                        setMonthlyDemand(data.monthlyDemand || {});
+                        setMonthlyProductionActuals(data.monthlyProductionActuals || {});
+                        setMonthlyInbound(data.monthlyInbound || {});
+                        setTruckManifest(data.truckManifest || {});
 
                         // Update Settings Context
-                        // FIX: Do not overwrite Master Data with stale Scenario Data
-                        // if (data.productionRate) updateBottleDefinition(selectedSize, 'productionRate', data.productionRate);
-                        setDowntimeHours(data.downtimeHours);
+                        setDowntimeHours(data.downtimeHours || 0);
                         setIsAutoReplenish(data.isAutoReplenish);
-
 
                         // TIMESTAMP CHECK: Only accept Cloud Snapshot if it's NEWER or SAME as Local.
                         if (data.inventoryAnchor) {
@@ -150,9 +150,13 @@ export function useMRPState() {
                                 if (prev?.date && data.inventoryAnchor?.date && new Date(prev.date) >= new Date(data.inventoryAnchor.date)) {
                                     return prev;
                                 }
-                                return data.inventoryAnchor || prev; // Fallback to prev (or null default) if cloud is unexpectedly null
+                                return data.inventoryAnchor || prev;
                             });
+                        } else {
+                            // RESET if missing (Prevent Leak)
+                            setInventoryAnchor({ date: getLocalISOString(), count: 0 });
                         }
+
                         if (data.yardInventory) {
                             setYardInventory(prev => {
                                 if (prev?.date && data.yardInventory.date && new Date(prev.date) >= new Date(data.yardInventory.date)) {
@@ -160,6 +164,9 @@ export function useMRPState() {
                                 }
                                 return data.yardInventory;
                             });
+                        } else {
+                            // RESET if missing (Prevent Leak)
+                            setYardInventory({ count: 0, date: null });
                         }
                     } else {
                         // No Cloud Data found. Attempting Migration...
