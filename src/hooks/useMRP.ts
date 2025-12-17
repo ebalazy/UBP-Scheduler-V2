@@ -58,9 +58,9 @@ export function useMRP(poManifest: any = {}) {
             saveError: actionFormState.saveError,
         },
         setters,
-        results: {
+        results: calculations ? {
             ...calculations,
             poManifest: filteredManifest // Pass filtered manifest to UI
-        }
+        } : null
     };
 }
