@@ -14,7 +14,8 @@ export const calculateMRP = ({
     bottleSpecs, // { bottlesPerCase, bottlesPerTruck, casesPerPallet, scrapPercentage }
     inventoryAnchor, // { date: "YYYY-MM-DD", count: Number (Pallets) }
     yardInventory, // { count: Number (Loads), date: "YYYY-MM-DD" }
-    incomingTrucks, // Number (Manual override for today?)
+
+    // incomingTrucks (Removed Legacy)
     monthlyDemand, // { [date]: Number (Cases) }
     monthlyProductionActuals, // { [date]: Number (Cases) }
     monthlyInbound, // { [date]: Number (Trucks) } - Manual Plan
@@ -73,7 +74,7 @@ export const calculateMRP = ({
         return acc;
     }, 0);
 
-    const totalIncomingTrucks = (incomingTrucks || 0) + totalScheduledInbound;
+    const totalIncomingTrucks = totalScheduledInbound;
     const incomingBottles = totalIncomingTrucks * bottlesPerTruck;
 
     // 5. Yard Inventory

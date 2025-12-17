@@ -62,7 +62,7 @@ export function useMRPState() {
     const [inventoryAnchor, setInventoryAnchor] = useState<InventorySnapshot>(() =>
         loadLocalState<InventorySnapshot>('inventoryAnchor', { date: getLocalISOString(), count: 0 }, selectedSize, true)
     );
-    const [incomingTrucks, setIncomingTrucks] = useState<number>(() => Number(loadLocalState('incomingTrucks', 0, selectedSize)));
+
     const [yardInventory, setYardInventory] = useState<InventorySnapshot>(() =>
         loadLocalState<InventorySnapshot>('yardInventory', { count: 0, date: null, fileName: null }, selectedSize, true)
     );
@@ -200,7 +200,7 @@ export function useMRPState() {
                         setMonthlyInbound({});
                         setTruckManifest({});
                         setDowntimeHours(0);
-                        setIncomingTrucks(0);
+
                         // Do not reset anchor totally blindly, but safe to default
                         setInventoryAnchor({ date: getLocalISOString(), count: 0 });
                         setYardInventory({ count: 0, date: null });
@@ -304,7 +304,7 @@ export function useMRPState() {
         downtimeHours, setDowntimeHours,
         currentInventoryPallets, setCurrentInventoryPallets,
         inventoryAnchor, setInventoryAnchor,
-        incomingTrucks, setIncomingTrucks,
+
         yardInventory, setYardInventory,
 
         isAutoReplenish, setIsAutoReplenish,

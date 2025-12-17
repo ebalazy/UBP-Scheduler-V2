@@ -43,7 +43,7 @@ export function useMRP(poManifest: any = {}) {
             truckManifest: state.truckManifest,
             downtimeHours: state.downtimeHours,
             currentInventoryPallets: state.currentInventoryPallets,
-            incomingTrucks: state.incomingTrucks,
+
             yardInventory: state.yardInventory,
 
             isAutoReplenish: state.isAutoReplenish,

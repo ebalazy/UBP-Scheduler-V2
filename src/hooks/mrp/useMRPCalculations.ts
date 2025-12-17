@@ -17,7 +17,6 @@ export function useMRPCalculations(state: any, poManifest: any = {}) {
         monthlyProductionActuals,
         monthlyInbound,
         downtimeHours,
-        incomingTrucks,
         yardInventory,
         inventoryAnchor
     } = state;
@@ -37,7 +36,7 @@ export function useMRPCalculations(state: any, poManifest: any = {}) {
             bottleSpecs: specs,
             inventoryAnchor,
             yardInventory,
-            incomingTrucks,
+
             monthlyDemand,
             monthlyProductionActuals,
             monthlyInbound,
@@ -48,7 +47,7 @@ export function useMRPCalculations(state: any, poManifest: any = {}) {
         return calculateMRP(params);
 
     }, [
-        selectedSize, productionRate, downtimeHours, incomingTrucks,
+        selectedSize, productionRate, downtimeHours,
         bottleDefinitions, safetyStockLoads, yardInventory,
         monthlyDemand, monthlyInbound, inventoryAnchor, poManifest,
         monthlyProductionActuals, specs

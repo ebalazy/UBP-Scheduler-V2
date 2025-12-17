@@ -23,7 +23,8 @@ interface MRPStateActionsInput {
     setTruckManifest: (v: Record<string, any>) => void;
     setDowntimeHours: (v: number) => void;
     setCurrentInventoryPallets: (v: number) => void;
-    setIncomingTrucks: (v: number) => void;
+    setCurrentInventoryPallets: (v: number) => void;
+    // setIncomingTrucks removed
     setYardInventory: (v: any) => void;
     // setManualYardOverride removed - not in useMRPState
     isAutoReplenish: boolean;
@@ -51,7 +52,7 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
         truckManifest, setTruckManifest,
         setDowntimeHours,
         setCurrentInventoryPallets,
-        setIncomingTrucks,
+
         setYardInventory,
         // setManualYardOverride,
         isAutoReplenish, setIsAutoReplenish,
@@ -360,11 +361,7 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
             setCurrentInventoryPallets(val);
             saveLocalState('currentInventoryPallets', val, selectedSize);
         },
-        setIncomingTrucks: (v: string | number) => {
-            const val = Number(v);
-            setIncomingTrucks(val);
-            saveLocalState('incomingTrucks', val, selectedSize);
-        },
+
         setYardInventory: (v: any) => {
             setYardInventory(v);
             saveLocalState('yardInventory', v, selectedSize, true);
@@ -390,7 +387,7 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
         setSelectedSize, updateDateDemand, updateDateDemandBulk, updateDateActual, updateDateInbound,
         truckManifest, setTruckManifest, selectedSize, user, saveWithStatus, savePlanningEntry,
         setLocalProductionRate, saveProductionSetting, refreshProducts,
-        setDowntimeHours, setCurrentInventoryPallets, setIncomingTrucks, setYardInventory, setIsAutoReplenish,
+        setDowntimeHours, setCurrentInventoryPallets, setYardInventory, setIsAutoReplenish,
         setInventoryAnchor, saveInventorySnapshot
     ]);
 
