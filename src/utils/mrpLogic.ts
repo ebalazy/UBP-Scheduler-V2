@@ -181,7 +181,11 @@ export const calculateMRP = ({
         trucksToOrder = Math.ceil((safetyTarget - netInventory) / bottlesPerTruck);
     } else if (netInventory > safetyTarget + bottlesPerTruck) {
         const surplus = netInventory - safetyTarget;
-        if (surplus > bottlesPerTruck) trucksToCancel = Math.floor(surplus / bottlesPerTruck);
+        if (surplus > bottlesPerTruck) {
+            const mathematicalCancel = Math.floor(surplus / bottlesPerTruck);
+            // logic fix: can't cancel more trucks than we have coming
+            trucksToCancel = Math.min(mathematicalCancel, totalIncomingTrucks);
+        }
     }
 
     // 9. DoS Calc
