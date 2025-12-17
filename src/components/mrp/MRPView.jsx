@@ -23,7 +23,8 @@ import {
     CheckCircleIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
-    InformationCircleIcon
+    InformationCircleIcon,
+    CloudArrowDownIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../../services/supabase/client';
 import { useAuth } from '../../context/AuthContext';
@@ -355,6 +356,18 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                             <div className="flex items-center gap-1 bg-white dark:bg-gray-700 p-1 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
                                 {!readOnly && (
                                     <>
+                                        <button onClick={() => {
+                                            if (confirm("Force Cloud Sync?\n\nThis will clear your local cache and reload the latest data from the server.\nAny unsaved local drafts might be lost.")) {
+                                                // Clear Local Storage for safety
+                                                Object.keys(localStorage).forEach(key => {
+                                                    if (key.startsWith('mrp_')) localStorage.removeItem(key);
+                                                });
+                                                window.location.reload();
+                                            }
+                                        }} className="p-1.5 text-gray-500 hover:text-sky-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md transition-colors" title="Force Cloud Sync (Clear Cache)">
+                                            <CloudArrowDownIcon className="w-5 h-5" />
+                                        </button>
+                                        <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
                                         <button onClick={() => setIsReconcileOpen(true)} className="p-1.5 text-gray-500 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md transition-colors" title="Morning True-Up">
                                             <SunIcon className="w-5 h-5" />
                                         </button>

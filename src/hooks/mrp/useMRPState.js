@@ -162,8 +162,13 @@ export function useMRPState() {
                         if (result.success) {
                             const retry = await fetchMRPState(user.id, selectedSize);
                             if (retry) {
-                                setMonthlyInbound(retry.monthlyInbound || {});
-                                setTruckManifest(retry.truckManifest || {});
+                                if (Object.keys(retry.monthlyInbound || {}).length > 0) {
+                                    setMonthlyInbound(prev => ({ ...retry.monthlyInbound, ...prev }));
+                                }
+                                if (Object.keys(retry.truckManifest || {}).length > 0) {
+                                    setTruckManifest(prev => ({ ...retry.truckManifest, ...prev }));
+                                }
+
                                 // FIX: Do not overwrite Master Data with stale Scenario Data
                                 // if (retry.productionRate) updateBottleDefinition(selectedSize, 'productionRate', retry.productionRate);
                                 setDowntimeHours(retry.downtimeHours);
