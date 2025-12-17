@@ -188,12 +188,23 @@ export const calculateMRP = ({
     const inboundBottlesWithinLeadTime = inboundWithinLeadTime * bottlesPerTruck;
     const availableInventory = inventoryBottles + yardBottles + inboundBottlesWithinLeadTime;
 
+    // TRUE MRP: Calculate demand within lead time window
+    let demandWithinLeadTime = 0;
+    for (let i = 0; i <= leadTimeDays; i++) {
+        const checkDate = addDays(todayStr, i);
+        const dailyDemand = (monthlyDemand[checkDate] || 0) * bottlesPerCase * scrapFactor;
+        demandWithinLeadTime += dailyDemand;
+    }
+
+    // Total material need = demand to fulfill + safety buffer to maintain
+    const totalMaterialNeed = demandWithinLeadTime + safetyTarget;
+
     let trucksToOrder = 0;
     let trucksToCancel = 0;
 
-    if (availableInventory < safetyTarget) {
-        // Need to order to reach safety stock (accounting for what's arriving within lead time)
-        trucksToOrder = Math.ceil((safetyTarget - availableInventory) / bottlesPerTruck);
+    if (availableInventory < totalMaterialNeed) {
+        // Order to cover: (demand within lead time + safety stock) - available inventory
+        trucksToOrder = Math.ceil((totalMaterialNeed - availableInventory) / bottlesPerTruck);
     } else if (netInventory > safetyTarget + bottlesPerTruck) {
         // Only suggest cancellations based on TOTAL projected inventory (original logic)
         const surplus = netInventory - safetyTarget;
