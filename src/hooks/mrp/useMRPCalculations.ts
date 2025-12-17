@@ -9,7 +9,7 @@ export function useMRPCalculations(state: any, poManifest: any = {}) {
     // Ideally we define an interface for MRPState, but that's in useMRPState.ts 
     // and might not be exported yet.
 
-    const { safetyStockLoads } = useSettings();
+    const { safetyStockLoads, leadTimeDays: globalLeadTime } = useSettings();
     const { productMap: bottleDefinitions } = useProducts();
     const {
         selectedSize,
@@ -25,6 +25,11 @@ export function useMRPCalculations(state: any, poManifest: any = {}) {
     // Derived productionRate for calculations
     const specs: MRPSpecs | undefined = bottleDefinitions[selectedSize];
     const productionRate = specs?.productionRate || 0;
+
+    // Determine effective lead time (product-specific or global fallback)
+    const effectiveLeadTime = specs?.leadTimeDays !== undefined && specs?.leadTimeDays !== null
+        ? specs.leadTimeDays
+        : (globalLeadTime || 2);
 
     const results = useMemo(() => {
         if (!specs) return null;
@@ -42,7 +47,8 @@ export function useMRPCalculations(state: any, poManifest: any = {}) {
             monthlyProductionActuals,
             monthlyInbound,
             poManifest,
-            safetyStockLoads
+            safetyStockLoads,
+            leadTimeDays: effectiveLeadTime
         };
 
         return calculateMRP(params);
@@ -51,7 +57,7 @@ export function useMRPCalculations(state: any, poManifest: any = {}) {
         selectedSize, productionRate, downtimeHours, incomingTrucks,
         bottleDefinitions, safetyStockLoads, yardInventory,
         monthlyDemand, monthlyInbound, inventoryAnchor, poManifest,
-        monthlyProductionActuals, specs
+        monthlyProductionActuals, specs, effectiveLeadTime
     ]);
 
     // Backward compatibility wrapper for old components expecting direct returns

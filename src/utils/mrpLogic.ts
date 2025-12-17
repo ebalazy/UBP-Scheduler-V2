@@ -20,6 +20,7 @@ export const calculateMRP = ({
     monthlyInbound, // { [date]: Number (Trucks) } - Manual Plan
     poManifest, // { [date]: { items: [{...}] } } - Confirmed POs
     safetyStockLoads, // Number (Loads) implementation setting
+    leadTimeDays = 2, // Lead time for material delivery (days)
 }) => {
 
     // 0. Defaults & Safety
@@ -174,16 +175,30 @@ export const calculateMRP = ({
         }
     }
 
-    // 8. KPI Recommendations
+    // 8. KPI Recommendations (FIXED: Account for Lead Time)
+    // Only count inventory that's available NOW or arriving within lead time window
+    let inboundWithinLeadTime = incomingTrucks || 0; // Today's manual override
+
+    // Count trucks arriving within lead time
+    for (let i = 0; i <= leadTimeDays; i++) {
+        const checkDate = addDays(todayStr, i);
+        inboundWithinLeadTime += getDailyTrucks(checkDate);
+    }
+
+    const inboundBottlesWithinLeadTime = inboundWithinLeadTime * bottlesPerTruck;
+    const availableInventory = inventoryBottles + yardBottles + inboundBottlesWithinLeadTime;
+
     let trucksToOrder = 0;
     let trucksToCancel = 0;
-    if (netInventory < safetyTarget) {
-        trucksToOrder = Math.ceil((safetyTarget - netInventory) / bottlesPerTruck);
+
+    if (availableInventory < safetyTarget) {
+        // Need to order to reach safety stock (accounting for what's arriving within lead time)
+        trucksToOrder = Math.ceil((safetyTarget - availableInventory) / bottlesPerTruck);
     } else if (netInventory > safetyTarget + bottlesPerTruck) {
+        // Only suggest cancellations based on TOTAL projected inventory (original logic)
         const surplus = netInventory - safetyTarget;
         if (surplus > bottlesPerTruck) {
             const mathematicalCancel = Math.floor(surplus / bottlesPerTruck);
-            // logic fix: can't cancel more trucks than we have coming
             trucksToCancel = Math.min(mathematicalCancel, totalIncomingTrucks);
         }
     }
