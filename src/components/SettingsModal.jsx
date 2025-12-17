@@ -6,7 +6,6 @@ import { SunIcon, MoonIcon, BoltIcon, XMarkIcon } from '@heroicons/react/24/outl
 
 import UserManagement from './settings/UserManagement';
 
-// Forced re-compile
 export default function SettingsModal({ onClose }) {
     const [activeTab, setActiveTab] = useState('general');
     const { userRole } = useAuth();

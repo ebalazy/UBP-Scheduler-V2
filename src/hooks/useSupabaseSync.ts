@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { supabase } from '../services/supabase/client';
 import * as ProductService from '../services/supabase/products';
 import * as PlanningService from '../services/supabase/planning';
 import * as ProcurementService from '../services/supabase/procurement';
 import * as ProfileService from '../services/supabase/profiles';
+import { PlanningEntry } from '../services/supabase/planning';
 
 // Type Definitions
 type User = { id: string };
@@ -35,7 +36,6 @@ interface MRPStateData {
  * Handles migration from localStorage and real-time persistence.
  */
 export const useSupabaseSync = () => {
-    // Forced re-compile
 
     /**
      * MIGRATION: Reads all localStorage keys and uploads them.
@@ -84,7 +84,7 @@ export const useSupabaseSync = () => {
                 }
 
                 if (entriesToInsert.length > 0) {
-                    await PlanningService.batchUpsertPlanningEntries(entriesToInsert);
+                    await PlanningService.batchUpsertPlanningEntries(entriesToInsert as unknown as PlanningEntry[]);
                 }
 
                 const anchor = localStorage.getItem(`mrp_${sku}_inventoryAnchor`); // fixed space
@@ -178,7 +178,7 @@ export const useSupabaseSync = () => {
     const saveInventoryAnchor = useCallback(async (userId: string, skuName: string, anchor: { date: string; count: number }, location = 'floor') => {
         const productId = await ProductService.ensureProduct(userId, skuName);
         // console.log(`Saving Snapshot (${location}):`, anchor);
-        await PlanningService.saveInventorySnapshot(productId, userId, anchor.date, anchor.count, location);
+        await PlanningService.saveInventorySnapshot(productId, userId, anchor.date, anchor.count, location as 'floor' | 'yard');
     }, []);
 
     const fetchUserProfile = useCallback(async (userId: string) => {

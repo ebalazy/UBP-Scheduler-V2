@@ -35,7 +35,6 @@ import { useProducts } from '../../context/ProductsContext';
 import PlanningGridWorkbench from './PlanningGridWorkbench';
 
 export default function MRPView({ state, setters, results, readOnly = false }) {
-    // Forced re-compile
     const { leadTimeDays, safetyStockLoads, schedulerSettings } = useSettings();
     const { productMap: bottleDefinitions } = useProducts();
     const bottleSizes = Object.keys(bottleDefinitions);

@@ -10,4 +10,3 @@ export default defineConfig({
     'import.meta.env.PACKAGE_VERSION': JSON.stringify(packageJson.version)
   }
 })
-// Force restart timestamp: 123456
