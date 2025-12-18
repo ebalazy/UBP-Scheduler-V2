@@ -217,6 +217,14 @@ export const calculateMRP = ({
         }
     }
 
+    // ABSOLUTE SAFETY CAP: Never suggest cancelling more trucks than are actually scheduled
+    // This prevents absurd recommendations when calculations encounter edge cases
+    if (trucksToCancel > totalScheduledInbound) {
+        console.warn(`[MRP] Capping trucksToCancel from ${trucksToCancel} to ${totalScheduledInbound}`);
+        trucksToCancel = totalScheduledInbound;
+    }
+
+
     // 9. DoS Calc
     let daysOfSupply = 30;
     if (dailyLedger.length > 0) {
