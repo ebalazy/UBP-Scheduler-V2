@@ -188,6 +188,16 @@ export const calculateMRP = ({
     const inboundBottlesWithinLeadTime = inboundWithinLeadTime * bottlesPerTruck;
     const availableInventory = inventoryBottles + yardBottles + inboundBottlesWithinLeadTime;
 
+    console.log('[MRP DEBUG] Step 1: Inventory Calc', {
+        todayStr,
+        leadTimeDays,
+        inventoryBottles,
+        yardBottles,
+        inboundWithinLeadTime,
+        inboundBottlesWithinLeadTime,
+        availableInventory
+    });
+
     // TRUE MRP: Calculate demand within lead time window
     let demandWithinLeadTime = 0;
     for (let i = 0; i <= leadTimeDays; i++) {
@@ -199,12 +209,21 @@ export const calculateMRP = ({
     // Total material need = demand to fulfill + safety buffer to maintain
     const totalMaterialNeed = demandWithinLeadTime + safetyTarget;
 
+    console.log('[MRP DEBUG] Step 2: Demand & Need Calc', {
+        demandWithinLeadTime,
+        safetyTarget,
+        totalMaterialNeed,
+        availableInventory,
+        deficit: totalMaterialNeed - availableInventory
+    });
+
     let trucksToOrder = 0;
     let trucksToCancel = 0;
 
     if (availableInventory < totalMaterialNeed) {
         // Order to cover: (demand within lead time + safety stock) - available inventory
         trucksToOrder = Math.ceil((totalMaterialNeed - availableInventory) / bottlesPerTruck);
+        console.log('[MRP DEBUG] Step 3: ORDER Decision', { trucksToOrder, reason: 'availableInventory < totalMaterialNeed' });
     } else if (availableInventory > safetyTarget + demandWithinLeadTime + bottlesPerTruck) {
         // Only suggest cancellations if we have excess AVAILABLE inventory (not just distant future supply)
         // Must exceed: safety stock + demand within lead time + 1 extra truck buffer
@@ -214,6 +233,12 @@ export const calculateMRP = ({
                 Math.floor(immediateExcess / bottlesPerTruck),
                 totalIncomingTrucks
             );
+            console.log('[MRP DEBUG] Step 3: CANCEL Decision', {
+                trucksToCancel,
+                immediateExcess,
+                totalIncomingTrucks,
+                reason: 'availableInventory > safetyTarget + demandWithinLeadTime + bottlesPerTruck'
+            });
         }
     }
 
