@@ -206,11 +206,14 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
             .filter(([dateStr]) => new Date(dateStr).setHours(0, 0, 0, 0) <= todayVal)
             .reduce((sum, [_, order]) => sum + order.count, 0);
 
-        // FIXED: Prioritize immediate deficit over scheduled actionable trucks
-        // Show trucksToOrder if we have an immediate deficit, regardless of Auto-Replenish mode
-        const displayTrucks = results.trucksToOrder > 0
-            ? results.trucksToOrder  // Show immediate need
-            : (state.isAutoReplenish ? actionableTrucks : 0);  // Show actionable orders when no immediate need
+        // FIXED: Prioritize cancellation over ordering display
+        // If there's an excess (trucksToCancel > 0), don't show displayTrucks (let cancel branch handle it)
+        // Otherwise, show trucksToOrder if immediate deficit, or actionable orders in Auto-Replenish mode
+        const displayTrucks = results.trucksToCancel > 0
+            ? 0  // Don't show "Trucks Needed" when we should be showing "Cancel Trucks"
+            : (results.trucksToOrder > 0
+                ? results.trucksToOrder  // Show immediate need
+                : (state.isAutoReplenish ? actionableTrucks : 0));  // Show actionable orders when no immediate need
 
         console.log('[MRPView] Display Logic:', {
             isAutoReplenish: state.isAutoReplenish,
