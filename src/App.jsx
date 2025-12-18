@@ -15,6 +15,7 @@ import { useSupabaseSync } from './hooks/useSupabaseSync';
 import LandingPage from './components/LandingPage';
 import LogisticsView from './components/logistics/LogisticsView';
 import ProductsView from './components/products/ProductsView';
+import CSVImport from './components/data/CSVImport';
 import { Boxes, CalendarClock, Crown, Gauge, Truck, Package } from 'lucide-react';
 import PulseHUD from './components/dashboard/PulseHUD';
 
@@ -149,6 +150,9 @@ function AuthenticatedApp({ user }) {
           <ProductsView readOnly={!canEditLogistics} />
         </div>
 
+        <div className={activeTab === 'import' ? 'block' : 'hidden'}>
+          <CSVImport />
+        </div>
 
       </main>
 

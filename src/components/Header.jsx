@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Cog6ToothIcon, ArrowRightOnRectangleIcon, PrinterIcon, CloudIcon } from '@heroicons/react/24/outline';
-import { Truck, Boxes, CalendarClock, Crown, Package } from 'lucide-react';
+import { Truck, Boxes, CalendarClock, Crown, Package, Upload } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './auth/AuthModal';
 import ubpLogo from '../assets/ubp_logo_v4.png';
@@ -133,6 +133,15 @@ export default function Header({ onOpenSettings, isSaving, saveError, activeTab,
                                 icon={Package}
                                 activeColor="text-pink-500"
                             />
+
+                            {showPlanning && (
+                                <NavItem
+                                    id="import"
+                                    label="Import"
+                                    icon={Upload}
+                                    activeColor="text-cyan-500"
+                                />
+                            )}
                         </nav>
                     )}
 
