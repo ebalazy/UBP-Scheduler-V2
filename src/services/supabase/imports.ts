@@ -214,20 +214,17 @@ export async function importSAPPlannedShipments(
         // Get product mapping - NOW includes material_code
         const { data: products, error: productError } = await supabase
             .from('products')
-            .select('id, sku, name, material_code');
+            .select('id, name, material_code');
 
         if (productError) {
             console.error('[SAP Import] Error fetching products:', productError);
         }
 
         console.log('[SAP Import] Found products for mapping:', products?.length || 0);
-        if (products && products.length > 0) {
-            console.log('[SAP Import] Sample product codes:', products.slice(0, 3).map(p => p.material_code));
-        }
 
-        // Create TWO maps: one by SKU, one by material_code
+        // Create TWO maps: one by name (acting as SKU), one by material_code
         const productMapBySKU = new Map(
-            products?.map(p => [p.sku?.toLowerCase().trim(), p.id]) || []
+            products?.map(p => [p.name?.toLowerCase().trim(), p.id]) || []
         );
 
         const productMapByMaterialCode = new Map(
