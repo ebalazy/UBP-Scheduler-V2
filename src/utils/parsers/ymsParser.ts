@@ -3,15 +3,11 @@
  * Parses ymshub.com export files and extracts truck arrival data
  */
 
-interface YMSRawRow {
-    'Ref1': string;                      // PO Number
-    'Appt Start Date': string;           // Arrival date/time
-    'Status': string;                    // "Checked In", "Scheduled", etc.
-    'Description SubLoad Type': string;  // Product SKU (e.g., "Vitamin Water 16.9oz")
-    'Carrier'?: string;
-    'Trailer'?: string;
-    [key: string]: any;                  // Allow other columns
-}
+// YMS export format uses these columns:
+// - Ref#1: PO Number
+// - Arrival Date: When truck arrived
+// - Open Status: "Complete" when checked in
+// - Sub Load Type: Product description (SKU extraction)
 
 export interface InboundReceipt {
     date: string;              // ISO date (YYYY-MM-DD)
@@ -36,16 +32,27 @@ export interface ParseResult {
  * Detect if CSV is YMS format
  */
 export function isYMSFormat(headers: string[]): boolean {
-    const requiredColumns = ['Ref1', 'Appt Start Date', 'Status'];
+    console.log('Checking YMS format. Headers found:', headers);
+
+    const requiredColumns = ['ref #1', 'arrival date', 'open status'];
     const lowerHeaders = headers.map(h => h.toLowerCase().trim());
 
-    return requiredColumns.every(col =>
-        lowerHeaders.some(h => h.includes(col.toLowerCase()))
-    );
+    console.log('Lower headers:', lowerHeaders);
+
+    const matches = requiredColumns.map(col => {
+        const found = lowerHeaders.some(h => h.includes(col));
+        console.log(`Looking for "${col}": ${found}`);
+        return found;
+    });
+
+    const isValid = matches.every(m => m);
+    console.log('YMS format valid:', isValid);
+
+    return isValid;
 }
 
 /**
- * Extract SKU from "Description SubLoad Type" field
+ * Extract SKU from "Sub Load Type" field
  * Examples:
  *   "Vitamin Water 16.9oz" -> "16.9oz"
  *   "Vitamin Water 20oz" -> "20oz"
@@ -98,7 +105,7 @@ function parseYMSDate(dateStr: string): { date: string; timestamp: string } | nu
 /**
  * Parse YMS CSV data
  */
-export function parseYMSData(rows: YMSRawRow[]): ParseResult {
+export function parseYMSData(rows: any[]): ParseResult {
     const errors: string[] = [];
     const data: InboundReceipt[] = [];
     let skipped = 0;
@@ -106,30 +113,32 @@ export function parseYMSData(rows: YMSRawRow[]): ParseResult {
     rows.forEach((row, index) => {
         const rowNum = index + 2; // +2 for header + 1-indexed
 
-        // Skip rows that aren't "Checked In"
-        if (!row.Status || !row.Status.toLowerCase().includes('checked in')) {
+        // Skip rows that aren't "Complete" (YMS shows Complete when truck is checked in)
+        const status = row['Open Status'] || '';
+        if (!status.toLowerCase().includes('complete')) {
             skipped++;
             return;
         }
 
-        // Parse date
-        const parsedDate = parseYMSDate(row['Appt Start Date']);
+        // Parse date from Arrival Date
+        const parsedDate = parseYMSDate(row['Arrival Date']);
         if (!parsedDate) {
-            errors.push(`Row ${rowNum}: Invalid date format "${row['Appt Start Date']}"`);
+            errors.push(`Row ${rowNum}: Invalid date format "${row['Arrival Date']}"`);
             return;
         }
 
-        // Extract PO
-        const po_number = row.Ref1?.trim();
+        // Extract PO from Ref#1
+        const po_number = row['Ref#1']?.trim();
         if (!po_number) {
-            errors.push(`Row ${rowNum}: Missing PO (Ref1)`);
+            errors.push(`Row ${rowNum}: Missing PO (Ref#1)`)
+                ;
             return;
         }
 
-        // Extract SKU
-        const product_sku = extractSKU(row['Description SubLoad Type']);
+        // Extract SKU from Sub Load Type
+        const product_sku = extractSKU(row['Sub Load Type']);
         if (product_sku === 'Unknown') {
-            errors.push(`Row ${rowNum}: Could not extract SKU from "${row['Description SubLoad Type']}"`);
+            errors.push(`Row ${rowNum}: Could not extract SKU from "${row['Sub Load Type']}"`);
             // Continue anyway with "Unknown"
         }
 
@@ -140,9 +149,9 @@ export function parseYMSData(rows: YMSRawRow[]): ParseResult {
             product_sku,
             location: 'yard', // Default to yard
             loads: 1,
-            yms_reference: row.Trailer?.trim(),
+            yms_reference: row['Trailer']?.trim(),
             checked_in_at: parsedDate.timestamp,
-            status: row.Status,
+            status: status,
         };
 
         data.push(receipt);
@@ -185,7 +194,7 @@ export function parseYMS(csvData: string): ParseResult {
             return {
                 success: false,
                 data: [],
-                errors: ['Not a valid YMS export format. Missing required columns: Ref1, Appt Start Date, Status'],
+                errors: ['Not a valid YMS export format. Missing required columns: Ref#1, Arrival Date, Open Status'],
                 skipped: 0,
                 totalRows: 0,
             };
