@@ -177,9 +177,10 @@ export const calculateMRP = ({
 
     // 8. KPI Recommendations (FIXED: Account for Lead Time)
     // Only count inventory that's available NOW or arriving within lead time window
-    let inboundWithinLeadTime = incomingTrucks || 0; // Today's manual override
+    // NOTE: incomingTrucks is already included in getDailyTrucks() for today, so we don't double-count it
+    let inboundWithinLeadTime = 0;
 
-    // Count trucks arriving within lead time
+    // Count trucks arriving within lead time (INCLUDING today via getDailyTrucks)
     for (let i = 0; i <= leadTimeDays; i++) {
         const checkDate = addDays(todayStr, i);
         inboundWithinLeadTime += getDailyTrucks(checkDate);
