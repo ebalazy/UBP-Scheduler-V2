@@ -114,15 +114,16 @@ export const useSupabaseSync = () => {
         }
 
         console.log(`[SupabaseSync] Product Found: ${product.id}. Fetching Details...`);
-        const { entries, settings, snapshotFloor, snapshotYard } = await PlanningService.fetchPlanningDetails(product.id);
+        const { entries, settings, snapshotFloor, snapshotYard, plannedInbound } = await PlanningService.fetchPlanningDetails(product.id);
 
-        console.log(`[SupabaseSync] Entries fetched: ${entries?.length || 0}`);
+        console.log(`[SupabaseSync] Entries fetched: ${entries?.length || 0}, SAP Planned: ${plannedInbound?.length || 0}`);
 
         const monthlyDemand: Record<string, number> = {};
         const monthlyInbound: Record<string, number> = {};
         const monthlyProductionActuals: Record<string, number> = {};
         const truckManifest: Record<string, any[]> = {};
 
+        // 1. Process Planning Entries (Direct overrides/manual trucks)
         entries?.forEach((row: any) => {
             const val = Number(row.value);
             if (row.entry_type === 'demand_plan') monthlyDemand[row.date] = val;
@@ -130,6 +131,37 @@ export const useSupabaseSync = () => {
             if (row.entry_type === 'production_actual') monthlyProductionActuals[row.date] = val;
             if (row.entry_type === 'truck_manifest_json') {
                 truckManifest[row.date] = row.meta_json || [];
+            }
+        });
+
+        // 2. Process SAP Planned Inbound (Sum quantities and convert to loads)
+        // Note: These are additive to any manual 'inbound_trucks' entries for now.
+        const bottlesPerTruck = product.bottles_per_truck || 100000;
+        plannedInbound?.forEach(row => {
+            const date = row.date;
+            const scheduledQty = Number(row.scheduled_qty || 0);
+
+            // Simple conversion: Qty / Bottles per Truck
+            const loads = scheduledQty / bottlesPerTruck;
+
+            console.log(`[SupabaseSync] Processing SAP row: Date=${date}, PO=${row.po_number}, Qty=${scheduledQty}, Loads=${loads}`);
+
+            if (loads > 0) {
+                monthlyInbound[date] = (monthlyInbound[date] || 0) + loads;
+
+                // Also store metadata in manifest if not already present
+                if (!truckManifest[date]) truckManifest[date] = [];
+                const alreadyExists = truckManifest[date].some(t => t.po === row.po_number);
+
+                if (!alreadyExists) {
+                    truckManifest[date].push({
+                        po: row.po_number,
+                        vendor: row.vendor_name,
+                        qty: scheduledQty,
+                        source: 'sap',
+                        status: 'planned'
+                    });
+                }
             }
         });
 
@@ -223,12 +255,21 @@ export const useSupabaseSync = () => {
     }, [migrateLocalStorage]);
 
 
-    const saveProcurementEntry = useCallback(async (order: any) => {
-        if (!order.po) return;
+    const saveProcurementEntry = useCallback(async (entry: any) => {
+        if (!entry.po) return;
+
+        if (entry.source === 'sap') {
+            await ProcurementService.updateSAPShipment(entry.id, {
+                status: entry.status,
+                appointment_time: entry.time || null
+            });
+            return;
+        }
+
         const user = (await supabase.auth.getUser()).data.user;
         if (!user) return;
 
-        await ProcurementService.upsertProcurementOrder(order, user.id);
+        await ProcurementService.upsertProcurementOrder(entry, user.id);
     }, []);
 
     const deleteProcurementEntry = useCallback(async (poNumber: string) => {
@@ -236,10 +277,15 @@ export const useSupabaseSync = () => {
     }, []);
 
     const fetchProcurementData = useCallback(async () => {
-        const data = await ProcurementService.fetchProcurementOrders();
+        const [manualData, sapData] = await Promise.all([
+            ProcurementService.fetchProcurementOrders(),
+            ProcurementService.fetchAllSAPShipments()
+        ]);
 
         const manifest: Record<string, { items: any[] }> = {};
-        data.forEach((row: any) => {
+
+        // 1. Process Manual Orders
+        manualData.forEach((row: any) => {
             if (!manifest[row.date]) manifest[row.date] = { items: [] };
             manifest[row.date].items.push({
                 id: row.id,
@@ -251,9 +297,35 @@ export const useSupabaseSync = () => {
                 date: row.date,
                 time: row.delivery_time || '',
                 carrier: row.carrier || '',
-                palletStats: row.meta_data ? row.meta_data.palletStats : undefined // Added mapping for palletStats
+                source: 'manual',
+                palletStats: row.meta_data ? row.meta_data.palletStats : undefined
             });
         });
+
+        // 2. Process SAP Shipments
+        sapData.forEach((row: any) => {
+            if (!manifest[row.date]) manifest[row.date] = { items: [] };
+
+            // Check if already present via manual override (PO Number match)
+            const isOverridden = manifest[row.date].items.some(m => m.po === row.po_number);
+            if (isOverridden) return;
+
+            manifest[row.date].items.push({
+                id: row.id,
+                po: row.po_number,
+                qty: Number(row.scheduled_qty),
+                sku: row.products?.name || '',
+                supplier: row.vendor_name || 'SAP Import',
+                status: row.status || (row.received_qty > 0 ? 'received' : 'planned'),
+                date: row.date,
+                time: row.appointment_time || '',
+                carrier: '',
+                source: 'sap',
+                openQty: row.open_qty,
+                receivedQty: row.received_qty
+            });
+        });
+
         return manifest;
     }, []);
 

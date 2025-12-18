@@ -16,6 +16,7 @@ export interface ProcurementOrder {
     status: string;
     sku?: string;
     time?: string; // HH:mm
+    source?: 'manual' | 'sap';
     // Add other fields as needed
     [key: string]: any;
 }

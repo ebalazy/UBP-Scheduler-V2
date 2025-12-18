@@ -211,7 +211,7 @@ export async function importSAPPlannedShipments(
     let failed = 0;
 
     try {
-        // Get product mapping - NOW includes material_code
+        // 1. Get product mapping
         const { data: products, error: productError } = await supabase
             .from('products')
             .select('id, name, material_code');
@@ -220,7 +220,7 @@ export async function importSAPPlannedShipments(
             console.error('[SAP Import] Error fetching products:', productError);
         }
 
-        console.log('[SAP Import] Found products for mapping:', products?.length || 0);
+        console.log(`[SAP Import] Found ${products?.length || 0} products for mapping`);
 
         // Create TWO maps: one by name (acting as SKU), one by material_code
         const productMapBySKU = new Map(
@@ -257,6 +257,10 @@ export async function importSAPPlannedShipments(
 
             if (!product_id) {
                 errors.push(`Unmapped material: ${shipment.material} (${shipment.materialDescription})`);
+            }
+
+            if (product_id) {
+                console.log(`[SAP Import] Mapped ${shipment.material} to product_id: ${product_id}`);
             }
 
             return {

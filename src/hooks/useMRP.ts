@@ -8,18 +8,43 @@ export function useMRP(poManifest: any = {}) {
     // 1. State & Persistence
     const state = useMRPState(); // poManifest is not passed to state, it seems. Original code didn't pass it to useMRPState either.
 
-    // 1.5 Filter Manifest by SKU (Prevent Cross-Talk)
+    // 1.5 Filter & Merge Manifest (Manual POs + SAP Data)
     const filteredManifest = useMemo(() => {
-        if (!state.selectedSize || !poManifest) return {};
         const filtered: any = {};
-        Object.entries(poManifest).forEach(([date, day]: [string, any]) => {
-            const items = day.items?.filter((item: any) => item.sku === state.selectedSize) || [];
-            if (items.length > 0) {
-                filtered[date] = { items };
-            }
-        });
+
+        // A. Process Global POs (Manual entries from ProcurementContext)
+        if (state.selectedSize && poManifest) {
+            Object.entries(poManifest).forEach(([date, day]: [string, any]) => {
+                const items = day.items?.filter((item: any) => item.sku === state.selectedSize) || [];
+                if (items.length > 0) {
+                    filtered[date] = { items: [...items] };
+                }
+            });
+        }
+
+        // B. Merge Product-Specific Manifest (Includes SAP Imports & Manual planning entries)
+        if (state.truckManifest) {
+            Object.entries(state.truckManifest).forEach(([date, items]: [string, any]) => {
+                if (!Array.isArray(items)) return;
+
+                if (!filtered[date]) filtered[date] = { items: [] };
+
+                items.forEach((item: any) => {
+                    // Avoid duplicates if the same PO is in both (prefer ProcurementContext data if clash)
+                    const isDuplicate = filtered[date].items.some((existing: any) =>
+                        (existing.po && item.po && existing.po === item.po) ||
+                        (existing.id && item.id && existing.id === item.id)
+                    );
+
+                    if (!isDuplicate) {
+                        filtered[date].items.push(item);
+                    }
+                });
+            });
+        }
+
         return filtered;
-    }, [poManifest, state.selectedSize]);
+    }, [poManifest, state.selectedSize, state.truckManifest]);
 
     // 2. Calculations (Pure Logic)
     const { calculations, totalScheduledCases, productionRate } = useMRPCalculations(state, filteredManifest);
@@ -57,6 +82,7 @@ export function useMRP(poManifest: any = {}) {
         results: calculations ? {
             ...calculations,
             poManifest: filteredManifest // Pass filtered manifest to UI
-        } : null
+        } : null,
+        refreshData: state.refreshData
     };
 }

@@ -56,10 +56,40 @@ export const upsertProcurementOrder = async (order: any, userId: string): Promis
     }
 };
 
+
 export const deleteProcurementOrder = async (poNumber: string): Promise<void> => {
     const { error } = await supabase
         .from('procurement_orders')
         .delete()
         .eq('po_number', poNumber);
     if (error) throw error;
+};
+
+/**
+ * Update SAP shipment overrides (status, appointment_time)
+ */
+export const updateSAPShipment = async (id: string, updates: { status?: string, appointment_time?: string }): Promise<void> => {
+    const { error } = await supabase
+        .from('planned_inbound')
+        .update(updates)
+        .eq('id', id);
+    if (error) throw error;
+};
+
+/**
+ * Fetch all SAP planned inbound shipments with product names
+ */
+export const fetchAllSAPShipments = async (): Promise<any[]> => {
+    const { data, error } = await supabase
+        .from('planned_inbound')
+        .select(`
+            *,
+            products (
+                name
+            )
+        `)
+        .order('date', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
 };

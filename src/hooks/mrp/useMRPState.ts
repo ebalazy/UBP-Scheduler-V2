@@ -213,7 +213,7 @@ export function useMRPState() {
             loadCloud();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedSize, user?.id]); // STRICT DEPENDENCIES PREVENT JITTER
+    }, [selectedSize, user?.id, refreshTrigger]); // Added refreshTrigger to force reload after import
 
     // --- REALTIME SYNC (The "No Shortcuts" Solution) ---
     // --- REALTIME SYNC (The "No Shortcuts" Solution) ---
@@ -295,6 +295,17 @@ export function useMRPState() {
         }
     });
 
+    // --- SAP REALTIME SYNC ---
+    useRealtimeSubscription({
+        table: 'planned_inbound',
+        filter: activeProduct ? `product_id=eq.${activeProduct.id}` : undefined,
+        enabled: !!activeProduct?.id,
+        onDataChange: () => {
+            console.log('[SAP Sync] Data change detected, refreshing state.');
+            setRefreshTrigger(t => t + 1);
+        }
+    });
+
     return {
         selectedSize, setSelectedSize,
         monthlyDemand, setMonthlyDemand,
@@ -308,6 +319,6 @@ export function useMRPState() {
         yardInventory, setYardInventory,
 
         isAutoReplenish, setIsAutoReplenish,
-        refreshTrigger // Exposed if needed
+        refreshData: () => setRefreshTrigger(t => t + 1)
     };
 }

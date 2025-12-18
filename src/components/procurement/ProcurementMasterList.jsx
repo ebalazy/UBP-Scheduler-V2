@@ -12,14 +12,16 @@ import {
     CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import { useProcurement } from '../../context/ProcurementContext';
-// import { useSettings } from '../../context/SettingsContext'; // Removed
-import { useProducts } from '../../context/ProductsContext'; // Added
+import { useSettings } from '../../context/SettingsContext';
+import { useProducts } from '../../context/ProductsContext';
 import { formatTime12h } from '../../utils/dateUtils';
+import { calculateDeliveryTime } from '../../utils/schedulerUtils';
 import EditOrderModal from './EditOrderModal';
 
 export default function ProcurementMasterList({ isOpen, onClose }) {
     const { poManifest, deleteOrdersBulk, bulkUpdateOrders } = useProcurement();
-    const { productMap: bottleDefinitions } = useProducts(); // New Source
+    const { productMap: bottleDefinitions, getProductSpecs } = useProducts();
+    const { schedulerSettings, activeSku } = useSettings();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedIds, setSelectedIds] = useState(new Set());
 
@@ -37,32 +39,57 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
         setIsEditOpen(true);
     };
 
-    // Flatten Manifest
+    // Flatten Manifest & Inject Estimates
     const allOrders = useMemo(() => {
         const list = [];
+        const getMinutes = (t) => {
+            if (!t || t === '00:00') return 99999;
+            const [h, m] = t.split(':').map(Number);
+            return (h * 60) + (m || 0);
+        };
+
         Object.entries(poManifest).forEach(([date, data]) => {
             if (data.items) {
-                data.items.forEach(item => {
-                    list.push({ ...item, date });
+                // To match ScheduleManagerModal, we must sort the day items first
+                const dayItems = [...data.items].sort((a, b) => getMinutes(a.time) - getMinutes(b.time));
+
+                dayItems.forEach((item, idx) => {
+                    let estimatedTime = '';
+                    if (!item.time || item.time === '00:00') {
+                        const sku = item.sku || activeSku;
+                        const specs = getProductSpecs(sku) || bottleDefinitions?.[sku];
+
+                        if (specs && schedulerSettings) {
+                            const rate = Number(specs.productionRate);
+                            const capacity = Number(specs.bottlesPerTruck);
+                            if (rate > 0 && capacity > 0) {
+                                estimatedTime = calculateDeliveryTime(
+                                    idx,
+                                    schedulerSettings.shiftStartTime || '06:00',
+                                    capacity,
+                                    rate,
+                                    Number(specs.bottlesPerCase) || 1,
+                                    dayItems.length
+                                );
+                            }
+                        }
+                    }
+
+                    list.push({ ...item, date, estimatedTime });
                 });
             }
         });
-        // Sort by Date Descending
+
+        // Final Sort by Date Descending, then Time/EstimatedTime Ascending
         return list.sort((a, b) => {
-            // 1. Date Descending
             const dateDiff = new Date(b.date) - new Date(a.date);
             if (dateDiff !== 0) return dateDiff;
 
-            // 2. Time Ascending (Earliest first for same day)
-            // Fix: Use numeric comparison to handle "9:00" vs "10:00" correctly.
-            const getMinutes = (t) => {
-                if (!t || t === '00:00') return 99999;
-                const [h, m] = t.split(':').map(Number);
-                return (h * 60) + (m || 0);
-            };
-            return getMinutes(a.time) - getMinutes(b.time);
+            const timeA = a.time || a.estimatedTime;
+            const timeB = b.time || b.estimatedTime;
+            return getMinutes(timeA) - getMinutes(timeB);
         });
-    }, [poManifest]);
+    }, [poManifest, schedulerSettings, bottleDefinitions, activeSku, getProductSpecs]);
 
     // Filter
     const filteredOrders = useMemo(() => {
@@ -365,7 +392,15 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                                 {new Date(order.date + 'T00:00:00').toLocaleDateString()}
                                             </td>
                                             <td className="p-4 text-sm text-gray-500 dark:text-gray-400 font-mono">
-                                                {(order.time && order.time !== '00:00') ? formatTime12h(order.time) : '-'}
+                                                {order.time && order.time !== '00:00' ? (
+                                                    formatTime12h(order.time)
+                                                ) : order.estimatedTime ? (
+                                                    <span className="text-blue-500 italic opacity-75" title="Estimated based on schedule">
+                                                        {formatTime12h(order.estimatedTime)}*
+                                                    </span>
+                                                ) : (
+                                                    '-'
+                                                )}
                                             </td>
                                             <td className="p-4 text-sm font-mono text-gray-600 dark:text-gray-300">
                                                 <div className="flex items-center gap-2">
@@ -375,6 +410,12 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                                     {order.status === 'received' && (
                                                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wide">
                                                             RCVD
+                                                        </span>
+                                                    )}
+                                                    {order.source === 'sap' && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-wide flex items-center gap-1">
+                                                            <span className="w-1 h-1 bg-purple-500 rounded-full animate-pulse"></span>
+                                                            SAP
                                                         </span>
                                                     )}
                                                 </div>
@@ -396,31 +437,42 @@ export default function ProcurementMasterList({ isOpen, onClose }) {
                                                     1 Truck
                                                 </span>
                                             </td>
-                                            <td className="p-4 text-sm text-gray-500 dark:text-gray-400">
-                                                {order.carrier || '-'}
-                                            </td>
                                             <td className="p-4">
-                                                {order.status !== 'received' && (
+                                                <div className="flex items-center gap-1">
+                                                    {order.status !== 'received' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm("Mark this order as Received?")) {
+                                                                    bulkUpdateOrders([{ ...order, status: 'received' }]);
+                                                                }
+                                                            }}
+                                                            className="p-1 text-gray-400 hover:text-emerald-600 transition-colors"
+                                                            title="Mark Received"
+                                                        >
+                                                            ✅
+                                                        </button>
+                                                    )}
+                                                    {order.status === 'received' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm("Cancel receipt for this order? It will return to 'planned' status.")) {
+                                                                    bulkUpdateOrders([{ ...order, status: 'planned' }]);
+                                                                }
+                                                            }}
+                                                            className="p-1 text-gray-400 hover:text-amber-600 transition-colors"
+                                                            title="Cancel Receipt"
+                                                        >
+                                                            ↩️
+                                                        </button>
+                                                    )}
                                                     <button
-                                                        onClick={() => {
-                                                            if (confirm("Mark this order as Received?")) {
-                                                                // Use bulk update trick for single item
-                                                                bulkUpdateOrders([{ ...order, status: 'received' }]);
-                                                            }
-                                                        }}
-                                                        className="p-1 text-gray-400 hover:text-emerald-600 transition-colors mr-1"
-                                                        title="Mark Received"
+                                                        onClick={() => handleEdit(order)}
+                                                        className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                                        title="Edit Order"
                                                     >
-                                                        ✅
+                                                        <PencilSquareIcon className="w-5 h-5" />
                                                     </button>
-                                                )}
-                                                <button
-                                                    onClick={() => handleEdit(order)}
-                                                    className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                                                    title="Edit Order"
-                                                >
-                                                    <PencilSquareIcon className="w-5 h-5" />
-                                                </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

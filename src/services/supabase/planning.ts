@@ -30,18 +30,31 @@ export interface InventorySnapshot {
     user_id?: string;
 }
 
+export interface SAPPlannedInbound {
+    date: string;
+    po_number: string;
+    scheduled_qty: number;
+    open_qty: number;
+    received_qty: number;
+    product_id: string;
+    vendor_name?: string;
+    appointment_time?: string;
+    status?: string;
+}
+
 interface FetchPlanningDetailsResult {
     entries: PlanningEntry[];
     settings: ProductionSettings | null;
     snapshotFloor: InventorySnapshot | null;
     snapshotYard: InventorySnapshot | null;
+    plannedInbound: SAPPlannedInbound[];
 }
 
 /**
  * Loads all planning entries and settings for a product
  */
 export const fetchPlanningDetails = async (productId: string): Promise<FetchPlanningDetailsResult> => {
-    const [entries, settings, snapshotsFloor, snapshotsYard] = await Promise.all([
+    const [entries, settings, snapshotsFloor, snapshotsYard, plannedInbound] = await Promise.all([
         supabase
             .from('planning_entries')
             .select('date, entry_type, value, meta_json')
@@ -66,14 +79,20 @@ export const fetchPlanningDetails = async (productId: string): Promise<FetchPlan
             .eq('location', 'yard')
             .order('date', { ascending: false })
             .limit(1)
-            .maybeSingle()
+            .maybeSingle(),
+        supabase
+            .from('planned_inbound')
+            .select('*')
+            .eq('product_id', productId)
+            .order('date', { ascending: true })
     ]);
 
     return {
         entries: (entries.data as PlanningEntry[]) || [],
         settings: (settings.data as ProductionSettings | null),
         snapshotFloor: (snapshotsFloor.data as InventorySnapshot | null),
-        snapshotYard: (snapshotsYard.data as InventorySnapshot | null)
+        snapshotYard: (snapshotsYard.data as InventorySnapshot | null),
+        plannedInbound: (plannedInbound.data as SAPPlannedInbound[]) || []
     };
 };
 

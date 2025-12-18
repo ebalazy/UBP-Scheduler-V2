@@ -16,7 +16,7 @@ interface PreviewData {
     skippedCount?: number;
 }
 
-export default function CSVImport() {
+export default function CSVImport({ onImportComplete }: { onImportComplete?: () => void }) {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<PreviewData | null>(null);
     const [cleanedText, setCleanedText] = useState<string>('');
@@ -218,6 +218,9 @@ export default function CSVImport() {
                 if (result.errors.length > 0) {
                     alert(`Import completed with errors:\n${result.errors.join('\n')}`);
                 }
+
+                // Trigger global refresh
+                if (onImportComplete) onImportComplete();
             }
         } catch (error) {
             alert(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

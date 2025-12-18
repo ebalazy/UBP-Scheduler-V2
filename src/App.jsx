@@ -154,7 +154,7 @@ function AuthenticatedApp({ user }) {
         </div>
 
         <div className={activeTab === 'import' ? 'block' : 'hidden'}>
-          <CSVImport />
+          <CSVImport onImportComplete={mrp.refreshData} />
         </div>
 
       </main>

@@ -245,273 +245,184 @@ export default function ScheduleManagerModal({ isOpen, onClose, date, orders = [
 
                     {/* Content */}
                     <div className="p-6 overflow-y-auto space-y-4">
-                        {orders.length === 0 ? (
-                            <>
-                                {monthlyInbound && Number(monthlyInbound[date] || 0) > 0 ? (
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
-                                            <div className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                                                <span className="text-xl">ℹ️</span>
-                                                <span>
-                                                    <strong>{Number(monthlyInbound[date])} Trucks Planned</strong> via Auto-Replenishment.
-                                                    <br />Purchase Orders have not been imported yet.
-                                                </span>
-                                            </div>
-                                            <button
-                                                onClick={handleCopyPlan}
-                                                className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${copied
-                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600'
-                                                    }`}
-                                            >
-                                                {copied ? (
-                                                    <>
-                                                        <CheckCircleIcon className="w-4 h-4 mr-1.5" />
-                                                        Copied!
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <ClipboardDocumentCheckIcon className="w-4 h-4 mr-1.5" />
-                                                        Copy Plan
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-                                        {Array.from({ length: Math.round(Number(monthlyInbound[date])) }).map((_, i) => (
-                                            <div key={`planned-${i}`} className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 flex items-center justify-between opacity-75 grayscale">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg">
-                                                        <TruckIcon className="w-6 h-6 text-gray-400" />
+                        {/* Summary Header if trucks are expected */}
+                        {(orders.length > 0 || (monthlyInbound && Number(monthlyInbound[date] || 0) > 0)) && (
+                            <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md mb-2">
+                                <div className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                                    <span className="text-xl">ℹ️</span>
+                                    <span>
+                                        <strong>{Math.round(Number(monthlyInbound[date] || orders.length))} Trucks Planned</strong>
+                                        {orders.length === 0 ? " via Auto-Replenishment." : ` (${orders.length} SAP/Manual, ${Math.max(0, Math.round(Number(monthlyInbound[date] || 0)) - orders.length)} Suggested)`}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={handleCopyPlan}
+                                    className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${copied
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600'
+                                        }`}
+                                >
+                                    {copied ? <><CheckCircleIcon className="w-4 h-4 mr-1.5" />Copied!</> : <><ClipboardDocumentCheckIcon className="w-4 h-4 mr-1.5" />Copy Plan</>}
+                                </button>
+                            </div>
+                        )}
+
+                        {/* 1. ACTUAL SCHEDULED LOADS (Solid Boxes) */}
+                        {orders.length > 0 && (
+                            <div className="space-y-4">
+                                {sortedOrders.map((order, idx) => (
+                                    <div key={order.id || idx} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-sm p-4 relative group hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                                        {editingId === order.id ? (
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase">PO Number</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full p-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white mt-1"
+                                                            value={editForm.po || ''}
+                                                            onChange={e => setEditForm(prev => ({ ...prev, po: e.target.value }))}
+                                                        />
                                                     </div>
                                                     <div>
-                                                        <h3 className="text-lg font-bold text-gray-500 dark:text-gray-400 italic">
-                                                            Planned Load #{i + 1}
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Appointment</label>
+                                                        <input
+                                                            type="time"
+                                                            className="w-full p-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white mt-1"
+                                                            value={editForm.time || ''}
+                                                            onChange={e => setEditForm(prev => ({ ...prev, time: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                    <div className="col-span-2 md:col-span-1">
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Supplier</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full p-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white mt-1"
+                                                            value={editForm.supplier || ''}
+                                                            onChange={e => setEditForm(prev => ({ ...prev, supplier: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* MOVE ACTION */}
+                                                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg flex items-center gap-3">
+                                                    <div className="flex-1">
+                                                        <label className="text-xs font-bold text-blue-700 dark:text-blue-300">Move to Date</label>
+                                                        <input
+                                                            type="date"
+                                                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white mt-1"
+                                                            value={moveTargetDate}
+                                                            onChange={e => {
+                                                                setMoveTargetDate(e.target.value);
+                                                                if (!movingId) setMovingId(order.id);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        onClick={confirmMove}
+                                                        disabled={!moveTargetDate}
+                                                        className="mt-5 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm disabled:opacity-50 hover:bg-blue-500 flex items-center"
+                                                    >
+                                                        <ArrowRightCircleIcon className="w-5 h-5 mr-1" />
+                                                        Reschedule
+                                                    </button>
+                                                </div>
+
+                                                <div className="flex justify-between border-t dark:border-gray-700 pt-3">
+                                                    <button onClick={() => setEditingId(null)} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Cancel</button>
+                                                    <button onClick={saveEdit} className="flex items-center text-sm font-bold text-green-600 hover:text-green-700">
+                                                        <CheckCircleIcon className="w-5 h-5 mr-1" />Save Changes
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            // VIEW MODE
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                                                        <TruckIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                                                            <span className="font-mono">{(order.time && order.time !== '00:00') ? formatTime12h(order.time) : (getEstimatedTime(idx))}</span>
+                                                            <span className="mx-2 text-gray-300">|</span>
+                                                            PO #{order.po}
+                                                            {order.source === 'sap' && (
+                                                                <span className="ml-2 px-2 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100 text-[10px] rounded-full font-bold uppercase tracking-tighter">
+                                                                    SAP
+                                                                </span>
+                                                            )}
+                                                            <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-xs rounded-full font-bold">
+                                                                1 Truck
+                                                            </span>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const currentStatus = order.status || 'ordered';
+                                                                    if (currentStatus === 'received') {
+                                                                        if (confirm("Revert 'Received' status?")) updateOrder(date, { ...order, status: 'ordered' });
+                                                                    } else {
+                                                                        updateOrder(date, { ...order, status: currentStatus === 'confirmed' ? 'ordered' : 'confirmed' });
+                                                                    }
+                                                                }}
+                                                                className={`ml-2 px-2 py-0.5 text-xs rounded-full font-bold border transition-colors ${order.status === 'received' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : (order.status === 'confirmed' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200')}`}
+                                                            >
+                                                                {order.status === 'received' ? 'Received' : (order.status === 'confirmed' ? 'Confirmed' : (order.source === 'sap' ? 'Imported' : 'Ordered'))}
+                                                            </button>
                                                         </h3>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <div className="flex items-center text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">
-                                                                <ClockIcon className="w-3 h-3 mr-1" />
-                                                                Est. {getEstimatedTime(i)}
-                                                            </div>
-                                                            <span className="text-xs text-gray-400">Awaiting PO</span>
+                                                        <div className="flex flex-col gap-1 mt-1">
+                                                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                                                <span className="truncate max-w-[200px]">{order.supplier || order.vendor || 'Unknown Supplier'}</span>
+                                                                <span className="text-gray-300">|</span>
+                                                                <span className="text-gray-600 dark:text-gray-400 font-bold">{order.sku || activeSku}</span>
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-xs font-bold text-gray-500 rounded-full">
-                                                    AUTO-PLAN
+                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {order.status !== 'received' && (
+                                                        <button onClick={() => handleReceiveClick(order)} className="p-2 text-gray-400 hover:text-emerald-600" title="Mark as Received"><CheckCircleIcon className="w-5 h-5" /></button>
+                                                    )}
+                                                    <button onClick={() => { startEdit(order); startMove(order.id); }} className="p-2 text-gray-400 hover:text-blue-600" title="Edit"><PencilSquareIcon className="w-5 h-5" /></button>
+                                                    <button onClick={() => handleDeleteClick(order.id)} className="p-2 text-gray-400 hover:text-red-600" title="Cancel"><TrashIcon className="w-5 h-5" /></button>
                                                 </div>
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
-                                ) : (
-                                    <div className="text-center py-10 text-gray-400 italic bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                        No deliveries scheduled for this day.
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            sortedOrders.map((order, idx) => (
-                                <div key={order.id || idx} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-sm p-4 relative group hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-                                    {editingId === order.id ? (
-                                        // EDIT / MOVE MODE
-                                        <div className="space-y-4">
-                                            <div className="grid grid-cols-3 gap-4">
-                                                <div className="col-span-1">
-                                                    <label className="text-xs font-bold text-gray-500">PO Number</label>
-                                                    <input
-                                                        type="text"
-                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                        value={editForm.po || ''}
-                                                        onChange={e => setEditForm(prev => ({ ...prev, po: e.target.value }))}
-                                                    />
-                                                </div>
-                                                <div className="col-span-1">
-                                                    <label className="text-xs font-bold text-gray-500">Appointment Time</label>
-                                                    <input
-                                                        type="time"
-                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                        value={editForm.time || ''}
-                                                        onChange={e => setEditForm(prev => ({ ...prev, time: e.target.value }))}
-                                                    />
-                                                </div>
-                                                <div className="col-span-1">
-                                                    <label className="text-xs font-bold text-gray-500">Appointment Time</label>
-                                                    <input
-                                                        type="time"
-                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                        value={editForm.time || ''}
-                                                        onChange={e => setEditForm(prev => ({ ...prev, time: e.target.value }))}
-                                                    />
-                                                </div>
-                                                <div className="col-span-1">
-                                                    <label className="text-xs font-bold text-gray-500">Supplier</label>
-                                                    <input
-                                                        type="text"
-                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                        value={editForm.supplier || ''}
-                                                        onChange={e => setEditForm(prev => ({ ...prev, supplier: e.target.value }))}
-                                                    />
-                                                </div>
-                                                <div className="col-span-1">
-                                                    <label className="text-xs font-bold text-gray-500">Quantity</label>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="number"
-                                                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                            value={editForm.qty || 0}
-                                                            onChange={e => setEditForm(prev => ({ ...prev, qty: e.target.value }))}
-                                                        />
-                                                        <span className="text-xs text-gray-400 whitespace-nowrap">
-                                                            = {getTruckCount(editForm.qty || 0)} Trucks
-                                                        </span>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* 2. SUGGESTED LOADS (Dashed Boxes) */}
+                        {monthlyInbound && Math.round(Number(monthlyInbound[date] || 0)) > orders.length && (
+                            <div className="space-y-4 pt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
+                                {Array.from({ length: Math.round(Number(monthlyInbound[date])) - orders.length }).map((_, i) => (
+                                    <div key={`suggested-${i}`} className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 flex items-center justify-between opacity-75 grayscale hover:grayscale-0 hover:border-blue-300 transition-all cursor-help" title="Suggested by Auto-Replenishment">
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg">
+                                                <TruckIcon className="w-6 h-6 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-500 dark:text-gray-400 italic">Suggested Load #{orders.length + i + 1}</h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <div className="flex items-center text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+                                                        <ClockIcon className="w-3 h-3 mr-1" />
+                                                        Est. {getEstimatedTime(orders.length + i)}
                                                     </div>
+                                                    <span className="text-xs text-gray-400">Awaiting PO</span>
                                                 </div>
-                                            </div>
-
-                                            {/* MOVE ACTION */}
-                                            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg flex items-center gap-3">
-                                                <div className="flex-1">
-                                                    <label className="text-xs font-bold text-blue-700 dark:text-blue-300">Move to Date</label>
-                                                    <input
-                                                        type="date"
-                                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white mt-1"
-                                                        value={moveTargetDate}
-                                                        onChange={e => {
-                                                            setMoveTargetDate(e.target.value);
-                                                            if (!movingId) setMovingId(order.id);
-                                                        }}
-                                                    />
-                                                </div>
-                                                <button
-                                                    onClick={confirmMove}
-                                                    disabled={!moveTargetDate}
-                                                    className="mt-5 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm disabled:opacity-50 hover:bg-blue-500 flex items-center"
-                                                >
-                                                    <ArrowRightCircleIcon className="w-5 h-5 mr-1" />
-                                                    Reschedule
-                                                </button>
-                                            </div>
-
-                                            <div className="flex justify-between border-t dark:border-gray-700 pt-3">
-                                                <button
-                                                    onClick={() => setEditingId(null)}
-                                                    className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    onClick={saveEdit}
-                                                    className="flex items-center text-sm font-bold text-green-600 hover:text-green-700"
-                                                >
-                                                    <CheckCircleIcon className="w-5 h-5 mr-1" />
-                                                    Save Changes
-                                                </button>
                                             </div>
                                         </div>
-                                    ) : (
-                                        // VIEW MODE
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-start gap-4">
-                                                <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
-                                                    <TruckIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
-                                                        <span className="font-mono">{(order.time && order.time !== '00:00') ? formatTime12h(order.time) : 'TBD'}</span>
-                                                        <span className="mx-2 text-gray-300">|</span>
-                                                        PO #{order.po}
-                                                        {order.loadId && (
-                                                            <span className="ml-2 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-full font-bold">
-                                                                Load ID: {order.loadId}
-                                                            </span>
-                                                        )}
-                                                        <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-xs rounded-full font-bold">
-                                                            1 Truck
-                                                        </span>
-                                                        {/* STATUS TOGGLE */}
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                // Cycle logic: Ordered -> Confirmed -> Ordered (Received is separate special state, but clicking it can revert)
-                                                                const currentStatus = order.status || 'ordered';
-                                                                if (currentStatus === 'received') {
-                                                                    if (confirm("Revert 'Received' status back to 'Ordered'?")) {
-                                                                        updateOrder(date, { ...order, status: 'ordered' });
-                                                                    }
-                                                                } else {
-                                                                    const newStatus = currentStatus === 'confirmed' ? 'ordered' : 'confirmed';
-                                                                    updateOrder(date, { ...order, status: newStatus });
-                                                                }
-                                                            }}
-                                                            className={`ml-2 px-2 py-0.5 text-xs rounded-full font-bold border transition-colors ${order.status === 'received'
-                                                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
-                                                                : order.status === 'confirmed'
-                                                                    ? 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
-                                                                    : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
-                                                                }`}
-                                                            title="Toggle Status"
-                                                        >
-                                                            {order.status === 'received' ? 'Received' : (order.status === 'confirmed' ? 'Confirmed' : 'Ordered')}
-                                                        </button>
-                                                    </h3>
-                                                    <div className="flex flex-col gap-1 mt-1">
-                                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                                            <span>{order.supplier || order.vendor || 'Unknown Supplier'}</span>
-                                                            <span className="text-gray-300">|</span>
-                                                            <span className="text-gray-600 dark:text-gray-400 font-bold">
-                                                                {order.sku || activeSku}
-                                                            </span>
-                                                            <span className="text-gray-400 font-normal">
-                                                                - {bottleDefinitions[order.sku || activeSku]?.description || 'No Description'}
-                                                            </span>
-                                                        </p>
-                                                        {Number(order.qty) > 0 && (
-                                                            <span className="text-xs text-gray-400">
-                                                                ({Number(String(order.qty).replace(/,/g, '')).toLocaleString()} units)
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-xs font-bold text-gray-500 rounded-full uppercase tracking-widest text-[9px]">Auto-Plan</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
-                                            {/* Action Buttons */}
-                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {order.status !== 'received' && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleReceiveClick(order);
-                                                        }}
-                                                        className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg dark:hover:bg-emerald-900/30"
-                                                        title="Mark as Received"
-                                                    >
-                                                        <CheckCircleIcon className="w-5 h-5" />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => {
-                                                        startEdit(order);
-                                                        startMove(order.id); // Initialize move state too just in case
-                                                    }}
-                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg dark:hover:bg-blue-900/30"
-                                                    title="Edit or Reschedule"
-                                                >
-                                                    <PencilSquareIcon className="w-5 h-5" />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteClick(order.id);
-                                                    }}
-                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg dark:hover:bg-red-900/30"
-                                                    title="Cancel Delivery"
-                                                >
-                                                    <TrashIcon className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))
+                        {orders.length === 0 && (!monthlyInbound || Number(monthlyInbound[date] || 0) <= 0) && (
+                            <div className="text-center py-10 text-gray-400 italic bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                No deliveries scheduled or suggested for this day.
+                            </div>
                         )}
 
                         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg flex gap-3 text-xs text-yellow-800 dark:text-yellow-200">

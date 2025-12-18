@@ -70,6 +70,12 @@ export function parseSAP(csvText: string): SAPParseResult {
 
         parsed.data.forEach((row: any, index: number) => {
             try {
+                // Skip summary/footer rows (often contain '*' or '***' in column values)
+                const isSummaryRow = Object.values(row).some(val =>
+                    typeof val === 'string' && (val.includes('***') || val.trim() === '*')
+                );
+                if (isSummaryRow) return;
+
                 // DEBUG: Log first row to see structure
                 if (index === 0) {
                     console.log('[SAP Parser DEBUG] First row keys:', Object.keys(row));

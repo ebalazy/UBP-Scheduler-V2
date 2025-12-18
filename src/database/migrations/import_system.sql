@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS inbound_receipts (
   status text,
   
   -- Metadata
-  imported_at timestamp DEFAULT now(),
+  imported_at timestamptz DEFAULT now(),
   import_source text DEFAULT 'yms',
-  created_at timestamp DEFAULT now(),
+  created_at timestamptz DEFAULT now(),
   
   -- Prevent duplicates
   UNIQUE(date, po_number)
@@ -41,9 +41,9 @@ CREATE TABLE IF NOT EXISTS production_actuals (
   shift text,
   
   -- Metadata
-  imported_at timestamp DEFAULT now(),
+  imported_at timestamptz DEFAULT now(),
   import_source text DEFAULT 'mes',
-  created_at timestamp DEFAULT now(),
+  created_at timestamptz DEFAULT now(),
   
   -- Prevent duplicates (one entry per product per day per shift)
   UNIQUE(date, product_id, shift)
@@ -82,11 +82,37 @@ BEGIN
   END IF;
 END $$;
 
+-- Table: planned_inbound
+-- Tracks planned deliveries from SAP
+CREATE TABLE IF NOT EXISTS planned_inbound (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  date date NOT NULL,
+  po_number text,
+  product_id uuid REFERENCES products(id),
+  
+  -- Quantities
+  scheduled_qty numeric DEFAULT 0,
+  open_qty numeric DEFAULT 0,
+  received_qty numeric DEFAULT 0,
+  
+  -- Details
+  vendor_name text,
+  plant text,
+  
+  -- Metadata
+  imported_at timestamptz DEFAULT now(),
+  import_source text DEFAULT 'sap',
+  created_at timestamptz DEFAULT now(),
+  
+  -- Prevent duplicates
+  UNIQUE(date, po_number, product_id)
+);
+
 -- Table: import_log
 -- Audit trail for all imports
 CREATE TABLE IF NOT EXISTS import_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  import_type text NOT NULL CHECK (import_type IN ('yms', 'mes')),
+  import_type text NOT NULL CHECK (import_type IN ('yms', 'mes', 'sap')),
   file_name text,
   
   -- Results
@@ -97,7 +123,7 @@ CREATE TABLE IF NOT EXISTS import_log (
   
   -- User tracking
   imported_by uuid REFERENCES auth.users(id),
-  imported_at timestamp DEFAULT now(),
+  imported_at timestamptz DEFAULT now(),
   
   -- Error details
   error_details jsonb
@@ -108,6 +134,8 @@ CREATE INDEX IF NOT EXISTS idx_inbound_receipts_date ON inbound_receipts(date);
 CREATE INDEX IF NOT EXISTS idx_inbound_receipts_product ON inbound_receipts(product_id);
 CREATE INDEX IF NOT EXISTS idx_production_actuals_date ON production_actuals(date);
 CREATE INDEX IF NOT EXISTS idx_production_actuals_product ON production_actuals(product_id);
+CREATE INDEX IF NOT EXISTS idx_planned_inbound_date ON planned_inbound(date);
+CREATE INDEX IF NOT EXISTS idx_planned_inbound_product ON planned_inbound(product_id);
 CREATE INDEX IF NOT EXISTS idx_import_log_date ON import_log(imported_at);
 
 -- Row Level Security (RLS) Policies
@@ -123,4 +151,8 @@ CREATE INDEX IF NOT EXISTS idx_import_log_date ON import_log(imported_at);
 
 -- ALTER TABLE import_log ENABLE ROW LEVEL SECURITY;
 -- CREATE POLICY "Users can view their org's imports" ON import_log
+--   FOR SELECT USING (auth.uid() IS NOT NULL);
+
+-- ALTER TABLE planned_inbound ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Users can view their org's planned inbound" ON planned_inbound
 --   FOR SELECT USING (auth.uid() IS NOT NULL);
