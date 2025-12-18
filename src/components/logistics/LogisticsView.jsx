@@ -6,7 +6,8 @@ import {
     TruckIcon,
     ClipboardDocumentCheckIcon,
     CubeIcon,
-    CalendarDaysIcon
+    CalendarDaysIcon,
+    ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
 import MorningReconciliationModal from '../mrp/MorningReconciliationModal';
 import DockManifestParams from './DockManifestParams';
@@ -179,21 +180,61 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
 
             {/* Inventory Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Floor Inventory */}
-                <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-sm">Floor Inventory</p>
-                        <div className="flex items-baseline mt-2">
-                            <span className="text-6xl font-black text-slate-800 dark:text-white">
-                                {fmt(Math.round(results.calculatedPallets))}
+                {/* Floor Inventory (With Health Status) */}
+                {(() => {
+                    // Logic mirrored from MRPView for consistency
+                    const daysOfSupply = results.daysOfSupply !== undefined ? results.daysOfSupply : 0;
+                    const criticalThreshold = 2; // Hardcoded default or fetch from specs if avail
+                    const isCritical = daysOfSupply <= criticalThreshold;
+                    const isWarning = daysOfSupply <= criticalThreshold + 2;
+
+                    let bgClass = "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700";
+                    let iconClass = "bg-blue-50 text-blue-600";
+                    let statusBadge = null;
+
+                    if (isCritical) {
+                        bgClass = "bg-red-50 border-red-200 animate-pulse-slow";
+                        iconClass = "bg-red-100 text-red-600";
+                        statusBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200 mt-2">
+                                <ExclamationCircleIcon className="w-4 h-4 mr-1" />
+                                CRITICAL: {daysOfSupply.toFixed(1)} Days
                             </span>
-                            <span className="ml-2 text-xl font-medium text-gray-400">Pallets</span>
+                        );
+                    } else if (isWarning) {
+                        bgClass = "bg-amber-50 border-amber-200";
+                        iconClass = "bg-amber-100 text-amber-600";
+                        statusBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 mt-2">
+                                Warning: {daysOfSupply.toFixed(1)} Days
+                            </span>
+                        );
+                    } else {
+                        statusBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 mt-2">
+                                Healthy: {daysOfSupply.toFixed(1)} Days
+                            </span>
+                        );
+                    }
+
+                    return (
+                        <div className={`p-8 rounded-2xl border-2 shadow-sm flex items-center justify-between transition-colors duration-500 ${bgClass}`}>
+                            <div>
+                                <p className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-sm">Floor Inventory</p>
+                                <div className="flex items-baseline mt-2">
+                                    <span className="text-6xl font-black text-slate-800 dark:text-white">
+                                        {fmt(Math.round(results.calculatedPallets))}
+                                    </span>
+                                    <span className="ml-2 text-xl font-medium text-gray-400">Pallets</span>
+                                </div>
+                                {statusBadge}
+                            </div>
+                            <div className={`h-16 w-16 rounded-full flex items-center justify-center ${iconClass}`}>
+                                <CubeIcon className="w-8 h-8" />
+                            </div>
                         </div>
-                    </div>
-                    <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center">
-                        <CubeIcon className="w-8 h-8 text-blue-600" />
-                    </div>
-                </div>
+                    );
+                })()}
 
                 {/* Yard Inventory */}
                 <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">

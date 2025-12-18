@@ -261,7 +261,9 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                     </div>
                     <div className="flex items-end space-x-2">
                         <div className="text-3xl font-mono font-bold text-gray-800 dark:text-white leading-none">
-                            {daysOfSupply >= 30 ? '30+' : daysOfSupply.toFixed(1)}
+                            {daysOfSupply >= 30
+                                ? (weeklyDemandBottles === 0 ? 'N/A' : '30+')
+                                : daysOfSupply.toFixed(1)}
                         </div>
                         <div className="text-xs font-medium text-gray-400 mb-0.5">Days</div>
                     </div>
@@ -283,7 +285,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                             <h3 className={`text-[10px] font-bold uppercase tracking-wider ${displayTrucks > 0 ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
                                 Replenishment
                             </h3>
-                            <InformationCircleIcon className={`w-3.5 h-3.5 cursor-help ${displayTrucks > 0 ? 'text-blue-200' : 'text-gray-400'}`} title="Orders required TODAY to restore Safety Stock." />
+                            <InformationCircleIcon className={`w-3.5 h-3.5 cursor-help ${displayTrucks > 0 ? 'text-blue-200' : 'text-gray-400'}`} title="True MRP Replenishment: Orders needed to reach safety stock target. Includes safety buffer (Gap shows simple scheduled vs demand difference)." />
                         </div>
                         {displayTrucks > 0 && <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>}
                         {results.trucksToCancel > 0 && !displayTrucks && <span className="text-lg">📉</span>}
@@ -294,9 +296,16 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                             <div className="flex items-baseline space-x-2">
                                 <span className="text-3xl font-black leading-none">{displayTrucks}</span>
                                 <span className="text-xs font-bold opacity-90">Trucks Needed</span>
+                                {daysOfSupply < 3 && (
+                                    <span className="ml-2 px-2 py-0.5 text-[10px] font-black bg-red-500/20 text-red-100 border border-red-400 rounded-full animate-pulse">
+                                        EXPEDITE!
+                                    </span>
+                                )}
                             </div>
                             <p className="text-[10px] opacity-80 mt-1 font-medium leading-tight">
-                                {state.isAutoReplenish ? 'Planned orders due today.' : 'Deficit based on target.'}
+                                {daysOfSupply < 3
+                                    ? `Critical: Only ${daysOfSupply.toFixed(1)} days left!`
+                                    : (state.isAutoReplenish ? 'Planned orders due today.' : 'Deficit based on target.')}
                             </p>
                         </div>
                     ) : results.trucksToCancel > 0 ? (

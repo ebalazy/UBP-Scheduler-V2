@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import SettingsModal from './components/SettingsModal';
-import ubpLogo from './assets/ubp_logo_v4.png';
+import ubpLogo from './assets/ubp_logo_v2.png';
 
 import MRPView from './components/mrp/MRPView';
 import SchedulerView from './components/scheduler/SchedulerView';
@@ -18,6 +18,7 @@ import ProductsView from './components/products/ProductsView';
 import CSVImport from './components/data/CSVImport';
 import { Boxes, CalendarClock, Crown, Gauge, Truck, Package } from 'lucide-react';
 import PulseHUD from './components/dashboard/PulseHUD';
+import MobileBottomNav from './components/MobileBottomNav';
 
 import { ProcurementProvider, useProcurement } from './context/ProcurementContext';
 
@@ -106,12 +107,14 @@ function AuthenticatedApp({ user }) {
 
       <main className="flex-grow p-2 md:p-6 w-full pt-4">
 
-        {/* PULSE DASHBOARD (HUD) */}
-        <PulseHUD
-          mrp={mrp}
-          scheduler={scheduler}
-          activeSku={activeSku}
-        />
+        {/* PULSE DASHBOARD (HUD) - Contextual */}
+        {['logistics', 'mrp', 'scheduler'].includes(activeTab) && (
+          <PulseHUD
+            mrp={mrp}
+            scheduler={scheduler}
+            activeSku={activeSku}
+          />
+        )}
 
         {/* View Content */}
         <div className={activeTab === 'logistics' ? 'block' : 'hidden'}>
@@ -160,6 +163,13 @@ function AuthenticatedApp({ user }) {
       {isSettingsOpen && (
         <SettingsModal onClose={() => setIsSettingsOpen(false)} />
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        userRole={userRole}
+      />
     </div>
   );
 }

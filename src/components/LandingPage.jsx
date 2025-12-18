@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ShieldCheckIcon, ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
-import ubpLogo from '../assets/ubp_logo_v4.png';
+import ubpLogo from '../assets/ubp_logo_v2.png';
 
 export default function LandingPage() {
     const { signIn, resendVerificationEmail } = useAuth();
@@ -50,14 +50,19 @@ export default function LandingPage() {
             {/* Subtle Grid Pattern */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 z-0 pointer-events-none"></div>
 
-            <main className="relative z-10 w-full max-w-sm px-4">
+            {/* Dynamic Blobs */}
+            <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+            <div className="absolute top-0 -right-4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-8 left-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+
+            <main className="relative z-10 w-full max-w-sm px-4 animate-slide-up">
 
                 {/* Login Card */}
                 <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-3xl p-8 shadow-2xl">
 
                     {/* Header Section */}
                     <div className="flex flex-col items-center mb-8">
-                        <div className="h-20 w-20 bg-white rounded-full p-0.5 shadow-xl shadow-blue-900/20 mb-4 overflow-hidden ring-2 ring-slate-800">
+                        <div className="h-24 w-24 bg-white rounded-full p-1 shadow-2xl shadow-blue-500/20 mb-6 overflow-hidden ring-4 ring-slate-800 transition-transform duration-700 hover:scale-110 hover:shadow-blue-500/40">
                             <img src={ubpLogo} alt="UBP" className="h-full w-full object-contain" />
                         </div>
                         <h1 className="text-xl font-bold text-white tracking-tight">MRP Portal</h1>

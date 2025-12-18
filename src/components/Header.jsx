@@ -3,7 +3,7 @@ import { Cog6ToothIcon, ArrowRightOnRectangleIcon, PrinterIcon, CloudIcon } from
 import { Truck, Boxes, CalendarClock, Crown, Package, Upload } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './auth/AuthModal';
-import ubpLogo from '../assets/ubp_logo_v4.png';
+import ubpLogo from '../assets/ubp_logo_v2.png';
 
 export default function Header({ onOpenSettings, isSaving, saveError, activeTab, setActiveTab }) {
     const { user, userRole, signOut } = useAuth();
@@ -80,7 +80,7 @@ export default function Header({ onOpenSettings, isSaving, saveError, activeTab,
                                 UBP <span className="text-slate-400 font-medium">Scheduler</span>
                             </h1>
                             <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-500 uppercase tracking-widest mt-0.5">
-                                Enterprise Edition
+                                Co-Packer Edition
                             </span>
                         </div>
                     </div>
