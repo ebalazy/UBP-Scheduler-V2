@@ -212,28 +212,40 @@ export async function importSAPPlannedShipments(
 
     try {
         // Get product mapping - NOW includes material_code
-        const { data: products } = await supabase
+        const { data: products, error: productError } = await supabase
             .from('products')
             .select('id, sku, name, material_code');
 
+        if (productError) {
+            console.error('[SAP Import] Error fetching products:', productError);
+        }
+
+        console.log('[SAP Import] Found products for mapping:', products?.length || 0);
+        if (products && products.length > 0) {
+            console.log('[SAP Import] Sample product codes:', products.slice(0, 3).map(p => p.material_code));
+        }
+
         // Create TWO maps: one by SKU, one by material_code
         const productMapBySKU = new Map(
-            products?.map(p => [p.sku?.toLowerCase(), p.id]) || []
+            products?.map(p => [p.sku?.toLowerCase().trim(), p.id]) || []
         );
 
         const productMapByMaterialCode = new Map(
-            products?.filter(p => p.material_code).map(p => [p.material_code, p.id]) || []
+            products?.filter(p => p.material_code).map(p => [p.material_code.trim(), p.id]) || []
         );
 
         // Transform SAP shipments to database format
         const dbShipments = shipments.map(shipment => {
+            const materialCode = shipment.material?.trim();
+            const materialDesc = shipment.materialDescription?.trim();
+
             // FIRST: Try direct material code lookup (most reliable)
-            let product_id = productMapByMaterialCode.get(shipment.material);
+            let product_id = materialCode ? productMapByMaterialCode.get(materialCode) : undefined;
 
             // FALLBACK 1: Try SKU from description (e.g., "BTL 20OZ" → "20oz")
-            if (!product_id) {
-                const sku = mapMaterialToSKU(shipment.material, shipment.materialDescription);
-                product_id = productMapBySKU.get(sku.toLowerCase());
+            if (!product_id && materialDesc) {
+                const sku = mapMaterialToSKU(materialCode || '', materialDesc);
+                product_id = productMapBySKU.get(sku.toLowerCase().trim());
             }
 
             // FALLBACK 2: Partial SKU match
