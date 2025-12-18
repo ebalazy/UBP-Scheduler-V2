@@ -128,19 +128,22 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
         const scrapFactor = 1 + ((specs.scrapPercentage || 0) / 100);
         const localSafetyTarget = (safetyStockLoads || 0) * specs.bottlesPerTruck;
         let runningBalance = calculations.initialInventory || 0;
-        const startOffset = leadTimeDays || 2;
+        const startOffset = (specs.leadTimeDays !== undefined && specs.leadTimeDays !== null)
+            ? specs.leadTimeDays
+            : (leadTimeDays || 2);
         const next60Days: Record<string, number> = {};
 
         const todayStr = getLocalISOString();
 
-        // 1. Simulator: Walk through locked period
+        // 1. Simulator: Walk through frozen period
         for (let i = 0; i < startOffset; i++) {
             const ds = addDays(todayStr, i);
             const act = actualMap[ds];
             const plan = demandMap[ds];
 
-            const isFuture = ds > todayStr;
-            const useActual = (act !== undefined && act !== null) && (!isFuture || Number(act) !== 0);
+            // Only use actuals for PAST dates, not today or future
+            const isPast = ds < todayStr;
+            const useActual = isPast && (act !== undefined && act !== null && Number(act) !== 0);
             const caseCount = useActual ? Number(act) : Number(plan || 0);
 
             const dDem = caseCount * (specs.bottlesPerCase || 1) * scrapFactor;
@@ -149,6 +152,8 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
         }
 
         // 2. Planner: Walk from LeadTime onwards
+        let trucksAdded = 0;
+
         for (let i = startOffset; i < 60; i++) {
             const ds = addDays(todayStr, i);
             const act = actualMap[ds];
@@ -167,6 +172,7 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
                 const needed = Math.ceil((localSafetyTarget - bal) / specs.bottlesPerTruck);
                 dTrucks = needed;
                 bal += needed * specs.bottlesPerTruck;
+                trucksAdded += needed;
             }
 
             if (dTrucks > 0) next60Days[ds] = dTrucks;
@@ -184,16 +190,11 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
 
         if (!hasChanges) return;
 
-        // 4. Construct New Map
+        // 4. Apply Changes
         const newInbound = { ...inboundMap, ...next60Days };
-
         Object.keys(newInbound).forEach(k => {
             if (newInbound[k] === 0) delete newInbound[k];
         });
-
-        // Final Safety Check
-        const sortObj = (o: any) => Object.keys(o).sort().reduce((acc: any, k) => ({ ...acc, [k]: o[k] }), {});
-        if (JSON.stringify(sortObj(newInbound)) === JSON.stringify(sortObj(inboundMap))) return;
 
         setMonthlyInbound(newInbound);
         saveLocalState('monthlyInbound', newInbound, selectedSize, true);
@@ -385,6 +386,14 @@ export function useMRPActions(state: MRPStateActionsInput, calculationsResult: C
             setInventoryAnchor(v);
             saveLocalState('inventoryAnchor', v, selectedSize, true);
             if (user) saveWithStatus(() => saveInventorySnapshot(user.id, selectedSize, v.date, v.count, 'floor')); // Using saveInventorySnapshot (mapped from saveInventoryAnchor logic)
+        },
+        setMonthlyInbound: (v: Record<string, number>) => {
+            setMonthlyInbound(v);
+            saveLocalState('monthlyInbound', v, selectedSize, true);
+            // Note: For bulk updates (like Auto-Balance), we might want to trigger a cloud save here too.
+            // Currently runAutoReplenishment does its own saving logic.
+            // If manual "Auto-Balance" uses this, it relies on local state first.
+            // We can duplicate the save logic if needed, but for now exposing the setter unblocks the UI.
         }
     }), [
         setSelectedSize, updateDateDemand, updateDateDemandBulk, updateDateActual, updateDateInbound,

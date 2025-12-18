@@ -9,6 +9,7 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
     const [formData, setFormData] = useState({
         name: '',
         description: '',
+        material_code: '',
         bottles_per_case: 12,
         bottles_per_truck: 20000,
         cases_per_pallet: 100,
@@ -25,6 +26,7 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                 setFormData({
                     name: product.name,
                     description: product.description || '',
+                    material_code: product.material_code || '',
                     color_tag: product.color_tag || '#3B82F6',
                     bottles_per_case: product.bottles_per_case || 24,
                     cases_per_pallet: product.cases_per_pallet || 100, // FG Pallet
@@ -39,6 +41,7 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                 setFormData({
                     name: '',
                     description: '',
+                    material_code: '',
                     color_tag: '#3B82F6', // Default Blue
                     bottles_per_case: 24,
                     cases_per_pallet: 100,
@@ -84,7 +87,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
             const productPayload = {
                 name: formData.name,
                 description: formData.description,
-                color_tag: formData.color_tag,
+                material_code: formData.material_code || null,
+                // color_tag: formData.color_tag, // Column missing in DB, temporarily disabling
                 bottles_per_case: Number(formData.bottles_per_case),
                 bottles_per_truck: Number(formData.bottles_per_truck),
                 cases_per_pallet: Number(formData.cases_per_pallet),
@@ -186,6 +190,21 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                                         placeholder="e.g. Standard 24pk Tray"
                                     />
                                 </div>
+                                <div className="col-span-2">
+                                    <label className="block text-[10px] font-medium text-gray-500 uppercase mb-1">
+                                        SAP Material Code <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.material_code}
+                                        onChange={e => setFormData({ ...formData, material_code: e.target.value })}
+                                        disabled={readOnly}
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono disabled:opacity-50"
+                                        placeholder="e.g. 1855526"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1">Required for SAP import mapping</p>
+                                </div>
                             </div>
                         </div>
 
@@ -275,7 +294,7 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                                         type="number"
                                         required
                                         min="1"
-                                        step="100"
+                                        step="1"
                                         value={formData.bottles_per_truck}
                                         onChange={e => setFormData({ ...formData, bottles_per_truck: e.target.value })}
                                         disabled={readOnly}

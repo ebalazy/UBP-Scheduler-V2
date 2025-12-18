@@ -122,7 +122,17 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
     const handleAutoBalance = () => {
         if (!confirm(`Auto-Balance will populate Planned Loads to ensure safety stock is met.\n\nSettings:\n - Lead Time: ${effectiveLeadTime} days\n - Safety Stock: ${effectiveSafetyStockLoads} loads\n\nProceed?`)) return;
 
-        const { newInbound, updatesCount } = solve(
+        console.log('[Auto-Balance] Starting with inputs:', {
+            results,
+            effectiveSafetyStockLoads,
+            bottleDefinitions,
+            selectedSize: state.selectedSize,
+            schedulerSettings,
+            state,
+            effectiveLeadTime
+        });
+
+        const solverResult = solve(
             results,
             effectiveSafetyStockLoads, // Priority: Product > Global
             bottleDefinitions,
@@ -130,10 +140,24 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
             schedulerSettings,
             state,
             effectiveLeadTime
-        ) || {};
+        );
+
+        console.log('[Auto-Balance] Solver returned:', solverResult);
+
+        if (!solverResult) {
+            console.error('[Auto-Balance] Solver returned null!');
+            alert("Auto-Balance failed: Solver returned no results. Check console for details.");
+            return;
+        }
+
+        const { newInbound, updatesCount } = solverResult;
+
+        console.log('[Auto-Balance] Updates:', { updatesCount, newInbound });
 
         if (updatesCount > 0) {
+            console.log('[Auto-Balance] Calling setMonthlyInbound with:', newInbound);
             setters.setMonthlyInbound(newInbound);
+            console.log('[Auto-Balance] Success - grid should update now');
             // alert(`Auto-Balanced: Added trucks to ${updatesCount} days.`);
         } else {
             alert("Schedule is already balanced! No changes needed.");

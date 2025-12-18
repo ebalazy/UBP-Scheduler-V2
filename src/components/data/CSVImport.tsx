@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { parseYMS, isYMSFormat } from '../../utils/parsers/ymsParser';
 import { parseMES, isMESFormat } from '../../utils/parsers/mesParser';
-import { importInboundReceipts, importProductionActuals } from '../../services/supabase/imports';
+import { parseSAP, isSAPFormat } from '../../utils/parsers/sapParser';
+import { importInboundReceipts, importProductionActuals, importSAPPlannedShipments } from '../../services/supabase/imports';
 import Papa from 'papaparse';
 
-type ImportType = 'yms' | 'mes' | 'unknown';
+type ImportType = 'yms' | 'mes' | 'sap' | 'unknown';
 
 interface PreviewData {
     type: ImportType;
@@ -18,6 +19,7 @@ interface PreviewData {
 export default function CSVImport() {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<PreviewData | null>(null);
+    const [cleanedText, setCleanedText] = useState<string>('');
     const [importing, setImporting] = useState(false);
     const [imported, setImported] = useState(false);
     const [dragActive, setDragActive] = useState(false);
@@ -64,12 +66,50 @@ export default function CSVImport() {
         // Read file content
         const text = await file.text();
 
+        // Remove separator lines (lines with only dashes and pipes)
+        const cleaned = text
+            .split('\n')
+            .filter(line => {
+                const trimmed = line.trim();
+                // Skip lines that are only dashes, pipes, and spaces
+                if (/^[\-\|\s]+$/.test(trimmed)) return false;
+                // Skip summary/footer rows (start with * or | followed by optional spaces then *)
+                if (trimmed.startsWith('*') || /^\|\s*\*/.test(trimmed)) return false;
+                return true;
+            })
+            .map(line => {
+                // Strip leading and trailing pipes independently (SAP format uses | field | field |)
+                let cleaned = line.trim();
+                // Also strip quotes that Papa.parse might add
+                if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+                    cleaned = cleaned.slice(1, -1);
+                }
+                if (cleaned.startsWith('|')) cleaned = cleaned.slice(1);
+                if (cleaned.endsWith('|')) cleaned = cleaned.slice(0, -1);
+                return cleaned.trim(); // Trim again after stripping
+            })
+            .join('\n');
+
+        // Store for use in import
+        setCleanedText(cleaned);
+
+        // Auto-detect delimiter (pipe or comma)
+        const delimiter = cleaned.includes('|') ? '|' : ',';
+
         // Parse headers to detect type
-        Papa.parse(text, {
+        Papa.parse(cleaned, {
             header: true,
             preview: 1,
+            delimiter: delimiter,
             complete: (results) => {
                 const headers = results.meta.fields || [];
+
+                // DIAGNOSTIC: Log what we're seeing
+                console.log('[CSV Import DEBUG] Delimiter:', delimiter);
+                console.log('[CSV Import DEBUG] Headers detected:', headers);
+                console.log('[CSV Import DEBUG] isSAPFormat result:', isSAPFormat(headers));
+                console.log('[CSV Import DEBUG] isYMSFormat result:', isYMSFormat(headers));
+                console.log('[CSV Import DEBUG] isMESFormat result:', isMESFormat(headers));
 
                 // Detect file type
                 if (isYMSFormat(headers)) {
@@ -89,11 +129,19 @@ export default function CSVImport() {
                         errors: parsed.errors,
                         totalRows: parsed.totalRows,
                     });
+                } else if (isSAPFormat(headers)) {
+                    const parsed = parseSAP(cleaned);
+                    setPreview({
+                        type: 'sap',
+                        rows: parsed.data.slice(0, 5), // Preview first 5
+                        errors: parsed.errors,
+                        totalRows: parsed.totalRows,
+                    });
                 } else {
                     setPreview({
                         type: 'unknown',
                         rows: [],
-                        errors: ['File format not recognized. Expected YMS or MES export.'],
+                        errors: ['File format not recognized. Expected YMS, MES, or SAP export.'],
                         totalRows: 0,
                     });
                 }
@@ -138,6 +186,26 @@ export default function CSVImport() {
                 }
 
                 const result = await importProductionActuals(parsed.data);
+
+                setPreview(prev => prev ? {
+                    ...prev,
+                    importedCount: result.imported,
+                    skippedCount: result.skipped,
+                } : null);
+
+                setImported(true);
+
+                if (result.errors.length > 0) {
+                    alert(`Import completed with errors:\n${result.errors.join('\n')}`);
+                }
+            } else if (preview.type === 'sap') {
+                const parsed = parseSAP(cleanedText);
+                if (!parsed.success) {
+                    alert('Failed to parse SAP file: ' + parsed.errors.join(', '));
+                    return;
+                }
+
+                const result = await importSAPPlannedShipments(parsed.data);
 
                 setPreview(prev => prev ? {
                     ...prev,
@@ -195,7 +263,7 @@ export default function CSVImport() {
                             Browse Files
                         </label>
                         <p className="text-sm text-gray-500 mt-4">
-                            Supported: YMS Hub exports, MES production exports
+                            Supported: YMS Hub exports, MES production exports, SAP planned inbound shipments
                         </p>
                     </div>
                 )}
@@ -207,6 +275,7 @@ export default function CSVImport() {
                             }`}>
                             {preview.type === 'yms' && `✓ Detected: YMS Export (${preview.totalRows} rows)`}
                             {preview.type === 'mes' && `✓ Detected: MES Export (${preview.totalRows} rows)`}
+                            {preview.type === 'sap' && `✓ Detected: SAP Export (${preview.totalRows} rows)`}
                             {preview.type === 'unknown' && '✗ Format not recognized'}
                         </div>
 

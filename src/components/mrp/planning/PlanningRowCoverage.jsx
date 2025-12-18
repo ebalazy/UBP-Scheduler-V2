@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { formatLocalDate } from '../../../utils/dateUtils';
+import { formatLocalDate, addDays } from '../../../utils/dateUtils';
 
 const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, monthlyInbound, poManifest, specs, todayStr, leadTimeDays = 2 }) => {
     // Helper to get daily inbound trucks
@@ -24,10 +24,8 @@ const PlanningRowCoverage = memo(({ dates, ledgerMap, monthlyDemand, monthlyInbo
                 const isToday = dateStr === todayStr;
 
                 // FIXED: Use PREVIOUS day's ending balance as THIS day's starting balance
-                // Find previous date
-                const prevDate = new Date(date);
-                prevDate.setDate(prevDate.getDate() - 1);
-                const prevDateStr = formatLocalDate(prevDate);
+                // Use string arithmetic to avoid timezone shifts
+                const prevDateStr = addDays(dateStr, -1);
                 const prevLedgerItem = ledgerMap[prevDateStr];
 
                 // Starting balance = previous day's ending balance (or current if first day)

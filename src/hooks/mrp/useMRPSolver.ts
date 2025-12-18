@@ -1,15 +1,16 @@
 
 import { getLocalISOString, addDays } from '../../utils/dateUtils';
-import { MRPSpecs, CalculateMRPResult, DailyLedgerItem } from '../../utils/mrpLogic';
+import { CalculateMRPResult } from '../../utils/mrpLogic';
 
-interface SolveParams {
-    currentResults: CalculateMRPResult | null;
-    safetyStockLoads: number;
-    bottleDefinitions: Record<string, MRPSpecs>;
-    selectedSize: string;
-    schedulerSettings: any; // Ideally typed
-    state: any; // Ideally typed
-    effectiveLeadTime?: number;
+// Temporary interfaces until we export from mrpLogic
+interface DailyLedgerItem {
+    dateStr: string;
+    projectedEndInventory: number;
+    safetyStockTarget?: number;
+}
+
+interface MRPSpecs {
+    bottlesPerTruck: number;
 }
 
 export function useMRPSolver() {
@@ -17,14 +18,14 @@ export function useMRPSolver() {
     const solve = (
         currentResults: CalculateMRPResult | null,
         safetyStockLoads: number,
-        bottleDefinitions: Record<string, MRPSpecs>,
+        bottleDefinitions: Record<string, any>,
         selectedSize: string,
         schedulerSettings: any,
         state: any,
         effectiveLeadTime?: number
     ) => {
         // Validation
-        if (!currentResults || !currentResults.dailyResults || !selectedSize || !bottleDefinitions[selectedSize]) {
+        if (!currentResults || !currentResults.dailyLedger || !selectedSize || !bottleDefinitions[selectedSize]) {
             console.warn("Solver: Missing Data", { currentResults, selectedSize });
             return null;
         }
@@ -33,7 +34,8 @@ export function useMRPSolver() {
 
         // 1. Inputs
         const plannedInbound: Record<string, number> = { ...(state.monthlyInbound || {}) }; // Mutable copy
-        const dailyResults = currentResults.dailyResults; // Sorted Array Day 1 -> N
+        // const dailyResults = currentResults.dailyResults; // ERROR: Property is dailyLedger
+        const dailyResults = currentResults.dailyLedger; // Correct property name
 
         // Lead Time Gate (Frozen Period)
         const todayStr = getLocalISOString();
@@ -58,7 +60,10 @@ export function useMRPSolver() {
             const adjustedInventory = baseInventory + cumulativeAddedBottles;
 
             // Lead Time Gate (Frozen Period)
-            if (dateStr <= frozenUntil) return;
+            if (dateStr <= frozenUntil) {
+                console.log(`[Solver] Skipping Frozen Date: ${dateStr} (Until: ${frozenUntil})`);
+                return;
+            }
 
             // Skip updates if Actuals represent a locked reality (Past)
             if (state.monthlyProductionActuals && state.monthlyProductionActuals[dateStr]) return;
