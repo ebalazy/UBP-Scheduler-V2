@@ -26,9 +26,12 @@ const PlanningRowInventory = memo(({ dates, ledgerMap, specs, safetyTarget, toda
                 if (totalPallets !== null) {
                     const palletsPerTruck = Math.floor(bottlesPerTruck / bottlesPerCase / casesPerPallet) || 22;
                     if (Math.abs(totalPallets) >= palletsPerTruck) {
-                        const trucks = Math.floor(totalPallets / palletsPerTruck);
-                        const remainder = totalPallets % palletsPerTruck;
-                        label = `${trucks}T ${remainder}P`;
+                        // For negative values, we want -16T 21P, not -17T -1P
+                        const sign = totalPallets < 0 ? '-' : '';
+                        const absPallets = Math.abs(totalPallets);
+                        const trucks = Math.floor(absPallets / palletsPerTruck);
+                        const remainder = absPallets % palletsPerTruck;
+                        label = `${sign}${trucks}T ${remainder}P`;
                     } else {
                         label = `${totalPallets}`;
                     }

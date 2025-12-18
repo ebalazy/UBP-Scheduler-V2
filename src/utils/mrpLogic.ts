@@ -253,12 +253,18 @@ export const calculateMRP = ({
 
     // 9. DoS Calc
     let daysOfSupply = 30;
-    if (dailyLedger.length > 0) {
+    const totalStartInventory = inventoryBottles + yardBottles;
+
+    // CRITICAL FIX: If inventory is below safety target, DOS should be 0 (not 30+)
+    // This prevents showing "30+ Days / Healthy" when inventory is 0
+    if (totalStartInventory < safetyTarget) {
+        daysOfSupply = 0;
+    } else if (dailyLedger.length > 0) {
         const stockoutIndex = dailyLedger.findIndex(d => d.balance < 0);
         if (stockoutIndex !== -1) {
             const failingDay = dailyLedger[stockoutIndex];
             // Balance at end of PREV day (start of failing day)
-            const prevBalance = stockoutIndex > 0 ? dailyLedger[stockoutIndex - 1].balance : (inventoryBottles + yardBottles);
+            const prevBalance = stockoutIndex > 0 ? dailyLedger[stockoutIndex - 1].balance : totalStartInventory;
 
             let partial = 0;
             if (failingDay.demand > 0 && prevBalance > 0) {
