@@ -54,236 +54,238 @@ export default function EditOrderModal({ isOpen, onClose, order, date }) {
                 });
             }
         }
-        // Calculate Estimate on the fly
-        const [estimate, setEstimate] = useState('');
+    }, [isOpen, order, date]);
 
-        useEffect(() => {
-            if (isOpen && formData.date && poManifest[formData.date]) {
-                const dayItems = [...poManifest[formData.date].items];
+    // Calculate Estimate on the fly
+    const [estimate, setEstimate] = useState('');
 
-                // To be consistent with schedule sorting
-                const getMinutes = (t) => {
-                    if (!t || t === '00:00') return 99999;
-                    const [h, m] = t.split(':').map(Number);
-                    return (h * 60) + (m || 0);
-                };
-                dayItems.sort((a, b) => getMinutes(a.time) - getMinutes(b.time));
+    useEffect(() => {
+        if (isOpen && formData.date && poManifest[formData.date]) {
+            const dayItems = [...poManifest[formData.date].items];
 
-                const idx = dayItems.findIndex(i => i.id === order?.id);
-                if (idx !== -1) {
-                    const sku = formData.sku || activeSku;
-                    const specs = getProductSpecs(sku) || productMap?.[sku];
-                    if (specs && schedulerSettings) {
-                        const rate = Number(specs.productionRate);
-                        const capacity = Number(specs.bottlesPerTruck);
-                        if (rate > 0 && capacity > 0) {
-                            const est = calculateDeliveryTime(
-                                idx,
-                                schedulerSettings.shiftStartTime || '06:00',
-                                capacity,
-                                rate,
-                                Number(specs.bottlesPerCase) || 1,
-                                dayItems.length
-                            );
-                            setEstimate(est);
-                            return;
-                        }
+            // To be consistent with schedule sorting
+            const getMinutes = (t) => {
+                if (!t || t === '00:00') return 99999;
+                const [h, m] = t.split(':').map(Number);
+                return (h * 60) + (m || 0);
+            };
+            dayItems.sort((a, b) => getMinutes(a.time) - getMinutes(b.time));
+
+            const idx = dayItems.findIndex(i => i.id === order?.id);
+            if (idx !== -1) {
+                const sku = formData.sku || activeSku;
+                const specs = getProductSpecs(sku) || productMap?.[sku];
+                if (specs && schedulerSettings) {
+                    const rate = Number(specs.productionRate);
+                    const capacity = Number(specs.bottlesPerTruck);
+                    if (rate > 0 && capacity > 0) {
+                        const est = calculateDeliveryTime(
+                            idx,
+                            schedulerSettings.shiftStartTime || '06:00',
+                            capacity,
+                            rate,
+                            Number(specs.bottlesPerCase) || 1,
+                            dayItems.length
+                        );
+                        setEstimate(est);
+                        return;
                     }
                 }
             }
-            setEstimate('');
-        }, [isOpen, formData.date, formData.sku, poManifest, order?.id, activeSku, getProductSpecs, productMap, schedulerSettings]);
+        }
+        setEstimate('');
+    }, [isOpen, formData.date, formData.sku, poManifest, order?.id, activeSku, getProductSpecs, productMap, schedulerSettings]);
 
-        const handleSave = () => {
-            // Validation
-            if (!formData.po || !formData.date || !formData.qty) {
-                alert("PO, Date, and Quantity are required.");
-                return;
-            }
+    const handleSave = () => {
+        // Validation
+        if (!formData.po || !formData.date || !formData.qty) {
+            alert("PO, Date, and Quantity are required.");
+            return;
+        }
 
-            const newOrder = {
-                id: order?.id || crypto.randomUUID(), // Preserve ID if editing
-                po: formData.po,
-                date: formData.date,
-                time: formData.time,
-                qty: Number(formData.qty),
-                status: formData.status,
-                supplier: formData.supplier || 'Unknown',
-                carrier: formData.carrier,
-                sku: formData.sku
-            };
-
-            if (order) {
-                // EDIT MODE
-                if (formData.date !== order.date) {
-                    // Date Changed -> Move
-                    moveOrder(order.date, formData.date, newOrder);
-                } else {
-                    // Same Date -> Update In Place
-                    updateOrder(formData.date, newOrder);
-                }
-            } else {
-                // CREATE MODE
-                addOrdersBulk([newOrder]);
-            }
-
-            onClose();
+        const newOrder = {
+            id: order?.id || crypto.randomUUID(), // Preserve ID if editing
+            po: formData.po,
+            date: formData.date,
+            time: formData.time,
+            qty: Number(formData.qty),
+            status: formData.status,
+            supplier: formData.supplier || 'Unknown',
+            carrier: formData.carrier,
+            sku: formData.sku
         };
 
-        return (
-            <Dialog open={isOpen} onClose={onClose} className="relative z-50">
-                <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-                <div className="fixed inset-0 flex items-center justify-center p-4">
-                    <Dialog.Panel className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                            <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-                                {order ? 'Edit Order' : 'New Purchase Order'}
-                            </Dialog.Title>
-                            <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-                                <XMarkIcon className="w-5 h-5" />
-                            </button>
+        if (order) {
+            // EDIT MODE
+            if (formData.date !== order.date) {
+                // Date Changed -> Move
+                moveOrder(order.date, formData.date, newOrder);
+            } else {
+                // Same Date -> Update In Place
+                updateOrder(formData.date, newOrder);
+            }
+        } else {
+            // CREATE MODE
+            addOrdersBulk([newOrder]);
+        }
+
+        onClose();
+    };
+
+    return (
+        <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+            <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+            <div className="fixed inset-0 flex items-center justify-center p-4">
+                <Dialog.Panel className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                        <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
+                            {order ? 'Edit Order' : 'New Purchase Order'}
+                        </Dialog.Title>
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+                            <XMarkIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                        {/* SKU / Material - Moved to Top */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Material / SKU</label>
+                            <select
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                value={formData.sku}
+                                onChange={e => setFormData({ ...formData, sku: e.target.value })}
+                            >
+                                <option value="">-- Any / All --</option>
+                                {bottleSizes.map(size => (
+                                    <option key={size} value={size}>{size}</option>
+                                ))}
+                            </select>
                         </div>
 
-                        <div className="p-6 space-y-4">
-                            {/* SKU / Material - Moved to Top */}
+                        {/* PO Number */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">PO Number</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                value={formData.po}
+                                onChange={e => setFormData({ ...formData, po: e.target.value })}
+                                autoFocus
+                            />
+                        </div>
+
+                        {/* Date & Time */}
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Material / SKU</label>
-                                <select
-                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    value={formData.sku}
-                                    onChange={e => setFormData({ ...formData, sku: e.target.value })}
-                                >
-                                    <option value="">-- Any / All --</option>
-                                    {bottleSizes.map(size => (
-                                        <option key={size} value={size}>{size}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* PO Number */}
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">PO Number</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    value={formData.po}
-                                    onChange={e => setFormData({ ...formData, po: e.target.value })}
-                                    autoFocus
-                                />
-                            </div>
-
-                            {/* Date & Time */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Delivery Date</label>
-                                    <div className="relative">
-                                        <CalendarIcon className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
-                                        <input
-                                            type="date"
-                                            className="w-full pl-8 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                            value={formData.date}
-                                            onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Time (Hour)</label>
-                                    <select
-                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                        value={formData.time}
-                                        onChange={e => setFormData({ ...formData, time: e.target.value })}
-                                    >
-                                        <option value="">
-                                            {estimate ? `-- Est: ${formatTime12h(estimate)} --` : '-- TBD --'}
-                                        </option>
-                                        {Array.from({ length: 24 }).map((_, i) => {
-                                            const val = `${String(i).padStart(2, '0')}:00`;
-                                            // Display AM/PM
-                                            const ampm = i >= 12 ? 'PM' : 'AM';
-                                            const h12 = i % 12 || 12;
-                                            const label = `${h12}:00 ${ampm}`;
-                                            return <option key={val} value={val}>{label}</option>;
-                                        })}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Quantity */}
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Quantity</label>
-                                <input
-                                    type="number"
-                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    value={formData.qty}
-                                    onChange={e => setFormData({ ...formData, qty: e.target.value })}
-                                />
-                            </div>
-
-                            {/* Supplier */}
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Supplier</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    value={formData.supplier}
-                                    onChange={e => setFormData({ ...formData, supplier: e.target.value })}
-                                />
-                            </div>
-
-
-
-                            {/* Status Selection */}
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Order Status</label>
-                                <div className="flex gap-2">
-                                    {['planned', 'confirmed', 'ordered', 'received', 'cancelled'].map(s => (
-                                        <button
-                                            key={s}
-                                            onClick={() => setFormData({ ...formData, status: s })}
-                                            className={`flex-1 py-2 rounded text-[10px] font-bold uppercase transition-all border ${formData.status === s
-                                                ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                                                : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-300'
-                                                }`}
-                                        >
-                                            {s}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Carrier */}
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Carrier (Optional)</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Delivery Date</label>
                                 <div className="relative">
-                                    <TruckIcon className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
+                                    <CalendarIcon className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
                                     <input
-                                        type="text"
+                                        type="date"
                                         className="w-full pl-8 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                        value={formData.carrier}
-                                        onChange={e => setFormData({ ...formData, carrier: e.target.value })}
+                                        value={formData.date}
+                                        onChange={e => setFormData({ ...formData, date: e.target.value })}
                                     />
                                 </div>
                             </div>
-
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Time (Hour)</label>
+                                <select
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    value={formData.time}
+                                    onChange={e => setFormData({ ...formData, time: e.target.value })}
+                                >
+                                    <option value="">
+                                        {estimate ? `-- Est: ${formatTime12h(estimate)} --` : '-- TBD --'}
+                                    </option>
+                                    {Array.from({ length: 24 }).map((_, i) => {
+                                        const val = `${String(i).padStart(2, '0')}:00`;
+                                        // Display AM/PM
+                                        const ampm = i >= 12 ? 'PM' : 'AM';
+                                        const h12 = i % 12 || 12;
+                                        const label = `${h12}:00 ${ampm}`;
+                                        return <option key={val} value={val}>{label}</option>;
+                                    })}
+                                </select>
+                            </div>
                         </div>
 
-                        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex justify-end gap-2">
-                            <button
-                                onClick={onClose}
-                                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded hover:bg-blue-500"
-                            >
-                                Save Order
-                            </button>
+                        {/* Quantity */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Quantity</label>
+                            <input
+                                type="number"
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                value={formData.qty}
+                                onChange={e => setFormData({ ...formData, qty: e.target.value })}
+                            />
                         </div>
 
-                    </Dialog.Panel>
-                </div>
-            </Dialog>
-        );
-    }
+                        {/* Supplier */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Supplier</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                value={formData.supplier}
+                                onChange={e => setFormData({ ...formData, supplier: e.target.value })}
+                            />
+                        </div>
+
+
+
+                        {/* Status Selection */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Order Status</label>
+                            <div className="flex gap-2">
+                                {['planned', 'confirmed', 'ordered', 'received', 'cancelled'].map(s => (
+                                    <button
+                                        key={s}
+                                        onClick={() => setFormData({ ...formData, status: s })}
+                                        className={`flex-1 py-2 rounded text-[10px] font-bold uppercase transition-all border ${formData.status === s
+                                            ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                                            : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-300'
+                                            }`}
+                                    >
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Carrier */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Carrier (Optional)</label>
+                            <div className="relative">
+                                <TruckIcon className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    className="w-full pl-8 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    value={formData.carrier}
+                                    onChange={e => setFormData({ ...formData, carrier: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex justify-end gap-2">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded hover:bg-blue-500"
+                        >
+                            Save Order
+                        </button>
+                    </div>
+
+                </Dialog.Panel>
+            </div>
+        </Dialog>
+    );
+}
