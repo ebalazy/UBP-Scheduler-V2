@@ -9,7 +9,7 @@ import {
     TrashIcon
 } from '@heroicons/react/24/outline';
 
-export default function DockManifestParams({ date, totalRequired, manifest, onUpdate, readOnly = false }) {
+export default function DockManifestParams({ date, totalRequired, manifest, onUpdate, onReceive, readOnly = false }) {
     // manifest = Array of { id, po, carrier, time, status }
     // totalRequired = Number from AutoReplenish
 
@@ -167,13 +167,26 @@ export default function DockManifestParams({ date, totalRequired, manifest, onUp
                         </div>
                         <div className="flex flex-col text-xs text-gray-500 mt-1">
                             {/* Explicitly show PO and Supplier if available */}
-                            <div className="flex items-center">
-                                <QrCodeIcon className="w-3 h-3 mr-1" />
-                                <span className="font-mono text-gray-700 dark:text-gray-300 font-bold mr-2">
-                                    PO: {item.po || "N/A"}
-                                </span>
-                                {item.supplier && item.carrier && (
-                                    <span className="text-gray-400">({item.supplier})</span>
+                            <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center">
+                                    <QrCodeIcon className="w-3 h-3 mr-1" />
+                                    <span className="font-mono text-gray-700 dark:text-gray-300 font-bold mr-2">
+                                        PO: {item.po || "N/A"}
+                                    </span>
+                                    {item.supplier && item.carrier && (
+                                        <span className="text-gray-400">({item.supplier})</span>
+                                    )}
+                                </div>
+
+                                {/* RECEIVE BUTTON (Phase 6) */}
+                                {onReceive && item.status !== 'received' && item.po && (
+                                    <button
+                                        onClick={() => onReceive(item)}
+                                        className="ml-4 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider rounded shadow transition-all hover:scale-105 flex items-center"
+                                    >
+                                        <TruckIcon className="w-3 h-3 mr-1" />
+                                        Receive
+                                    </button>
                                 )}
                             </div>
                         </div>

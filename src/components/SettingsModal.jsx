@@ -2,14 +2,17 @@ import { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { useProcurement } from '../context/ProcurementContext';
-import { SunIcon, MoonIcon, BoltIcon, XMarkIcon } from '@heroicons/react/24/outline'; // Replaced Trash/Plus with Bolt/XMark
+import { SunIcon, MoonIcon, BoltIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 import UserManagement from './settings/UserManagement';
+import ProductsView from './products/ProductsView'; // Moved here
+import CSVImport from './data/CSVImport'; // Moved here
 
 export default function SettingsModal({ onClose }) {
     const [activeTab, setActiveTab] = useState('general');
     const { userRole } = useAuth();
     const isAdmin = (userRole === 'admin');
+    const canEditCatalog = ['admin', 'planner'].includes(userRole || '');
 
     const {
         csvMapping,
@@ -19,17 +22,13 @@ export default function SettingsModal({ onClose }) {
         setTheme
     } = useSettings();
 
-    const { poManifest } = useProcurement();
-
-    // Removed newSkuName state
-    // Removed handleDeleteSku
-    // Removed handleAddSku
+    const { poManifest, refreshData } = useProcurement();
 
     return (
         <div className="fixed inset-0 z-50 flex justify-center bg-black bg-opacity-50 overflow-y-auto px-4 py-6 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl relative h-fit my-auto p-6 border dark:border-gray-700 transition-colors">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Master Settings</h2>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl relative h-[85vh] my-auto p-6 border dark:border-gray-700 transition-colors flex flex-col">
+                <div className="flex justify-between items-center mb-6 flex-shrink-0">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">System Configuration</h2>
                     <button
                         onClick={onClose}
                         className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-bold text-xl"
@@ -38,28 +37,30 @@ export default function SettingsModal({ onClose }) {
                     </button>
                 </div>
 
-                <div className="flex border-b border-slate-200 dark:border-slate-700 mb-6">
-                    <button
-                        className={`pb-2 px-1 text-sm font-bold mr-6 border-b-2 transition-colors ${activeTab === 'general' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
-                        onClick={() => setActiveTab('general')}
-                    >
-                        General & Appearance
-                    </button>
-                    {isAdmin && (
-                        <button
-                            className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors ${activeTab === 'users' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
-                            onClick={() => setActiveTab('users')}
-                        >
-                            User Management
-                        </button>
-                    )}
+                <div className="flex border-b border-slate-200 dark:border-slate-700 mb-6 flex-shrink-0 overflow-x-auto">
+                    {[
+                        { id: 'general', label: 'General' },
+                        { id: 'catalog', label: 'Product Catalog', show: true },
+                        { id: 'import', label: 'Data Import', show: canEditCatalog },
+                        { id: 'users', label: 'Users', show: isAdmin }
+                    ].map(tab => (
+                        tab.show !== false && (
+                            <button
+                                key={tab.id}
+                                className={`pb-2 px-4 text-sm font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.id ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                {tab.label}
+                            </button>
+                        )
+                    ))}
                 </div>
 
-                <div className="space-y-6 h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                    {activeTab === 'general' ? (
+                <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
+                    {activeTab === 'general' && (
                         <>
                             {/* Appearance */}
-                            <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 mb-6">
                                 <div>
                                     <h3 className="font-bold text-gray-800 dark:text-gray-200">Appearance</h3>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">Choose your interface theme.</p>
@@ -89,18 +90,17 @@ export default function SettingsModal({ onClose }) {
                             </div>
 
 
-                            {/* CSV Mapping Settings */}
+                            {/* CSV Mapping Settings - Simplified for General View */}
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">CSV Integration Mappings</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Legacy CSV Mappings</h3>
                                 <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status Column Header</label>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status Header</label>
                                         <input
                                             type="text"
                                             value={csvMapping.statusColumn}
                                             onChange={(e) => updateCsvMapping('statusColumn', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                                            placeholder="e.g. Trailer State"
+                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm text-sm"
                                         />
                                     </div>
                                     <div>
@@ -109,32 +109,37 @@ export default function SettingsModal({ onClose }) {
                                             type="text"
                                             value={csvMapping.fullValue}
                                             onChange={(e) => updateCsvMapping('fullValue', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                                            placeholder="e.g. Loaded"
+                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm text-sm"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">SKU/Product Column</label>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">SKU Column</label>
                                         <input
                                             type="text"
                                             value={csvMapping.skuColumn}
                                             onChange={(e) => updateCsvMapping('skuColumn', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                                            placeholder="e.g. Commodity"
+                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm text-sm"
                                         />
-                                    </div>
-                                    <div className="col-span-1 md:col-span-3">
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                                            The importer will look for rows where <strong>{csvMapping.statusColumn}</strong> contains "<strong>{csvMapping.fullValue}</strong>"
-                                            {csvMapping.skuColumn ? <span> and <strong>{csvMapping.skuColumn}</strong> contains the active bottle size (e.g. "20oz").</span> : '.'}
-                                        </p>
                                     </div>
                                 </div>
                             </div>
                         </>
-                    ) : (
-                        <UserManagement />
                     )}
+
+                    {activeTab === 'catalog' && (
+                        <div className="h-full">
+                            <ProductsView readOnly={!canEditCatalog} />
+                        </div>
+                    )}
+
+                    {activeTab === 'import' && (
+                        <div>
+                            <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">Data Import</h3>
+                            <CSVImport onImportComplete={refreshData} />
+                        </div>
+                    )}
+
+                    {activeTab === 'users' && <UserManagement />}
                 </div>
 
                 <div className="mt-8 bg-gray-50 dark:bg-gray-800 -mx-6 -mb-6 p-4 rounded-b-lg border-t dark:border-gray-700">

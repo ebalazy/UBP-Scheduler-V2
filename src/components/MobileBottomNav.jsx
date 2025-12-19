@@ -45,28 +45,6 @@ export default function MobileBottomNav({ activeTab, setActiveTab, userRole }) {
                             </div>
                             <span className="font-bold">Master Plan</span>
                         </button>
-
-                        <button
-                            onClick={() => { setActiveTab('products'); setIsMenuOpen(false); }}
-                            className="flex items-center gap-4 w-full p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
-                        >
-                            <div className="p-2 bg-pink-100 text-pink-600 rounded-lg">
-                                <Package className="w-5 h-5" />
-                            </div>
-                            <span className="font-bold">Product Catalog</span>
-                        </button>
-
-                        {showPlanning && (
-                            <button
-                                onClick={() => { setActiveTab('import'); setIsMenuOpen(false); }}
-                                className="flex items-center gap-4 w-full p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
-                            >
-                                <div className="p-2 bg-cyan-100 text-cyan-600 rounded-lg">
-                                    <Upload className="w-5 h-5" />
-                                </div>
-                                <span className="font-bold">Import Data</span>
-                            </button>
-                        )}
                     </div>
                 </div>
             )}
@@ -75,36 +53,34 @@ export default function MobileBottomNav({ activeTab, setActiveTab, userRole }) {
             <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 h-20 shadow-2xl lg:hidden pb-safe">
                 <div className="grid grid-cols-4 h-full items-center">
 
-                    {/* 1. Floor Ops (Primary) */}
-                    <NavItem
-                        id="logistics"
-                        label="Floor"
-                        icon={Truck}
-                        activeColor="text-emerald-600 dark:text-emerald-400"
-                    />
-
-                    {/* 2. Materials (Planning) */}
+                    {/* 1. PLAN (Primary for Planners) */}
                     {showPlanning ? (
                         <NavItem
-                            id="mrp"
-                            label="Materials"
+                            id="plan"
+                            label="Plan"
                             icon={Boxes}
                             activeColor="text-blue-600 dark:text-blue-400"
                         />
                     ) : (
-                        // If not planning, show Catalog directly? Or just disable?
-                        // For now let's put Catalog here for non-planners logic later.
                         <div className="text-center opacity-20">
                             <Boxes className="w-6 h-6 mx-auto" />
                         </div>
                     )}
 
-                    {/* 3. Scheduler */}
+                    {/* 2. SCHEDULE */}
                     <NavItem
-                        id="scheduler"
+                        id="schedule"
                         label="Schedule"
                         icon={CalendarClock}
                         activeColor="text-purple-600 dark:text-purple-400"
+                    />
+
+                    {/* 3. OPERATIONS */}
+                    <NavItem
+                        id="operations"
+                        label="Ops"
+                        icon={Truck}
+                        activeColor="text-emerald-600 dark:text-emerald-400"
                     />
 
                     {/* 4. Menu (More) */}

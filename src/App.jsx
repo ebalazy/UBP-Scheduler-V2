@@ -14,13 +14,14 @@ import { useAuth } from './context/AuthContext';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import LandingPage from './components/LandingPage';
 import LogisticsView from './components/logistics/LogisticsView';
-import ProductsView from './components/products/ProductsView';
-import CSVImport from './components/data/CSVImport';
-import { Boxes, CalendarClock, Crown, Gauge, Truck, Package } from 'lucide-react';
+// import ProductsView from './components/products/ProductsView'; // Moved to Settings
+// import CSVImport from './components/data/CSVImport'; // Moved to Settings
+// import { Boxes, CalendarClock, Crown, Gauge, Truck, Package } from 'lucide-react'; // Unused in App.jsx
 import PulseHUD from './components/dashboard/PulseHUD';
 import MobileBottomNav from './components/MobileBottomNav';
 
 import { ProcurementProvider, useProcurement } from './context/ProcurementContext';
+import { ProductionProvider, useProduction } from './context/ProductionContext'; // Import Hook
 
 import { useProducts } from './context/ProductsContext'; // Import Hook
 
@@ -62,7 +63,9 @@ export default function App() {
 
   return (
     <ProcurementProvider>
-      <AuthenticatedApp user={user} />
+      <ProductionProvider>
+        <AuthenticatedApp user={user} />
+      </ProductionProvider>
     </ProcurementProvider>
   );
 }
@@ -76,13 +79,22 @@ function AuthenticatedApp({ user }) {
   const showPlanning = ['admin', 'planner'].includes(role);
   const canEditLogistics = ['admin', 'planner', 'logistics'].includes(role);
 
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'logistics');
+  // Default Tab Logic: Plan for Planners, Operations for others.
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem('activeTab');
+    // Migration: Map old tabs to new ones if found in localStorage
+    if (saved === 'mrp') return 'plan';
+    if (saved === 'scheduler') return 'schedule';
+    if (saved === 'logistics') return 'operations';
+    return saved || (showPlanning ? 'plan' : 'operations');
+  });
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
     // Security Redirect
-    if ((activeTab === 'mrp' || activeTab === 'master') && !showPlanning) {
-      setActiveTab('logistics');
+    if ((activeTab === 'plan' || activeTab === 'schedule' || activeTab === 'master') && !showPlanning) {
+      setActiveTab('operations');
     }
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab, showPlanning]);
@@ -108,7 +120,7 @@ function AuthenticatedApp({ user }) {
       <main className="flex-grow p-2 md:p-6 w-full pt-4">
 
         {/* PULSE DASHBOARD (HUD) - Contextual */}
-        {['logistics', 'mrp', 'scheduler'].includes(activeTab) && (
+        {['operations', 'plan', 'schedule'].includes(activeTab) && (
           <PulseHUD
             mrp={mrp}
             scheduler={scheduler}
@@ -117,7 +129,9 @@ function AuthenticatedApp({ user }) {
         )}
 
         {/* View Content */}
-        <div className={activeTab === 'logistics' ? 'block' : 'hidden'}>
+
+        {/* 1. OPERATIONS (Move) */}
+        <div className={activeTab === 'operations' ? 'block' : 'hidden'}>
           <LogisticsView
             state={mrp.formState}
             setters={mrp.setters}
@@ -126,7 +140,8 @@ function AuthenticatedApp({ user }) {
           />
         </div>
 
-        <div className={activeTab === 'mrp' ? 'block' : 'hidden'}>
+        {/* 2. PLAN (MRP) */}
+        <div className={activeTab === 'plan' ? 'block' : 'hidden'}>
           <MRPView
             state={mrp.formState}
             setters={mrp.setters}
@@ -134,7 +149,9 @@ function AuthenticatedApp({ user }) {
             readOnly={!showPlanning}
           />
         </div>
-        <div className={activeTab === 'scheduler' ? 'block' : 'hidden'}>
+
+        {/* 3. SCHEDULE (Make) */}
+        <div className={activeTab === 'schedule' ? 'block' : 'hidden'}>
           <SchedulerView
             state={scheduler.formState}
             setters={scheduler.setters}
@@ -142,19 +159,13 @@ function AuthenticatedApp({ user }) {
             readOnly={!canEditLogistics}
           />
         </div>
+
+        {/* Hidden / Deprecated Views */}
         <div className={activeTab === 'master' ? 'block' : 'hidden'}>
           <MasterScheduleView
             masterLedger={masterSchedule.masterLedger}
             loading={masterSchedule.loading}
           />
-        </div>
-
-        <div className={activeTab === 'products' ? 'block' : 'hidden'}>
-          <ProductsView readOnly={!canEditLogistics} />
-        </div>
-
-        <div className={activeTab === 'import' ? 'block' : 'hidden'}>
-          <CSVImport onImportComplete={mrp.refreshData} />
         </div>
 
       </main>

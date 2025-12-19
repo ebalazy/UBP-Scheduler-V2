@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getLocalISOString, addDays } from '../../utils/dateUtils';
-// import { useSettings } from '../../context/SettingsContext'; // Removed
-import { useProducts } from '../../context/ProductsContext'; // Added
+import { useProducts } from '../../context/ProductsContext';
 import {
     TruckIcon,
     ClipboardDocumentCheckIcon,
@@ -12,6 +11,7 @@ import {
 import MorningReconciliationModal from '../mrp/MorningReconciliationModal';
 import DockManifestParams from './DockManifestParams';
 import { useProcurement } from '../../context/ProcurementContext';
+import { markProcurementOrderAsReceived } from '../../services/supabase/imports';
 
 export default function LogisticsView({ state, setters, results, readOnly = false }) {
     const [isRecModalOpen, setIsRecModalOpen] = useState(false);
@@ -20,7 +20,35 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
     const [aggregatedSchedule, setAggregatedSchedule] = useState({ today: [], tomorrow: [] });
     const [filterSku, setFilterSku] = useState('ALL');
 
-    const { poManifest, updateDailyManifest, bulkUpdateOrders } = useProcurement();
+    const { poManifest, updateDailyManifest, bulkUpdateOrders, refreshData } = useProcurement(); // Added refreshData if available, check context.
+
+    // --- RECEIVING LOGIC (Phase 6) ---
+    const handleReceive = async (item) => {
+        const confirmMsg = `Receive Truck: ${item.carrier || 'Unknown'}?\nPO: ${item.po}\n\nThis will update inventory and clear the scheduled slot.`;
+        if (!confirm(confirmMsg)) return;
+
+        // 1. Backend Update
+        const { success, error } = await markProcurementOrderAsReceived(item.id);
+
+        if (!success) {
+            alert(`Error receiving truck: ${error}`);
+            return;
+        }
+
+        // 2. Inventory Update (Optimistic)
+        // Convert "1 Load" -> Pallets? Or just increment "Loads"?
+        // Detailed Logic: Yard Inventory is "Loads".
+        // simple increment:
+        const currentLoads = results.yardInventory?.effectiveCount || 0;
+        const newCount = currentLoads + 1;
+        setters.updateYardInventory(newCount);
+
+        // 3. UI Feedback
+        // The item.status is now 'received' in DB.
+        // It will disappear from "Inbound" on next fetch because of our MrpLogic filter.
+        // For now, we force a refresh if possible, or wait for realtime.
+        // alert("Truck Received! Inventory Updated.");
+    };
 
     const todayStr = getLocalISOString();
 
@@ -60,8 +88,8 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
                     try {
                         const dayData = poManifest[date];
                         if (!dayData || !dayData.items) return [];
-                        // Filter items that match this SKU
-                        return dayData.items.filter(item => item.sku === sku);
+                        // Filter items that match this SKU AND are not received
+                        return dayData.items.filter(item => item.sku === sku && item.status !== 'received');
                     } catch (err) {
                         console.warn("Error reading global POs for date:", date, err);
                         return [];
@@ -82,6 +110,8 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
                     type: 'PO',
                     po: po.po,
                     details: `PO#${po.po} (${po.qty})`,
+                    status: po.status, // Pass status
+                    supplier: po.supplier, // Pass supplier
                     isGlobal: true
                 }));
 
@@ -107,6 +137,8 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
                     type: 'PO',
                     po: po.po,
                     details: `PO#${po.po} (${po.qty})`,
+                    status: po.status,
+                    supplier: po.supplier,
                     isGlobal: true
                 }));
 
@@ -322,6 +354,7 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
                                         totalRequired={item.count}
                                         manifest={item.manifest}
                                         readOnly={readOnly}
+                                        onReceive={handleReceive} // Pass receiver
                                         onUpdate={(d, list) => {
                                             // LogisticsView onUpdate (Today) Called
                                             try {
@@ -405,6 +438,10 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
                                         totalRequired={item.count}
                                         manifest={item.manifest}
                                         readOnly={readOnly}
+                                        // No receiving for tomorrow allowed yet? Or yes? user said "Receive".
+                                        // Usually we receive trucks when they arrive (today). 
+                                        // Providing onReceive here is harmless but practically only used Today.
+                                        onReceive={handleReceive}
                                         onUpdate={(d, list) => {
                                             // LogisticsView onUpdate Called
                                             try {

@@ -379,3 +379,31 @@ export async function getImportHistory(limit = 50) {
 
     return data || [];
 }
+
+/**
+ * Mark a procurement order as received
+ */
+export async function markProcurementOrderAsReceived(
+    poId: string,
+    receivedQty?: number
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // 1. Update status in procurement_orders
+        const { error } = await supabase
+            .from('procurement_orders')
+            .update({
+                status: 'received',
+                received_at: new Date().toISOString(),
+                // If we want to track actual received qty, update it here
+                ...(receivedQty ? { received_qty: receivedQty } : {})
+            })
+            .eq('id', poId);
+
+        if (error) throw error;
+
+        return { success: true };
+    } catch (err: any) {
+        console.error("Failed to receive PO:", err);
+        return { success: false, error: err.message };
+    }
+}

@@ -3,7 +3,7 @@ import { Cog6ToothIcon, ArrowRightOnRectangleIcon, PrinterIcon, CloudIcon } from
 import { Truck, Boxes, CalendarClock, Crown, Package, Upload } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './auth/AuthModal';
-import ubpLogo from '../assets/ubp_logo_v2.png';
+import ubpLogo from '../assets/ubp_logo_v4.png';
 
 export default function Header({ onOpenSettings, isSaving, saveError, activeTab, setActiveTab }) {
     const { user, userRole, signOut } = useAuth();
@@ -67,21 +67,32 @@ export default function Header({ onOpenSettings, isSaving, saveError, activeTab,
                 <div className="max-w-[1920px] mx-auto px-6 flex justify-between items-center">
 
                     {/* 1. LEFT: Brand Identity */}
+                    {/* 1. LEFT: Brand Identity */}
                     <div className="flex items-center gap-4 w-[280px]">
                         <div className={`
-                            relative h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 shadow-lg shadow-blue-500/20 
+                            relative h-11 w-11 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 dark:from-white dark:to-slate-200 
+                            shadow-lg shadow-slate-900/20 dark:shadow-white/10
                             flex items-center justify-center overflow-hidden transition-transform hover:scale-105 duration-300
                             ${scrolled ? 'ring-2 ring-white dark:ring-slate-800' : ''}
                         `}>
-                            <img src={ubpLogo} alt="UBP" className="h-[90%] w-[90%] object-contain drop-shadow-md" />
+                            {/* Inner Gloss */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+
+                            <img src={ubpLogo} alt="UBP" className="h-[85%] w-[85%] object-contain drop-shadow-md z-10" />
                         </div>
-                        <div className="flex flex-col">
-                            <h1 className="text-base font-black tracking-tight text-slate-900 dark:text-white leading-none">
+
+                        <div className="flex flex-col justify-center">
+                            <h1 className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none font-display">
                                 UBP <span className="text-slate-400 font-medium">Scheduler</span>
                             </h1>
-                            <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-500 uppercase tracking-widest mt-0.5">
-                                Co-Packer Edition
-                            </span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm tracking-wide">
+                                    V3
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    Enterprise
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -94,54 +105,37 @@ export default function Header({ onOpenSettings, isSaving, saveError, activeTab,
                                 : 'bg-slate-50 dark:bg-slate-800/30'
                             }
                         `}>
+
+                            {/* 1. PLAN (MRP) */}
+                            {showPlanning && (
+                                <NavItem
+                                    id="plan"
+                                    label="Plan"
+                                    icon={Boxes}
+                                    activeColor="text-blue-500"
+                                />
+                            )}
+
+                            {/* 2. MAKE (Scheduler) */}
+                            {showPlanning && (
+                                <NavItem
+                                    id="schedule"
+                                    label="Schedule"
+                                    icon={CalendarClock}
+                                    activeColor="text-purple-500"
+                                />
+                            )}
+
+                            {/* Dividers if needed */}
+                            {showPlanning && <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-2 opacity-50"></div>}
+
+                            {/* 3. MOVE (Logistics/Operations) */}
                             <NavItem
-                                id="logistics"
-                                label="Floor Ops"
+                                id="operations"
+                                label="Operations"
                                 icon={Truck}
                                 activeColor="text-emerald-500"
                             />
-
-                            {showPlanning && (
-                                <>
-                                    <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-2 opacity-50"></div>
-                                    <NavItem
-                                        id="mrp"
-                                        label="Materials"
-                                        icon={Boxes}
-                                        activeColor="text-blue-500"
-                                    />
-                                    <NavItem
-                                        id="scheduler"
-                                        label="Scheduler"
-                                        icon={CalendarClock}
-                                        activeColor="text-purple-500"
-                                    />
-                                    <NavItem
-                                        id="master"
-                                        label="Master Plan"
-                                        icon={Crown}
-                                        activeColor="text-amber-500"
-                                    />
-                                </>
-                            )}
-
-                            <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-2 opacity-50"></div>
-
-                            <NavItem
-                                id="products"
-                                label="Catalog"
-                                icon={Package}
-                                activeColor="text-pink-500"
-                            />
-
-                            {showPlanning && (
-                                <NavItem
-                                    id="import"
-                                    label="Import"
-                                    icon={Upload}
-                                    activeColor="text-cyan-500"
-                                />
-                            )}
                         </nav>
                     )}
 

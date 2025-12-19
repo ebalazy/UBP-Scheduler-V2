@@ -59,9 +59,16 @@ export const calculateMRP = ({
     const getDailyTrucks = (date) => {
         // 1. If POs exist for this date, they are the Truth.
         if (poManifest && poManifest[date]?.items?.length > 0) {
-            return poManifest[date].items.length;
+            // Filter out 'received' items (they are now in Inventory)
+            const activeItems = poManifest[date].items.filter(i =>
+                i.status !== 'received'
+            );
+            return activeItems.length;
         }
         // 2. Fallback to Manual Count (Plan)
+        // Only use manual count if NO manifest exists? 
+        // Or if logic dictates manual override? 
+        // Current logic: Manifest overrides Manual.
         return Number(monthlyInbound[date]) || 0;
     };
 

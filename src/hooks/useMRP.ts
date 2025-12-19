@@ -4,9 +4,13 @@ import { useMRPCalculations } from './mrp/useMRPCalculations';
 import { useMRPActions } from './mrp/useMRPActions';
 import { CalculateMRPResult } from '../utils/mrpLogic';
 
+import { useProduction } from '../context/ProductionContext';
+import { getLocalISOString, addDays } from '../utils/dateUtils';
+
 export function useMRP(poManifest: any = {}) {
     // 1. State & Persistence
     const state = useMRPState(); // poManifest is not passed to state, it seems. Original code didn't pass it to useMRPState either.
+    const { getDailyProductionSum } = useProduction();
 
     // 1.5 Filter & Merge Manifest (Manual POs + SAP Data)
     const filteredManifest = useMemo(() => {
@@ -46,8 +50,33 @@ export function useMRP(poManifest: any = {}) {
         return filtered;
     }, [poManifest, state.selectedSize, state.truckManifest]);
 
+    // 1.7 Merge Production Schedule into Demand
+    const mergedDemand = useMemo(() => {
+        const demand = { ...(state.monthlyDemand || {}) };
+
+        if (getDailyProductionSum && state.selectedSize) {
+            const today = getLocalISOString();
+            // Look ahead 45 days (covers standard view range)
+            for (let i = 0; i < 45; i++) {
+                const dateStr = addDays(today, i);
+                const scheduledCases = getDailyProductionSum(dateStr, state.selectedSize);
+
+                // If schedule exists, it OVERRIDES manual entry (or fills gap)
+                if (scheduledCases > 0) {
+                    demand[dateStr] = scheduledCases;
+                }
+            }
+        }
+        return demand;
+    }, [state.monthlyDemand, state.selectedSize, getDailyProductionSum]);
+
+    const augmentedState = useMemo(() => ({
+        ...state,
+        monthlyDemand: mergedDemand
+    }), [state, mergedDemand]);
+
     // 2. Calculations (Pure Logic)
-    const { calculations, totalScheduledCases, productionRate } = useMRPCalculations(state, filteredManifest);
+    const { calculations, totalScheduledCases, productionRate } = useMRPCalculations(augmentedState, filteredManifest);
 
     // 3. Actions (Handlers)
     const actionDeps = useMemo<{ calculations: CalculateMRPResult | null }>(() => ({ calculations }), [calculations]);

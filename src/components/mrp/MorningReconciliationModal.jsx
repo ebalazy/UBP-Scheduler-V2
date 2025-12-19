@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 // import { useSettings } from '../../context/SettingsContext'; // Removed
 import { useProducts } from '../../context/ProductsContext'; // Added
+import { useProcurement } from '../../context/ProcurementContext'; // Added Phase 6
+import { markProcurementOrderAsReceived } from '../../services/supabase/imports'; // Added Phase 6
 import {
     ClipboardDocumentCheckIcon,
     TruckIcon,
     CubeIcon,
     ArrowRightIcon,
-    CheckCircleIcon
+    CheckCircleIcon,
+    ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'; // Using Heroicons v2
 import { getLocalISOString } from '../../utils/dateUtils';
 import InventoryForm from './InventoryForm';
@@ -18,6 +21,7 @@ export default function MorningReconciliationModal({
     setters // mrp.setters
 }) {
     const { productMap: bottleDefinitions } = useProducts();
+    const { poManifest } = useProcurement(); // Access global manifest
     const sizes = Object.keys(bottleDefinitions);
     const specs = bottleDefinitions[state.selectedSize];
     const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
@@ -31,6 +35,10 @@ export default function MorningReconciliationModal({
     const [yardCount, setYardCount] = useState('');
     const [yardUnit, setYardUnit] = useState('loads'); // 'loads' or 'units'
 
+    // Phase 6: Past Due / Unreceived Logic
+    const [pastDueTrucks, setPastDueTrucks] = useState([]);
+    const [selectedForReceipt, setSelectedForReceipt] = useState({});
+
     // Initialize Data when Modal Opens
     useEffect(() => {
         if (isOpen) {
@@ -40,9 +48,53 @@ export default function MorningReconciliationModal({
             // Yard
             setYardCount(state.yardInventory?.effectiveCount || 0);
 
-            setStep(1);
+            // Check for Past Due Trucks (Yesterday or older)
+            const today = getLocalISOString();
+            const pastTrucks = [];
+
+            Object.keys(poManifest).forEach(date => {
+                if (date < today) {
+                    const items = poManifest[date].items || [];
+                    items.forEach(item => {
+                        // Filter for current SKU and not received
+                        if (item.sku === state.selectedSize && item.status !== 'received') {
+                            pastTrucks.push({ ...item, date }); // Keep track of date
+                        }
+                    });
+                }
+            });
+
+            setPastDueTrucks(pastTrucks);
+            // Default: Select ALL for clean up? Or None? Let's select All for convenience.
+            const defaults = {};
+            pastTrucks.forEach(t => defaults[t.id] = true);
+            setSelectedForReceipt(defaults);
+
+            // If we have past trucks, start at Step 0 (Review), else Step 1
+            setStep(pastTrucks.length > 0 ? 0 : 1);
         }
-    }, [isOpen, state.inventoryAnchor, state.yardInventory]);
+    }, [isOpen, state.inventoryAnchor, state.yardInventory, poManifest, state.selectedSize]);
+
+    const handleBatchReceive = async () => {
+        const toReceive = pastDueTrucks.filter(t => selectedForReceipt[t.id]);
+
+        let successCount = 0;
+        let errors = [];
+
+        // Process in parallel
+        await Promise.all(toReceive.map(async (truck) => {
+            const { success, error } = await markProcurementOrderAsReceived(truck.id);
+            if (success) successCount++;
+            else errors.push(`${truck.po}: ${error}`);
+        }));
+
+        if (errors.length > 0) {
+            alert(`Some updates failed:\n${errors.join('\n')}`);
+        }
+
+        // Move to Step 1
+        setStep(1);
+    };
 
     const handleCommit = () => {
         // 1. (Removed) Production Actuals are now handled in Planner Workbench
@@ -64,6 +116,66 @@ export default function MorningReconciliationModal({
         onClose();
     };
 
+    // Step 0: Review Past Receipts
+    const renderStep0 = () => (
+        <div className="space-y-4">
+            <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 p-4">
+                <div className="flex">
+                    <div className="flex-shrink-0">
+                        <ExclamationTriangleIcon className="h-5 w-5 text-amber-400" aria-hidden="true" />
+                    </div>
+                    <div className="ml-3">
+                        <p className="text-sm text-amber-700 dark:text-amber-200">
+                            Found <strong>{pastDueTrucks.length}</strong> unreceived trucks from previous days.
+                            Please confirm if they arrived so we can clear the schedule.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-h-60 overflow-y-auto border dark:border-gray-700 rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Receive?
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                PO / Carrier
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                        {pastDueTrucks.map((truck) => (
+                            <tr key={truck.id}>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!selectedForReceipt[truck.id]}
+                                        onChange={(e) => setSelectedForReceipt(prev => ({ ...prev, [truck.id]: e.target.checked }))}
+                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    />
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {truck.date}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                    {truck.po} - {truck.carrier || truck.supplier}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <p className="text-xs text-gray-400 italic text-center">
+                Note: Marked trucks will be set to 'Received' status. You must still include them in your physical count in the next step.
+            </p>
+        </div>
+    );
 
 
     // Old Step 2 Removed/Moved to Step 1
@@ -118,11 +230,17 @@ export default function MorningReconciliationModal({
                             </div>
                             <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">
-                                    Morning True-Up
+                                    Morning {step === 0 ? 'Review' : 'True-Up'}
                                 </h3>
                                 <div className="mt-2 text-left">
                                     {/* Progress Checkpoints */}
                                     <div className="flex items-center space-x-2 text-xs font-medium text-gray-400">
+                                        {pastDueTrucks.length > 0 && (
+                                            <>
+                                                <span className={`${step === 0 ? 'text-blue-600 dark:text-blue-400' : ''}`}>0. Review</span>
+                                                <span>&rarr;</span>
+                                            </>
+                                        )}
                                         <span className={`${step === 1 ? 'text-blue-600 dark:text-blue-400' : ''}`}>1. Inventory</span>
                                         <span>&rarr;</span>
                                         <span className={`${step === 2 ? 'text-blue-600 dark:text-blue-400' : ''}`}>2. Confirm</span>
@@ -133,6 +251,7 @@ export default function MorningReconciliationModal({
 
                         {/* Content */}
                         <div className="mt-2">
+                            {step === 0 && renderStep0()}
                             {step === 1 && (
                                 <InventoryForm
                                     selectedSize={state.selectedSize}
@@ -152,7 +271,16 @@ export default function MorningReconciliationModal({
 
                         {/* Footer / Controls */}
                         <div className="mt-8 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                            {step < 2 ? (
+                            {/* NEXT ACTION */}
+                            {step === 0 ? (
+                                <button
+                                    type="button"
+                                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm"
+                                    onClick={handleBatchReceive}
+                                >
+                                    Confirm & Next
+                                </button>
+                            ) : step < 2 ? (
                                 <button
                                     type="button"
                                     className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm"
@@ -170,7 +298,8 @@ export default function MorningReconciliationModal({
                                 </button>
                             )}
 
-                            {step > 1 ? (
+                            {/* BACK / CANCEL */}
+                            {step > (pastDueTrucks.length > 0 ? 0 : 1) ? (
                                 <button
                                     type="button"
                                     className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-1 sm:mt-0 sm:text-sm"
