@@ -16,7 +16,9 @@ export const PRODUCTION_LINES = [
     { id: 'L3', name: 'Line 3 (Manual)' }
 ];
 
-export const SKUS = [
+// Note: SKU colors are now stored in the database and accessed via ProductsContext
+// This legacy array is kept for reference but should not be used for color lookups
+export const LEGACY_SKUS = [
     { id: '20oz', color: 'bg-blue-500' },
     { id: '2L', color: 'bg-indigo-500' },
     { id: '1L', color: 'bg-purple-500' },

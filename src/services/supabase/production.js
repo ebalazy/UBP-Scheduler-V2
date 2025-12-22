@@ -80,6 +80,7 @@ export async function deleteRun(id) {
 
 /**
  * Helper: Map DB snake_case to App camelCase
+ * Note: color is looked up from ProductsContext by SKU name at render time
  */
 function mapToAppModel(dbRecord) {
     return {
@@ -89,8 +90,7 @@ function mapToAppModel(dbRecord) {
         startTime: dbRecord.start_time,
         durationHours: dbRecord.duration_hours,
         targetCases: dbRecord.target_cases,
-        status: dbRecord.status,
-        color: getColorForSKU(dbRecord.sku) // Helper to re-attach color
+        status: dbRecord.status
     };
 }
 
@@ -98,15 +98,4 @@ function calculateEndTime(startTime, hours) {
     const d = new Date(startTime);
     d.setTime(d.getTime() + (hours * 60 * 60 * 1000));
     return d.toISOString();
-}
-
-// Duplicated from logic for now, or import shared constant
-function getColorForSKU(sku) {
-    const colors = {
-        '20oz': 'bg-blue-500',
-        '2L': 'bg-indigo-500',
-        '1L': 'bg-purple-500',
-        '12pk': 'bg-emerald-500'
-    };
-    return colors[sku] || 'bg-gray-500';
 }

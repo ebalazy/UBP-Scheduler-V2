@@ -1,7 +1,15 @@
 import React from 'react';
 import { getHoursFromISO } from '../../utils/schedulerLogic';
+import { useProducts } from '../../context/ProductsContext';
 
 export default function TimelineBoard({ runs, lines, onRunClick }) {
+    const { productMap } = useProducts();
+
+    // Helper to get color for a SKU from ProductsContext
+    const getColorForSKU = (sku) => {
+        return productMap[sku]?.colorTag || '#3B82F6'; // Default blue
+    };
+
     // 24 Hour Grid
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const hourWidth = 60; // px per hour
@@ -55,10 +63,11 @@ export default function TimelineBoard({ runs, lines, onRunClick }) {
                                     <div
                                         key={run.id}
                                         onClick={() => onRunClick(run)}
-                                        className={`absolute top-1 h-16 rounded-lg shadow-sm cursor-pointer hover:brightness-110 transition-all border border-black/10 text-white p-2 overflow-hidden ${run.color || 'bg-blue-500'}`}
+                                        className="absolute top-1 h-16 rounded-lg shadow-sm cursor-pointer hover:brightness-110 transition-all border border-black/10 text-white p-2 overflow-hidden"
                                         style={{
                                             left: getLeftPos(run.startTime),
-                                            width: getWidth(run.durationHours)
+                                            width: getWidth(run.durationHours),
+                                            backgroundColor: getColorForSKU(run.sku)
                                         }}
                                     >
                                         <div className="font-bold text-sm leading-tight">{run.sku}</div>
@@ -76,3 +85,4 @@ export default function TimelineBoard({ runs, lines, onRunClick }) {
         </div>
     );
 }
+

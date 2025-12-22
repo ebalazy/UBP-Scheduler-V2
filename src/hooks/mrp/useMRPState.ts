@@ -101,11 +101,11 @@ export function useMRPState() {
 
     // --- Cloud Sync Effect ---
     useEffect(() => {
-        console.log("Flux: SKU Changed to:", selectedSize);
+        // [PERF] console.log("Flux: SKU Changed to:", selectedSize);
         localStorage.setItem('mrp_selectedSize', selectedSize);
 
         if (!user) {
-            console.log("Flux: Local Mode Init");
+            // [PERF] console.log("Flux: Local Mode Init");
             // Local Mode: Reload local state when SKU changes
             setMonthlyDemand(loadLocalState('monthlyDemand', {}, selectedSize, true));
             setMonthlyProductionActuals(loadLocalState('monthlyProductionActuals', {}, selectedSize, true));
@@ -124,10 +124,10 @@ export function useMRPState() {
         } else {
             // Cloud Mode: Fetch from Supabase
             const loadCloud = async () => {
-                console.log("Flux: Fetching Cloud Data for", selectedSize);
+                // [PERF] console.log("Flux: Fetching Cloud Data for", selectedSize);
                 try {
                     const data = await fetchMRPState(user.id, selectedSize);
-                    console.log("Flux: Cloud Data Result:", data ? "Found" : "Null", data);
+                    // [PERF] console.log("Flux: Cloud Data Result:", data ? "Found" : "Null", data);
 
 
                     if (data) {
@@ -237,7 +237,7 @@ export function useMRPState() {
                 // OR re-fetch the state for that product.
                 // Given the user complaints, a re-fetch on DELETE is safer than a silent failure.
 
-                console.log("Supabase DELETE detected. Triggering state refresh.");
+                // [PERF] console.log("Supabase DELETE detected. Triggering state refresh.");
                 if (user && activeProduct) {
                     // Quickest way to sync deletion is re-fetching the state.
                     // This is slightly heavier but guarantees accuracy vs zombie data.
@@ -271,7 +271,7 @@ export function useMRPState() {
         filter: activeProduct ? `product_id=eq.${activeProduct.id}` : undefined,
         enabled: !!activeProduct?.id,
         onDataChange: (payload: any) => {
-            console.log('[InventorySync] Event Received:', payload);
+            // [PERF] console.log('[InventorySync] Event Received:', payload);
             const { eventType, new: newRec } = payload;
             if (eventType === 'DELETE') return;
 
@@ -301,7 +301,7 @@ export function useMRPState() {
         filter: activeProduct ? `product_id=eq.${activeProduct.id}` : undefined,
         enabled: !!activeProduct?.id,
         onDataChange: () => {
-            console.log('[SAP Sync] Data change detected, refreshing state.');
+            // [PERF] console.log('[SAP Sync] Data change detected, refreshing state.');
             setRefreshTrigger(t => t + 1);
         }
     });

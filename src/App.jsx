@@ -14,21 +14,16 @@ import { useAuth } from './context/AuthContext';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import LandingPage from './components/LandingPage';
 import LogisticsView from './components/logistics/LogisticsView';
-// import ProductsView from './components/products/ProductsView'; // Moved to Settings
-// import CSVImport from './components/data/CSVImport'; // Moved to Settings
-// import { Boxes, CalendarClock, Crown, Gauge, Truck, Package } from 'lucide-react'; // Unused in App.jsx
 import PulseHUD from './components/dashboard/PulseHUD';
 import MobileBottomNav from './components/MobileBottomNav';
 
 import { ProcurementProvider, useProcurement } from './context/ProcurementContext';
-import { ProductionProvider, useProduction } from './context/ProductionContext'; // Import Hook
-
-import { useProducts } from './context/ProductsContext'; // Import Hook
+import { ProductionProvider } from './context/ProductionContext';
+import { useProducts } from './context/ProductsContext';
 
 export default function App() {
   const { user, loading, userRole } = useAuth();
   const { uploadLocalData } = useSupabaseSync();
-  // const { bottleSizes } = useSettings(); // REMOVED
   const { productMap } = useProducts();
   const bottleSizes = Object.keys(productMap);
 
@@ -72,9 +67,8 @@ export default function App() {
 
 function AuthenticatedApp({ user }) {
   const { userRole } = useAuth();
-  // Safe Fallback: If no role found (first run), default to 'admin' so dev isn't locked out. 
-  // In Prod, this should default to 'viewer'.
-  const role = userRole || 'admin';
+  // Default to 'viewer' for security - new users get read-only access until admin assigns role
+  const role = userRole || 'viewer';
 
   const showPlanning = ['admin', 'planner'].includes(role);
   const canEditLogistics = ['admin', 'planner', 'logistics'].includes(role);

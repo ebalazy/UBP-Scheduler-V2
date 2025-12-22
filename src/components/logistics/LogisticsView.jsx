@@ -50,6 +50,54 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
         // alert("Truck Received! Inventory Updated.");
     };
 
+    // --- MANIFEST UPDATE HELPER (Extracted to reduce duplication) ---
+    const handleManifestUpdate = (date, list, sku) => {
+        try {
+            const specs = results.specs;
+            const qtyPerTruck = specs?.bottlesPerTruck || 20000;
+            const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
+
+            const newOpsItems = list.map(uiItem => ({
+                id: uiItem.id || safeUUID(),
+                date,
+                po: uiItem.po || `TEMP-${Date.now()}`,
+                sku,
+                qty: qtyPerTruck,
+                supplier: uiItem.carrier || 'Unknown',
+                carrier: uiItem.carrier,
+                time: uiItem.time,
+                status: 'scheduled',
+                isGlobal: true
+            }));
+
+            const currentDayManifest = poManifest[date]?.items || [];
+            const otherSkuItems = Array.isArray(currentDayManifest)
+                ? currentDayManifest.filter(i => i.sku !== sku)
+                : [];
+
+            const combinedItems = [...otherSkuItems, ...newOpsItems];
+            updateDailyManifest(date, combinedItems);
+        } catch (err) {
+            console.error("Failed to update manifest in LogisticsView:", err);
+            alert("Error saving manifest. See console.");
+        }
+
+        // Cleanup legacy localStorage
+        try {
+            const legacyKey = `mrp_${sku}_truckManifest`;
+            const raw = localStorage.getItem(legacyKey);
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data[date]) {
+                    delete data[date];
+                    localStorage.setItem(legacyKey, JSON.stringify(data));
+                }
+            }
+        } catch (e) {
+            console.warn("Legacy cleanup failed", e);
+        }
+    };
+
     const todayStr = getLocalISOString();
 
     // ... (rest of aggregation logic remains same)
@@ -354,57 +402,8 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
                                         totalRequired={item.count}
                                         manifest={item.manifest}
                                         readOnly={readOnly}
-                                        onReceive={handleReceive} // Pass receiver
-                                        onUpdate={(d, list) => {
-                                            // LogisticsView onUpdate (Today) Called
-                                            try {
-                                                const specs = results.specs;
-                                                const qtyPerTruck = specs?.bottlesPerTruck || 20000;
-                                                const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
-
-                                                const newOpsItems = list.map(uiItem => ({
-                                                    id: uiItem.id || safeUUID(),
-                                                    date: d,
-                                                    po: uiItem.po || `TEMP-${Date.now()}`,
-                                                    sku: item.sku,
-                                                    qty: qtyPerTruck,
-                                                    supplier: uiItem.carrier || 'Unknown',
-                                                    carrier: uiItem.carrier,
-                                                    time: uiItem.time,
-                                                    status: 'scheduled',
-                                                    isGlobal: true
-                                                }));
-
-                                                const currentDayManifest = poManifest[d]?.items || [];
-                                                const otherSkuItems = Array.isArray(currentDayManifest)
-                                                    ? currentDayManifest.filter(i => i.sku !== item.sku)
-                                                    : [];
-
-                                                const combinedItems = [...otherSkuItems, ...newOpsItems];
-
-
-                                                updateDailyManifest(d, combinedItems);
-                                            } catch (err) {
-                                                console.error("Failed to update manifest (Today) in LogicsticsView:", err);
-                                                alert("Error saving manifest. See console.");
-                                            }
-
-                                            // --- CLEANUP LEGACY LOCAL STORAGE (Today) ---
-                                            try {
-                                                const legacyKey = `mrp_${item.sku}_truckManifest`;
-                                                const raw = localStorage.getItem(legacyKey);
-                                                if (raw) {
-                                                    const data = JSON.parse(raw);
-                                                    if (data[d]) {
-                                                        delete data[d];
-                                                        localStorage.setItem(legacyKey, JSON.stringify(data));
-
-                                                    }
-                                                }
-                                            } catch (e) {
-                                                console.warn("Legacy cleanup failed (Today)", e);
-                                            }
-                                        }}
+                                        onReceive={handleReceive}
+                                        onUpdate={(d, list) => handleManifestUpdate(d, list, item.sku)}
                                     />
                                 </div>
                             ))}
@@ -442,57 +441,7 @@ export default function LogisticsView({ state, setters, results, readOnly = fals
                                         // Usually we receive trucks when they arrive (today). 
                                         // Providing onReceive here is harmless but practically only used Today.
                                         onReceive={handleReceive}
-                                        onUpdate={(d, list) => {
-                                            // LogisticsView onUpdate Called
-                                            try {
-                                                const specs = results.specs;
-                                                const qtyPerTruck = specs?.bottlesPerTruck || 20000;
-                                                const safeUUID = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}-${Math.random()}`;
-
-                                                const newOpsItems = list.map(uiItem => ({
-                                                    id: uiItem.id || safeUUID(),
-                                                    date: d,
-                                                    po: uiItem.po || 'TBD',
-                                                    sku: item.sku,
-                                                    qty: qtyPerTruck,
-                                                    supplier: uiItem.carrier || 'Unknown',
-                                                    carrier: uiItem.carrier,
-                                                    time: uiItem.time,
-                                                    status: 'scheduled',
-                                                    isGlobal: true
-                                                }));
-
-                                                const currentDayManifest = poManifest[d]?.items || [];
-                                                // Robust filter
-                                                const otherSkuItems = Array.isArray(currentDayManifest)
-                                                    ? currentDayManifest.filter(i => i.sku !== item.sku)
-                                                    : [];
-
-                                                const combinedItems = [...otherSkuItems, ...newOpsItems];
-
-
-                                                updateDailyManifest(d, combinedItems);
-                                            } catch (err) {
-                                                console.error("Failed to update manifest in LogicsticsView:", err);
-                                                alert("Error saving manifest. See console.");
-                                            }
-
-                                            // --- CLEANUP LEGACY LOCAL STORAGE (Tomorrow) ---
-                                            try {
-                                                const legacyKey = `mrp_${item.sku}_truckManifest`;
-                                                const raw = localStorage.getItem(legacyKey);
-                                                if (raw) {
-                                                    const data = JSON.parse(raw);
-                                                    if (data[d]) {
-                                                        delete data[d];
-                                                        localStorage.setItem(legacyKey, JSON.stringify(data));
-
-                                                    }
-                                                }
-                                            } catch (e) {
-                                                console.warn("Legacy cleanup failed (tomorrow)", e);
-                                            }
-                                        }}
+                                        onUpdate={(d, list) => handleManifestUpdate(d, list, item.sku)}
                                     />
                                 </div>
                             ))}

@@ -12,8 +12,6 @@ import MorningReconciliationModal from './MorningReconciliationModal';
 import BurnDownChart from './BurnDownChart';
 
 import {
-    PencilSquareIcon,
-    XMarkIcon,
     SunIcon,
     ArrowPathIcon,
     ClipboardDocumentListIcon,
@@ -23,7 +21,6 @@ import {
     ChevronRightIcon,
     InformationCircleIcon
 } from '@heroicons/react/24/outline';
-import { supabase } from '../../services/supabase/client';
 import { useAuth } from '../../context/AuthContext';
 import { formatLocalDate, getLocalISOString, addDays } from '../../utils/dateUtils';
 
@@ -119,15 +116,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
     const handleAutoBalance = () => {
         if (!confirm(`Auto-Balance will populate Planned Loads to ensure safety stock is met.\n\nSettings:\n - Lead Time: ${effectiveLeadTime} days\n - Safety Stock: ${effectiveSafetyStockLoads} loads\n\nProceed?`)) return;
 
-        console.log('[Auto-Balance] Starting with inputs:', {
-            results,
-            effectiveSafetyStockLoads,
-            bottleDefinitions,
-            selectedSize: state.selectedSize,
-            schedulerSettings,
-            state,
-            effectiveLeadTime
-        });
+        // [PERF] Debug logging removed for production
 
         const solverResult = solve(
             results,
@@ -139,7 +128,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
             effectiveLeadTime
         );
 
-        console.log('[Auto-Balance] Solver returned:', solverResult);
+        // [PERF] console.log('[Auto-Balance] Solver returned:', solverResult);
 
         if (!solverResult) {
             console.error('[Auto-Balance] Solver returned null!');
@@ -149,21 +138,19 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
 
         const { newInbound, updatesCount } = solverResult;
 
-        console.log('[Auto-Balance] Updates:', { updatesCount, newInbound });
+        // [PERF] console.log('[Auto-Balance] Updates:', { updatesCount, newInbound });
 
         if (updatesCount > 0) {
-            console.log('[Auto-Balance] Calling setMonthlyInbound with:', newInbound);
+            // [PERF] console.log('[Auto-Balance] Calling setMonthlyInbound with:', newInbound);
             setters.setMonthlyInbound(newInbound);
-            console.log('[Auto-Balance] Success - grid should update now');
+            // [PERF] console.log('[Auto-Balance] Success - grid should update now');
             // alert(`Auto-Balanced: Added trucks to ${updatesCount} days.`);
         } else {
             alert("Schedule is already balanced! No changes needed.");
         }
     };
 
-    // ... existing state ...
-    const [isEditingFloor, setIsEditingFloor] = useState(false);
-    const [isEditingYard, setIsEditingYard] = useState(false);
+    // Modal state
 
     const [isEmailOpen, setIsEmailOpen] = useState(false);
     const [isExportOpen, setIsExportOpen] = useState(false);
@@ -171,7 +158,24 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
     const [viewMode, setViewMode] = useState('grid');
     const [isReconcileOpen, setIsReconcileOpen] = useState(false);
 
-    if (!results) return <div>Loading...</div>;
+    if (!results) return (
+        <div className="animate-pulse space-y-4 p-4">
+            {/* Header skeleton */}
+            <div className="flex justify-between items-center">
+                <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                <div className="h-8 w-32 bg-slate-200 dark:bg-slate-700 rounded"></div>
+            </div>
+            {/* KPI cards skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="h-24 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                <div className="h-24 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                <div className="h-24 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+            </div>
+            {/* Grid skeleton */}
+            <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+            <p className="text-center text-sm text-slate-400">Loading MRP data...</p>
+        </div>
+    );
 
     const { netInventory, safetyTarget, trucksToOrder, trucksToCancel, specs, yardInventory } = results;
     const weeklyDemandBottles = state.totalScheduledCases * specs.bottlesPerCase;
@@ -235,13 +239,7 @@ export default function MRPView({ state, setters, results, readOnly = false }) {
                 ? results.trucksToOrder  // Show immediate need
                 : (state.isAutoReplenish ? actionableTrucks : 0));  // Show actionable orders when no immediate need
 
-        console.log('[MRPView] Display Logic:', {
-            isAutoReplenish: state.isAutoReplenish,
-            actionableTrucks,
-            'results.trucksToOrder': results.trucksToOrder,
-            displayTrucks,
-            'results.trucksToCancel': results.trucksToCancel
-        });
+        // [PERF] Debug logging removed for production
 
 
         return (

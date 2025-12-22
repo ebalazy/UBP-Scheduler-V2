@@ -183,12 +183,28 @@ export default function UserManagementEnterprise() {
 
                 <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl divide-y divide-slate-100 dark:divide-slate-700 shadow-sm overflow-hidden">
                     {users.map(u => (
-                        <div key={u.id || u.email} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-slate-50 gap-3">
-                            <div className="text-sm font-bold text-slate-900 dark:text-white">{u.email} ({u.role})</div>
-                            <button
-                                onClick={() => handleDeleteUser(u.email)}
-                                className="text-rose-500 hover:text-rose-700 text-xs"
-                            >Revoke</button>
+                        <div key={u.id || u.email} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 gap-3">
+                            <div className="flex-1">
+                                <div className="text-sm font-bold text-slate-900 dark:text-white">{u.email}</div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <select
+                                    value={u.role}
+                                    onChange={(e) => handleUpdateRole(u.email, e.target.value)}
+                                    className="text-xs rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white py-1.5 px-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    {ROLES.map(role => (
+                                        <option key={role.id} value={role.id}>{role.label}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    onClick={() => handleDeleteUser(u.email)}
+                                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                                    title="Revoke Access"
+                                >
+                                    <TrashIcon className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>

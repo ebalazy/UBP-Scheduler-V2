@@ -86,11 +86,8 @@ export default function Header({ onOpenSettings, isSaving, saveError, activeTab,
                                 UBP <span className="text-slate-400 font-medium">Scheduler</span>
                             </h1>
                             <div className="flex items-center gap-2 mt-0.5">
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm tracking-wide">
-                                    V3
-                                </span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    Enterprise
+                                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-sm tracking-wide uppercase">
+                                    Co-Packer Edition
                                 </span>
                             </div>
                         </div>

@@ -24,7 +24,8 @@ const PlanningRowInventory = memo(({ dates, ledgerMap, specs, safetyTarget, toda
                 // Smart Label Logic
                 let label = '-';
                 if (totalPallets !== null) {
-                    const palletsPerTruck = Math.floor(bottlesPerTruck / bottlesPerCase / casesPerPallet) || 22;
+                    // Use palletsPerTruck from DB specs (consistent with ProductsContext)
+                    const palletsPerTruck = specs?.palletsPerTruck || 22;
                     if (Math.abs(totalPallets) >= palletsPerTruck) {
                         // For negative values, we want -16T 21P, not -17T -1P
                         const sign = totalPallets < 0 ? '-' : '';

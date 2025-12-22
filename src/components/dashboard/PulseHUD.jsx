@@ -38,8 +38,8 @@ export default function PulseHUD({ mrp, scheduler, activeSku }) {
     const safetyTargetBottles = results.safetyTarget || 0;
     const safetyTargetPallets = safetyTargetBottles / (bpc * cpp);
 
-    // Calculate Total Effective Inventory (Floor + Yard)
-    const palletsPerTruck = (specs.bottlesPerTruck || 20000) / (bpc * cpp);
+    // Use palletsPerTruck from DB specs (consistent with ProductsContext)
+    const palletsPerTruck = specs.palletsPerTruck || 22;
     const totalEffectivePallets = floorBalance + (yardBalance * palletsPerTruck);
 
     // Coverage Logic

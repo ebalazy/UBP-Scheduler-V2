@@ -80,7 +80,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
             if (item === null) return DEFAULTS.safetyStockLoads;
             const val = Number(item);
             return !isNaN(val) && val >= 0 ? val : DEFAULTS.safetyStockLoads;
-        } catch { return DEFAULTS.safetyStockLoads; }
+        } catch (e) { console.warn('Failed to load safetyStockLoads from localStorage:', e); return DEFAULTS.safetyStockLoads; }
     });
 
     // 2. CSV Mapping
@@ -88,7 +88,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
         try {
             const saved = localStorage.getItem('csvMapping');
             return saved ? JSON.parse(saved) : DEFAULTS.csvMapping;
-        } catch { return DEFAULTS.csvMapping; }
+        } catch (e) { console.warn('Failed to load csvMapping from localStorage:', e); return DEFAULTS.csvMapping; }
     });
 
     // 3. Dashboard Layout
@@ -109,7 +109,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
                 col2: parsed.col2 || ['chart', 'inventory', 'production'],
                 ...parsed
             };
-        } catch { return DEFAULTS.dashboardLayout; }
+        } catch (e) { console.warn('Failed to load dashboardLayout from localStorage:', e); return DEFAULTS.dashboardLayout; }
     });
 
     // 4. Lead Time
@@ -118,7 +118,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
             const item = localStorage.getItem('leadTimeDays');
             const val = Number(item);
             return !isNaN(val) && val >= 0 ? val : DEFAULTS.leadTimeDays;
-        } catch { return DEFAULTS.leadTimeDays; }
+        } catch (e) { console.warn('Failed to load leadTimeDays from localStorage:', e); return DEFAULTS.leadTimeDays; }
     });
 
     // 5. Active SKU (Local Only Preference usually)

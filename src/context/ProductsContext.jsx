@@ -15,7 +15,7 @@ export function ProductsProvider({ children }) {
         try {
             const cached = localStorage.getItem('ubp_products_list');
             return cached ? JSON.parse(cached) : [];
-        } catch { return []; }
+        } catch (e) { console.warn('Failed to load products from cache:', e); return []; }
     });
 
     // If we have cached products, we aren't "loading" in a blocking sense.
@@ -98,13 +98,16 @@ export function ProductsProvider({ children }) {
                 bottlesPerTruck: p.bottles_per_truck,
                 casesPerTruck: Math.floor((p.bottles_per_truck || 0) / (p.bottles_per_case || 1)), // Derived if missing
                 casesPerPallet: p.cases_per_pallet,
-                palletsPerTruck: 22, // defaults? or derived?
+                palletsPerTruck: p.pallets_per_truck || 22, // DB value with fallback
                 productionRate: rate,
                 scrapPercentage: 0,
 
-                // New: Global Lead Time
+                // Planning Settings
                 leadTimeDays: p.lead_time_days, // Can be null/undefined
                 safetyStockLoads: p.safety_stock_loads, // Can be null/undefined
+
+                // Display Settings
+                colorTag: p.color_tag || '#3B82F6', // Hex color for UI
 
                 // Original Data
                 id: p.id

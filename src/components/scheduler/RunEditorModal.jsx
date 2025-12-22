@@ -2,11 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { PRODUCTION_LINES, SKUS } from '../../utils/schedulerLogic';
+import { PRODUCTION_LINES } from '../../utils/schedulerLogic';
+import { useProducts } from '../../context/ProductsContext';
 
 export default function RunEditorModal({ isOpen, onClose, onSave, initialRun = null, selectedDate }) {
+    const { productMap } = useProducts();
+
+    // Get list of SKUs from ProductsContext
+    const skuList = Object.keys(productMap);
+    const defaultSku = skuList[0] || '20oz';
+
     const [formData, setFormData] = useState({
-        sku: '20oz',
+        sku: defaultSku,
         lineId: 'L1',
         startTime: '08:00',
         durationHours: 8,
@@ -28,7 +35,7 @@ export default function RunEditorModal({ isOpen, onClose, onSave, initialRun = n
             } else {
                 // Reset for new run
                 setFormData({
-                    sku: SKUS[0].id,
+                    sku: defaultSku,
                     lineId: 'L1',
                     startTime: '08:00',
                     durationHours: 8,
@@ -36,7 +43,7 @@ export default function RunEditorModal({ isOpen, onClose, onSave, initialRun = n
                 });
             }
         }
-    }, [isOpen, initialRun]);
+    }, [isOpen, initialRun, defaultSku]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -50,8 +57,7 @@ export default function RunEditorModal({ isOpen, onClose, onSave, initialRun = n
             id: initialRun ? initialRun.id : `run-${Date.now()}`,
             ...formData,
             startTime: startDateTime.toISOString(),
-            // Find color
-            color: SKUS.find(s => s.id === formData.sku)?.color || 'bg-gray-500',
+            // Color is now applied at render time via ProductsContext (not stored on run)
             status: 'planned'
         };
 
@@ -123,16 +129,16 @@ export default function RunEditorModal({ isOpen, onClose, onSave, initialRun = n
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Product (SKU)</label>
                                                 <div className="grid grid-cols-2 gap-2 mt-1">
-                                                    {SKUS.map(sku => (
+                                                    {skuList.map(sku => (
                                                         <div
-                                                            key={sku.id}
-                                                            onClick={() => setFormData({ ...formData, sku: sku.id })}
-                                                            className={`cursor-pointer p-2 rounded-md border text-center text-sm font-bold transition-all ${formData.sku === sku.id
-                                                                    ? 'ring-2 ring-indigo-500 border-transparent bg-indigo-50 text-indigo-700'
-                                                                    : 'border-gray-200 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-gray-200'
+                                                            key={sku}
+                                                            onClick={() => setFormData({ ...formData, sku: sku })}
+                                                            className={`cursor-pointer p-2 rounded-md border text-center text-sm font-bold transition-all ${formData.sku === sku
+                                                                ? 'ring-2 ring-indigo-500 border-transparent bg-indigo-50 text-indigo-700'
+                                                                : 'border-gray-200 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-gray-200'
                                                                 }`}
                                                         >
-                                                            {sku.id}
+                                                            {sku}
                                                         </div>
                                                     ))}
                                                 </div>

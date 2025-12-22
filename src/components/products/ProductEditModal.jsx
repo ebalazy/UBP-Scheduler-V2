@@ -29,8 +29,9 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                     material_code: product.material_code || '',
                     color_tag: product.color_tag || '#3B82F6',
                     bottles_per_case: product.bottles_per_case || 24,
-                    cases_per_pallet: product.cases_per_pallet || 100, // FG Pallet
-                    bottles_per_truck: product.bottles_per_truck || 100000, // Raw Material Count
+                    cases_per_pallet: product.cases_per_pallet || 100,
+                    bottles_per_truck: product.bottles_per_truck || 100000,
+                    pallets_per_truck: product.pallets_per_truck || 22,
                     lead_time_days: product.lead_time_days !== null && product.lead_time_days !== undefined ? product.lead_time_days : 2,
                     safety_stock_loads: product.safety_stock_loads !== null && product.safety_stock_loads !== undefined ? product.safety_stock_loads : 6,
                     lines: product.production_settings?.length > 0
@@ -42,10 +43,11 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                     name: '',
                     description: '',
                     material_code: '',
-                    color_tag: '#3B82F6', // Default Blue
+                    color_tag: '#3B82F6',
                     bottles_per_case: 24,
                     cases_per_pallet: 100,
                     bottles_per_truck: 100000,
+                    pallets_per_truck: 22,
                     lead_time_days: 2,
                     safety_stock_loads: 6,
                     lines: [{ line_name: 'Line 1', production_rate: 2500 }]
@@ -88,10 +90,11 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                 name: formData.name,
                 description: formData.description,
                 material_code: formData.material_code || null,
-                // color_tag: formData.color_tag, // Column missing in DB, temporarily disabling
+                color_tag: formData.color_tag,
                 bottles_per_case: Number(formData.bottles_per_case),
                 bottles_per_truck: Number(formData.bottles_per_truck),
                 cases_per_pallet: Number(formData.cases_per_pallet),
+                pallets_per_truck: Number(formData.pallets_per_truck),
                 lead_time_days: Number(formData.lead_time_days),
                 safety_stock_loads: Number(formData.safety_stock_loads),
                 user_id: user.id
@@ -176,7 +179,7 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                                             disabled={readOnly}
                                             className="h-9 w-12 rounded cursor-pointer border-0 p-0 disabled:opacity-50"
                                         />
-                                        <span className="text-xs text-gray-400">Calendar Tag</span>
+                                        <span className="text-xs text-gray-400">Schedule Color</span>
                                     </div>
                                 </div>
                                 <div className="col-span-2">
@@ -303,6 +306,22 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave, rea
                                     <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">units / truck</span>
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-1">Total quantity of empty bottles/cans on a single full truckload.</p>
+                            </div>
+                            <div className="mt-4">
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pallets Per Truck</label>
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="number"
+                                        required
+                                        min="1"
+                                        value={formData.pallets_per_truck}
+                                        onChange={e => setFormData({ ...formData, pallets_per_truck: e.target.value })}
+                                        disabled={readOnly}
+                                        className="w-24 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 text-sm font-bold disabled:opacity-50"
+                                    />
+                                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">pallets / truck</span>
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-1">Number of pallets per full truckload (for yard inventory calculations).</p>
                             </div>
                         </div>
 

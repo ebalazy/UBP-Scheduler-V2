@@ -26,7 +26,8 @@ export default function MorningReconciliationModal({
     const specs = bottleDefinitions[state.selectedSize];
     const bottlesPerTruck = specs?.bottlesPerTruck || 20000;
     const bottlesPerPallet = (specs?.bottlesPerCase || 12) * (specs?.casesPerPallet || 100);
-    const palletsPerTruck = bottlesPerTruck / bottlesPerPallet;
+    // Use palletsPerTruck from DB specs (consistent with ProductsContext)
+    const palletsPerTruck = specs?.palletsPerTruck || 22;
 
     const [step, setStep] = useState(1);
 

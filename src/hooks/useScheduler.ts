@@ -92,9 +92,10 @@ export function useScheduler() {
             for (let i = 0; i < requiredDailyLoads; i++) {
                 const arrivalDecimal = currentHour + (hoursPerTruck * i);
                 const normalizedDecimal = arrivalDecimal % 24;
-                const h = Math.round(normalizedDecimal);
+                // Extract hours and minutes properly
+                const h = Math.floor(normalizedDecimal);
                 const safeH = h === 24 ? 0 : h;
-                const m = 0;
+                const m = Math.round((normalizedDecimal - h) * 60);
                 const timeStr = `${safeH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 
                 truckSchedule.push({

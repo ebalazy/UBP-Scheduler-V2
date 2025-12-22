@@ -52,7 +52,9 @@ export const calculateMRP = ({
     }, 0);
 
     // 2. Adjust for Downtime
-    const lostProductionCases = downtimeHours * productionRate;
+    // Note: productionRate is in bottles/hour, convert to cases/hour for consistency
+    const casesPerHour = productionRate / bottlesPerCase;
+    const lostProductionCases = downtimeHours * casesPerHour;
     const effectiveScheduledCases = Math.max(0, totalScheduledCases - lostProductionCases);
 
     // 3. Helper: Get Daily Trucks (Source of Truth Logic)
@@ -96,8 +98,8 @@ export const calculateMRP = ({
         // Simple diff in days, assuming mostly linear time (not dealing with timezones heavily here as strings are ISO YYYY-MM-DD)
         const d1 = new Date(inventoryAnchor.date);
         const d2 = new Date(todayStr);
-        const diffTime = d2 - d1;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const diffTime = Number(d2) - Number(d1);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // Use floor for accurate day count
 
         if (diffDays > 0 && diffDays < 365) {
             for (let i = 0; i < diffDays; i++) {
@@ -116,7 +118,8 @@ export const calculateMRP = ({
                 // Pallets gained = Trucks * PalletsPerTruck
                 // Pallets lost = CasesProduced / CasesPerPallet
 
-                const palletsPerTruck = (bottlesPerTruck / bottlesPerCase) / casesPerPallet;
+                // Use palletsPerTruck from specs (DB value) or derive as fallback
+                const palletsPerTruck = specs.palletsPerTruck || ((bottlesPerTruck / bottlesPerCase) / casesPerPallet);
                 const dInboundPallets = dInboundTrucks * palletsPerTruck;
                 const dDemandPallets = dDemandCases / casesPerPallet;
 
@@ -196,15 +199,8 @@ export const calculateMRP = ({
     const inboundBottlesWithinLeadTime = inboundWithinLeadTime * bottlesPerTruck;
     const availableInventory = inventoryBottles + yardBottles + inboundBottlesWithinLeadTime;
 
-    console.log('[MRP DEBUG] Step 1: Inventory Calc', {
-        todayStr,
-        leadTimeDays,
-        inventoryBottles,
-        yardBottles,
-        inboundWithinLeadTime,
-        inboundBottlesWithinLeadTime,
-        availableInventory
-    });
+    // [PERF] Debug logging removed for production
+    // console.log('[MRP DEBUG] Step 1: Inventory Calc', { todayStr, leadTimeDays, inventoryBottles, yardBottles, inboundWithinLeadTime, inboundBottlesWithinLeadTime, availableInventory });
 
     // TRUE MRP: Calculate demand within lead time window
     let demandWithinLeadTime = 0;
@@ -217,13 +213,8 @@ export const calculateMRP = ({
     // Total material need = demand to fulfill + safety buffer to maintain
     const totalMaterialNeed = demandWithinLeadTime + safetyTarget;
 
-    console.log('[MRP DEBUG] Step 2: Demand & Need Calc', {
-        demandWithinLeadTime,
-        safetyTarget,
-        totalMaterialNeed,
-        availableInventory,
-        deficit: totalMaterialNeed - availableInventory
-    });
+    // [PERF] Debug logging removed for production
+    // console.log('[MRP DEBUG] Step 2: Demand & Need Calc', { demandWithinLeadTime, safetyTarget, totalMaterialNeed, availableInventory, deficit: totalMaterialNeed - availableInventory });
 
     let trucksToOrder = 0;
     let trucksToCancel = 0;
@@ -231,7 +222,7 @@ export const calculateMRP = ({
     if (availableInventory < totalMaterialNeed) {
         // Order to cover: (demand within lead time + safety stock) - available inventory
         trucksToOrder = Math.ceil((totalMaterialNeed - availableInventory) / bottlesPerTruck);
-        console.log('[MRP DEBUG] Step 3: ORDER Decision', { trucksToOrder, reason: 'availableInventory < totalMaterialNeed' });
+        // [PERF] console.log('[MRP DEBUG] Step 3: ORDER Decision', { trucksToOrder, reason: 'availableInventory < totalMaterialNeed' });
     } else if (availableInventory > safetyTarget + demandWithinLeadTime + bottlesPerTruck) {
         // Only suggest cancellations if we have excess AVAILABLE inventory (not just distant future supply)
         // Must exceed: safety stock + demand within lead time + 1 extra truck buffer
@@ -241,12 +232,7 @@ export const calculateMRP = ({
                 Math.floor(immediateExcess / bottlesPerTruck),
                 totalIncomingTrucks
             );
-            console.log('[MRP DEBUG] Step 3: CANCEL Decision', {
-                trucksToCancel,
-                immediateExcess,
-                totalIncomingTrucks,
-                reason: 'availableInventory > safetyTarget + demandWithinLeadTime + bottlesPerTruck'
-            });
+            // [PERF] console.log('[MRP DEBUG] Step 3: CANCEL Decision', { trucksToCancel, immediateExcess, totalIncomingTrucks });
         }
     }
 
