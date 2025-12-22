@@ -5,7 +5,7 @@ import packageJson from './package.json'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/UBP-Scheduler-V2/',
+  base: '/ubp/',
   define: {
     'import.meta.env.PACKAGE_VERSION': JSON.stringify(packageJson.version)
   }
